@@ -29,6 +29,7 @@
 
 #include <sys/queue.h>
 #include <sys/tree.h>
+#include <arpa/inet.h>
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -48,13 +49,13 @@
 #include "wire_proto.h"
 #include "bulb.h"
 #include "gateway.h"
-#include "discovery.h"
+#include "broadcast.h"
 #include "version.h"
 #include "lifxd.h"
 
 struct lifxd_opts lifxd_opts = {
     .foreground = false,
-    .master_host = NULL,
+    .log_timestamps = true,
     .master_port = 56700,
     .verbosity = LIFXD_DEBUG
 }; 
@@ -64,12 +65,26 @@ struct event_base *lifxd_ev_base = NULL;
 void
 lifxd_cleanup(void)
 {
-    lifxd_discovery_stop();
+    lifxd_broadcast_close();
     lifxd_gateway_close_all();
     event_base_free(lifxd_ev_base);
 #if LIBEVENT_VERSION_NUMBER >= 0x02010100
     libevent_global_shutdown();
 #endif
+}
+
+short
+lifxd_sockaddrport(const struct sockaddr_storage *peer)
+{
+    assert(peer);
+
+    if (peer->ss_family == AF_INET) {
+        const struct sockaddr_in *in_peer = (const struct sockaddr_in *)peer;
+        return ntohs(in_peer->sin_port);
+    } else {
+        const struct sockaddr_in6 *in6_peer = (const struct sockaddr_in6 *)peer;
+        return ntohs(in6_peer->sin6_port);
+    }
 }
 
 static void
@@ -115,8 +130,8 @@ static void
 lifxd_usage(const char *progname)
 {
     printf(
-        "Usage: %s [-m master_bulb_host] [-p master_bulb_port] "
-        "[-v debug|info|warning|error] [-f] [-h] [-V]\n",
+        "Usage: %s [-p master_bulb_port] "
+        "[-v debug|info|warning|error] [-f] [-t] [-h] [-V]\n",
         progname
     );
     exit(0);
@@ -125,34 +140,35 @@ lifxd_usage(const char *progname)
 int
 main(int argc, char *argv[])
 {
-    static const struct option opts[] = {
-        {"foreground",  no_argument,       NULL, 'f'},
-        {"help",        no_argument,       NULL, 'h'},
-        {"master-host", required_argument, NULL, 'm'},
-        {"master-port", required_argument, NULL, 'p'},
-        {"verbosity",   required_argument, NULL, 'v'},
-        {"version",     no_argument,       NULL, 'V'},
-        {NULL,          0,                 NULL, 0}
+    static const struct option long_opts[] = {
+        {"foreground",      no_argument,       NULL, 'f'},
+        {"no-timestamps",   no_argument,       NULL, 't'},
+        {"help",            no_argument,       NULL, 'h'},
+        {"master-port",     required_argument, NULL, 'p'},
+        {"verbosity",       required_argument, NULL, 'v'},
+        {"version",         no_argument,       NULL, 'V'},
+        {NULL,              0,                 NULL, 0}
     };
+    const char short_opts[] = "fthp:v:V";
 
-    for (int rv = getopt_long(argc, argv, "fhm:p:v:V", opts, NULL);
+    for (int rv = getopt_long(argc, argv, short_opts, long_opts, NULL);
          rv != -1;
-         rv = getopt_long(argc, argv, "fh:p:v:V", opts, NULL)) {
+         rv = getopt_long(argc, argv, short_opts, long_opts, NULL)) {
         switch (rv) {
         case 'f':
             lifxd_opts.foreground = true;
-            break ;
+            break;
+        case 't':
+            lifxd_opts.log_timestamps = false;
+            break;
         case 'h':
             lifxd_usage(argv[0]);
-        case 'm':
-            lifxd_opts.master_host = optarg;
-            break ;
         case 'p':
             errno = 0;
             long port = strtol(optarg, NULL, 10);
             if (!errno && port <= UINT16_MAX && port > 0) {
                 lifxd_opts.master_port = port;
-                break ;
+                break;
             }
             lifxd_errx(
                 1, "The master port must be between 1 and %d", UINT16_MAX
@@ -164,13 +180,13 @@ main(int argc, char *argv[])
                 };
                 if (!strcasecmp(optarg, verbose_levels[i])) {
                     lifxd_opts.verbosity = i;
-                    break ;
+                    break;
                 }
                 if (++i == LIFXD_ARRAY_SIZE(verbose_levels)) {
                     lifxd_errx(1, "Unknown verbosity level: %s", optarg);
                 }
             }
-            break ;
+            break;
         case 'V':
             printf("%s v%s\n", argv[0], LIFXD_VERSION);
             return 0;
@@ -182,17 +198,11 @@ main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    lifxd_gateway_load_packet_infos_map();
     lifxd_configure_libevent();
     lifxd_configure_signal_handling();
 
-    if (lifxd_opts.master_host) {
-        struct lifxd_gateway *gw = lifxd_gateway_open(
-            lifxd_opts.master_host, lifxd_opts.master_port, NULL
-        );
-        if (!gw)
-            lifxd_errx(1, "no bulb to connect to");
-    } else if (!lifxd_discovery_start()) {
+    lifxd_wire_load_packet_infos_map();
+    if (!lifxd_broadcast_setup() || !lifxd_broadcast_discovery()) {
         lifxd_err(1, "can't start auto discovery");
     }
 

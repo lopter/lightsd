@@ -29,8 +29,6 @@
 
 #pragma once
 
-#pragma pack(push, 1)
-
 typedef uint16_t uint16le_t;
 typedef uint16_t uint16be_t;
 typedef uint32_t uint32le_t;
@@ -40,21 +38,47 @@ typedef uint64_t uint64be_t;
 
 enum { LIFXD_ADDR_LENGTH = 6 };
 
+#pragma pack(push, 1)
+
 struct lifxd_packet_header {
-    uint16le_t  size;
-    uint16be_t  protocol;
-    uint8_t     reserved1[4];
-    uint8_t     bulb_addr[LIFXD_ADDR_LENGTH];
-    uint8_t     reserved2[2];
-    uint8_t     gw_addr[LIFXD_ADDR_LENGTH];
-    uint8_t     reserved3[2];
-    uint64be_t  timestamp;
-    uint16le_t  packet_type;
-    uint8_t     reserved4[2];
+    //! Packet size including the headers (i.e: this structure).
+    uint16le_t      size;
+    struct {
+        //! Protocol version should be LIFXD_LIFX_PROTOCOL_V1.
+        uint16le_t  version:12;
+        //! True when the target field holds a device address.
+        uint16le_t  addressable:1;
+        //! True when the target field holds tags.
+        uint16le_t  tagged:1;
+        //! LIFX internal use should be 0.
+        uint16le_t  origin:2;
+    }               protocol;
+    //! This seems to be for LIFX internal use only.
+    uint32le_t      source;
+    union {
+        //! All targeted tags ORed together.
+        uint64le_t  tags;
+        //! Address of the targeted device.
+        uint8_t     device_addr[LIFXD_ADDR_LENGTH];
+    }               target;
+    uint8_t         site[LIFXD_ADDR_LENGTH];
+    struct {
+        //! True when a response is required, called acknowledge in lifx-gem...
+        uint8_t     response_required:1;
+        //! True when an acknowledgement is required, no idea what it means.
+        uint8_t     ack_required:1;
+        uint8_t     reserved:6;
+    }               flags;
+    //! Wrap-around sequence number, LIFX internal use.
+    uint8_t         seqn;
+    uint64le_t      timestamp;
+    uint16le_t      packet_type;
+    uint8_t         reserved[2];
 };
 
 enum { LIFXD_PACKET_HEADER_SIZE = sizeof(struct lifxd_packet_header) };
-enum { LIFXD_PROTOCOL_VERSION = 0x54 };
+
+enum { LIFXD_LIFX_PROTOCOL_V1 = 1024 };
 
 // Let's define a maximum packet size just in case somebody sends us weird
 // headers:
@@ -143,15 +167,57 @@ struct lifxd_packet_pan_gateway {
     uint32le_t  port;
 };
 
+enum lifxd_target_type {
+    LIFXD_TARGET_SITE,
+    LIFXD_TARGET_TAGS,
+    LIFXD_TARGET_DEVICE,
+    LIFXD_TARGET_ALL_DEVICES
+};
+
+#pragma pack(pop)
+
+struct lifxd_gateway;
+
+struct lifxd_packet_infos {
+    RB_ENTRY(lifxd_packet_infos)    link;
+    const char                      *name;
+    enum lifxd_packet_type          type;
+    unsigned                        size;
+    void                            (*decode)(void *);
+    void                            (*encode)(void *);
+    void                            (*handle)(struct lifxd_gateway *,
+                                              const struct lifxd_packet_header *,
+                                              const void *);
+};
+RB_HEAD(lifxd_packet_infos_map, lifxd_packet_infos);
+
+static inline int
+lifxd_packet_infos_cmp(struct lifxd_packet_infos *a,
+                       struct lifxd_packet_infos *b)
+{
+    return a->type - b->type;
+}
+
+union lifxd_target {
+    uint64_t        tags;
+    const uint8_t   *addr; //! site or device address
+};
+
+extern union lifxd_target LIFXD_UNSPEC_TARGET;
+
+const struct lifxd_packet_infos *lifxd_wire_get_packet_infos(enum lifxd_packet_type);
+void lifxd_wire_load_packet_infos_map(void);
+
+const struct lifxd_packet_infos *lifxd_wire_setup_header(struct lifxd_packet_header *,
+                                                         enum lifxd_target_type,
+                                                         union lifxd_target,
+                                                         const uint8_t *,
+                                                         enum lifxd_packet_type);
 void lifxd_wire_decode_header(struct lifxd_packet_header *);
 void lifxd_wire_encode_header(struct lifxd_packet_header *);
-void lifxd_wire_dump_header(const struct lifxd_packet_header *);
-void lifxd_wire_encode_packet(void *, enum lifxd_packet_type);
 
 void lifxd_wire_decode_pan_gateway(struct lifxd_packet_pan_gateway *);
 void lifxd_wire_encode_pan_gateway(struct lifxd_packet_pan_gateway *);
 void lifxd_wire_decode_light_status(struct lifxd_packet_light_status *);
 void lifxd_wire_encode_light_status(struct lifxd_packet_light_status *);
 void lifxd_wire_decode_power_state(struct lifxd_packet_power_state *);
-
-#pragma pack(pop)

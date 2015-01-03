@@ -29,58 +29,51 @@
 
 #pragma once
 
+// Let's start with something simple for now, in the future this will need to
+// account for each gateway response time. According to my own tests,
+// aggressively polling a bulb doesn't raise it's consumption at all (it's
+// interesting to note that a turned off bulb still draw about 2W in ZigBee and
+// about 3W in WiFi).
+enum { LIFXD_GATEWAY_REFRESH_INTERVAL_MSEC = 100 };
+
+// In the meantime skip a refresh if we have too many bytes in our write buffer:
+enum { LIFXD_GATEWAY_WRITE_HIGH_WATERMARK = 256 };
+
 struct lifxd_gateway {
     LIST_ENTRY(lifxd_gateway)   link;
-    char                        *hostname;
+    struct lifxd_bulb_list      bulbs;
+    // Multiple gateways can share the same site (that happens when bulbs are
+    // far away enough that ZigBee can't be used). Moreover the SET_PAN_GATEWAY
+    // packet doesn't include the device address in the header (i.e: site and
+    // device_addr have the same value) so we have no choice but to use the
+    // remote ip address to identify a gateway:
+    struct sockaddr_storage     peer;
+    char                        ip_addr[INET6_ADDRSTRLEN];
     uint16_t                    port;
-    struct bufferevent          *io;
-    uint8_t                     addr[LIFXD_ADDR_LENGTH];
-    struct lifxd_packet_header  cur_hdr;
-    unsigned                    cur_hdr_offset;
-    void                        *cur_pkt;
-    unsigned                    cur_pkt_offset;
-    unsigned                    cur_pkt_size;
+    uint8_t                     site[LIFXD_ADDR_LENGTH];
+    evutil_socket_t             socket;
+    struct event                *write_ev;
+    struct evbuffer             *write_buf;
+    struct event                *refresh_ev;
 };
 LIST_HEAD(lifxd_gateway_list, lifxd_gateway);
 
-struct lifxd_packet_infos {
-    RB_ENTRY(lifxd_packet_infos)    link;
-    const char                      *name;
-    enum lifxd_packet_type          type;
-    unsigned                        size;
-    void                            (*decode)(void *);
-    void                            (*encode)(void *);
-    void                            (*handle)(struct lifxd_gateway *,
-                                              const struct lifxd_packet_header *,
-                                              const void *);
-};
-RB_HEAD(lifxd_packet_infos_map, lifxd_packet_infos);
-
-static inline int
-lifxd_packet_infos_cmp(struct lifxd_packet_infos *a,
-                       struct lifxd_packet_infos *b)
-{
-    return a->type - b->type;
-}
-
-void lifxd_gateway_load_packet_infos_map(void);
-const struct lifxd_packet_infos *lifxd_gateway_get_packet_infos(enum lifxd_packet_type);
-
-struct lifxd_gateway *lifxd_gateway_get(const uint8_t *);
-struct lifxd_gateway *lifxd_gateway_open(const char *,
-                                         uint16_t,
+struct lifxd_gateway *lifxd_gateway_get(const struct sockaddr_storage *);
+struct lifxd_gateway *lifxd_gateway_open(const struct sockaddr_storage *,
                                          const uint8_t *);
 void lifxd_gateway_close_all(void);
 
-void lifxd_gateway_get_pan_gateway(struct lifxd_gateway *);
+void lifxd_gateway_send_packet(struct lifxd_gateway *,
+                               const struct lifxd_packet_header *,
+                               const void *,
+                               int);
+
 void lifxd_gateway_handle_pan_gateway(struct lifxd_gateway *,
                                       const struct lifxd_packet_header *,
                                       const struct lifxd_packet_pan_gateway *);
-void lifxd_gateway_get_light_status(struct lifxd_gateway *);
 void lifxd_gateway_handle_light_status(struct lifxd_gateway *,
                                        const struct lifxd_packet_header *,
                                        const struct lifxd_packet_light_status *);
-
 void lifxd_gateway_handle_power_state(struct lifxd_gateway *,
                                       const struct lifxd_packet_header *,
                                       const struct lifxd_packet_power_state *);

@@ -37,27 +37,32 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <event2/util.h>
+
 #include "wire_proto.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "lifxd.h"
 
-static struct lifxd_bulb_list lifxd_bulbs = LIST_HEAD_INITIALIZER(&lifxd_bulbs);
+static struct lifxd_bulb_map lifxd_bulbs_table =
+    RB_INITIALIZER(&lifxd_bulbs_by_addr);
+
+RB_GENERATE_STATIC(
+    lifxd_bulb_map,
+    lifxd_bulb,
+    link,
+    lifxd_bulb_cmp
+);
 
 struct lifxd_bulb *
 lifxd_bulb_get(struct lifxd_gateway *gw, const uint8_t *addr)
 {
     assert(gw);
+    assert(addr);
 
-    struct lifxd_bulb *bulb, *next_bulb;
-    LIST_FOREACH_SAFE(bulb, &lifxd_bulbs, link, next_bulb) {
-        if (bulb->gw == gw
-            && (!addr || !memcmp(bulb->addr, addr, sizeof(bulb->addr)))) {
-            return bulb;
-        }
-    }
-
-    return NULL;
+    struct lifxd_bulb bulb;
+    memcpy(bulb.addr, addr, sizeof(bulb.addr));
+    return RB_FIND(lifxd_bulb_map, &lifxd_bulbs_table, &bulb);
 }
 
 struct lifxd_bulb *
@@ -74,27 +79,7 @@ lifxd_bulb_open(struct lifxd_gateway *gw, const uint8_t *addr)
 
     bulb->gw = gw;
     memcpy(bulb->addr, addr, sizeof(bulb->addr));
-    LIST_INSERT_HEAD(&lifxd_bulbs, bulb, link);
-
-    return bulb;
-}
-
-struct lifxd_bulb *
-lifxd_bulb_get_or_open(struct lifxd_gateway *gw, const uint8_t *addr)
-{
-    assert(gw);
-    assert(addr);
-
-    struct lifxd_bulb *bulb = lifxd_bulb_get(gw, addr);
-    if (!bulb) {
-        bulb = lifxd_bulb_open(gw, addr);
-        if (bulb) {
-            lifxd_info(
-                "discovered new bulb %s on [%s]:%hu",
-                lifxd_addrtoa(addr), gw->hostname, gw->port
-            );
-        }
-    }
+    RB_INSERT(lifxd_bulb_map, &lifxd_bulbs_table, bulb);
 
     return bulb;
 }
@@ -105,13 +90,29 @@ lifxd_bulb_close(struct lifxd_bulb *bulb)
     assert(bulb);
     assert(bulb->gw);
 
-    LIST_REMOVE(bulb, link);
+    RB_REMOVE(lifxd_bulb_map, &lifxd_bulbs_table, bulb);
     lifxd_info(
         "closed bulb \"%.*s\" on [%s]:%hu",
         sizeof(bulb->status.label),
         bulb->status.label,
-        bulb->gw->hostname,
+        bulb->gw->ip_addr,
         bulb->gw->port
     );
     free(bulb);
+}
+
+void
+lifxd_bulb_set_light_status(struct lifxd_bulb *bulb,
+                            const struct lifxd_light_status *status)
+{
+    assert(bulb);
+    assert(status);
+    memcpy(&bulb->status, status, sizeof(bulb->status));
+}
+
+void
+lifxd_bulb_set_power_state(struct lifxd_bulb *bulb, uint16_t power)
+{
+    assert(bulb);
+    bulb->status.power = power;
 }

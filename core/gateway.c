@@ -30,294 +30,218 @@
 #include <sys/queue.h>
 #include <sys/tree.h>
 #include <assert.h>
+#include <endian.h>
 #include <err.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
-#include <event2/bufferevent.h>
 #include <event2/util.h>
 
 #include "wire_proto.h"
 #include "bulb.h"
 #include "gateway.h"
-#include "discovery.h"
+#include "broadcast.h"
 #include "lifxd.h"
 
 static struct lifxd_gateway_list lifxd_gateways = \
     LIST_HEAD_INITIALIZER(&lifxd_gateways);
 
-static struct lifxd_packet_infos_map lifxd_packet_infos = \
-    RB_INITIALIZER(&lifxd_packets_infos);
-
-RB_GENERATE_STATIC(
-    lifxd_packet_infos_map,
-    lifxd_packet_infos,
-    link,
-    lifxd_packet_infos_cmp
-);
-
-void
-lifxd_gateway_load_packet_infos_map(void)
-{
-#define DECODER(x)  ((void (*)(void *))(x))
-#define ENCODER(x)  ((void (*)(void *))(x))
-#define HANDLER(x)                                  \
-    ((void (*)(struct lifxd_gateway *,              \
-               const struct lifxd_packet_header *,  \
-               const void *))(x))
-
-    static struct lifxd_packet_infos packet_table[] = {
-        {
-            .name = "GET_PAN_GATEWAY",
-            .type = LIFXD_GET_PAN_GATEWAY
-        },
-        {
-            .name = "PAN_GATEWAY",
-            .type = LIFXD_PAN_GATEWAY,
-            .size = sizeof(struct lifxd_packet_pan_gateway),
-            .decode = DECODER(lifxd_wire_decode_pan_gateway),
-            .encode = ENCODER(lifxd_wire_encode_pan_gateway),
-            .handle = HANDLER(lifxd_gateway_handle_pan_gateway)
-        },
-        {
-            .name = "LIGHT_STATUS",
-            .type = LIFXD_LIGHT_STATUS,
-            .size = sizeof(struct lifxd_packet_light_status),
-            .decode = DECODER(lifxd_wire_decode_light_status),
-            .encode = ENCODER(lifxd_wire_encode_light_status),
-            .handle = HANDLER(lifxd_gateway_handle_light_status)
-        },
-        {
-            .name = "POWER_STATE",
-            .type = LIFXD_POWER_STATE,
-            .size = sizeof(struct lifxd_packet_power_state),
-            .decode = DECODER(lifxd_wire_decode_power_state),
-            .handle = HANDLER(lifxd_gateway_handle_power_state)
-        }
-    };
-
-    for (int i = 0; i != LIFXD_ARRAY_SIZE(packet_table); ++i) {
-        RB_INSERT(
-            lifxd_packet_infos_map, &lifxd_packet_infos, &packet_table[i]
-        );
-    }
-}
-
-const struct lifxd_packet_infos *
-lifxd_gateway_get_packet_infos(enum lifxd_packet_type packet_type)
-{
-    struct lifxd_packet_infos pkt_infos = { .type = packet_type };
-    return RB_FIND(lifxd_packet_infos_map, &lifxd_packet_infos, &pkt_infos);
-}
-
 static void
 lifxd_gateway_close(struct lifxd_gateway *gw)
 {
     assert(gw);
-    assert(gw->io);
 
-    int sockfd = bufferevent_getfd(gw->io);
-    if (sockfd != -1) {
-        evutil_closesocket(sockfd);
+    event_del(gw->refresh_ev);
+    event_del(gw->write_ev);
+    if (gw->socket != -1) {
+        evutil_closesocket(gw->socket);
         LIST_REMOVE(gw, link);
     }
-    bufferevent_free(gw->io);
-    for (struct lifxd_bulb *bulb = lifxd_bulb_get(gw, NULL);
-         bulb;
-         bulb = lifxd_bulb_get(gw, NULL)) {
+    event_free(gw->refresh_ev);
+    event_free(gw->write_ev);
+    evbuffer_free(gw->write_buf);
+    struct lifxd_bulb *bulb, *next_bulb;
+    SLIST_FOREACH_SAFE(bulb, &gw->bulbs, link_by_gw, next_bulb) {
         lifxd_bulb_close(bulb);
     }
+
     lifxd_info(
-        "connection with gateway bulb [%s]:%hu closed",
-        gw->hostname,
-        gw->port
+        "connection with gateway bulb [%s]:%hu closed", gw->ip_addr, gw->port
     );
-    free(gw->hostname);
     free(gw);
 }
 
 static void
-lifxd_gateway_event_callback(struct bufferevent *bev, short events, void *ctx)
+lifxd_gateway_write_callback(evutil_socket_t socket, short events, void *ctx)
 {
+    (void)socket;
+
     assert(ctx);
 
     struct lifxd_gateway *gw = (struct lifxd_gateway *)ctx;
-    if (events & BEV_EVENT_CONNECTED) {
-        lifxd_info(
-            "connected to gateway bulb: [%s]:%hu", gw->hostname, gw->port
+    if (events & EV_TIMEOUT) {  // Not sure how that could happen in UDP but eh.
+        lifxd_warn(
+            "lost connection with gateway bulb [%s]:%hu", gw->ip_addr, gw->port
         );
-        LIST_INSERT_HEAD(&lifxd_gateways, gw, link);
-        bufferevent_enable(bev, EV_READ|EV_WRITE|EV_TIMEOUT);
-    } else if (events & (BEV_EVENT_ERROR|BEV_EVENT_EOF)) {
-        if (events & BEV_EVENT_ERROR) {
-            int gai_error = bufferevent_socket_get_dns_error(gw->io);
-            if (gai_error) {
-                lifxd_warnx(
-                    "can't connect to %s: %s",
-                    gw->hostname,
-                    evutil_gai_strerror(gai_error)
-                );
-            } else {
-                lifxd_warn(
-                    "lost connection with gateway bulb [%s]:%hu",
-                    gw->hostname,
-                    gw->port
-                );
-            }
-        }
         lifxd_gateway_close(gw);
-        if (!lifxd_discovery_start()) {
+        if (!lifxd_broadcast_discovery()) {
             lifxd_err(1, "can't start auto discovery");
+        }
+        return;
+    }
+    if (events & EV_WRITE) {
+        if (evbuffer_write(gw->write_buf, gw->socket) == -1 && errno != EAGAIN) {
+            lifxd_warn("can't write to [%s]:%hu", gw->ip_addr, gw->port);
+            lifxd_gateway_close(gw);
+            if (!lifxd_broadcast_discovery()) {
+                lifxd_err(1, "can't start auto discovery");
+            }
+            return;
+        }
+        if (!evbuffer_get_length(gw->write_buf)) {
+            event_del(gw->write_ev);
         }
     }
 }
 
 static void
-lifxd_gateway_data_read_callback(struct bufferevent *bev, void *ctx)
+lifxd_gateway_refresh_callback(evutil_socket_t socket, short events, void *ctx)
 {
+    (void)socket;
+    (void)events;
+
     assert(ctx);
 
-    const struct lifxd_packet_infos *pkt_infos = NULL;
     struct lifxd_gateway *gw = (struct lifxd_gateway *)ctx;
-    struct lifxd_packet_header *cur_hdr = &gw->cur_hdr;
 
-    if (gw->cur_hdr_offset != LIFXD_PACKET_HEADER_SIZE) {
-        gw->cur_hdr_offset += bufferevent_read(
-            bev,
-            ((void *)cur_hdr) + gw->cur_hdr_offset,
-            LIFXD_PACKET_HEADER_SIZE - gw->cur_hdr_offset
+    int buflen = evbuffer_get_length(gw->write_buf);
+    if (buflen < LIFXD_GATEWAY_WRITE_HIGH_WATERMARK) {
+        struct lifxd_packet_header hdr;
+        union lifxd_target target = { .addr = gw->site };
+        lifxd_wire_setup_header(
+            &hdr, LIFXD_TARGET_SITE, target, gw->site, LIFXD_GET_LIGHT_STATE
         );
-        if (gw->cur_hdr_offset == LIFXD_PACKET_HEADER_SIZE) {
-            lifxd_wire_decode_header(cur_hdr);
-            lifxd_debug(
-                "received header from [%s]:%hu for packet type %#x",
-                gw->hostname, gw->port, cur_hdr->packet_type
-            );
-            gw->cur_pkt_size = cur_hdr->size - LIFXD_PACKET_HEADER_SIZE;
-            if (gw->cur_pkt_size > LIFXD_MAX_PACKET_SIZE) {
-                lifxd_warnx(
-                    "unsupported packet size %hu (max = %d, packet_type = %#x) "
-                    "from [%s]:%hu",
-                    gw->cur_pkt_size,
-                    LIFXD_MAX_PACKET_SIZE,
-                    cur_hdr->packet_type,
-                    gw->hostname,
-                    gw->port
-                );
-                goto drop_gateway;
-            }
-            if (gw->cur_pkt_size) {
-                gw->cur_pkt = calloc(1, gw->cur_pkt_size);
-                if (!gw->cur_pkt) {
-                    lifxd_warn("can't allocate memory for a packet");
-                    goto drop_gateway;
-                }
-            }
-        }
+        lifxd_debug("GET_LIGHT_STATE --> [%s]:%hu", gw->ip_addr, gw->port);
+        lifxd_gateway_send_packet(gw, &hdr, NULL, 0);
+        return;
     }
-
-    if (gw->cur_hdr_offset == LIFXD_PACKET_HEADER_SIZE) {
-        if (gw->cur_pkt_offset != gw->cur_pkt_size) {
-            gw->cur_pkt_offset += bufferevent_read(
-                bev,
-                gw->cur_pkt + gw->cur_pkt_offset,
-                gw->cur_pkt_size - gw->cur_pkt_offset
-            );
-        }
-        if (gw->cur_pkt_offset == gw->cur_pkt_size) {
-            pkt_infos = lifxd_gateway_get_packet_infos(cur_hdr->packet_type);
-            if (pkt_infos) {
-                pkt_infos->decode(gw->cur_pkt);
-                pkt_infos->handle(gw, cur_hdr, gw->cur_pkt);
-            } else {
-                lifxd_warnx("discarding unknown packet %#x from [%s]:%hu",
-                    cur_hdr->packet_type, gw->hostname, gw->port
-                );
-            }
-            free(gw->cur_pkt);
-            gw->cur_pkt = NULL;
-            gw->cur_pkt_size = 0;
-            gw->cur_pkt_offset = 0;
-            gw->cur_hdr_offset = 0;
-        }
-    }
-
-    return;
-
-drop_gateway:
-    lifxd_gateway_close(gw);
-    if (!lifxd_discovery_start()) {
-        lifxd_err(1, "can't start auto discovery");
-    }
+    lifxd_info(
+        "refresh skipped on gateway [%s]:%hu, (buflen=%d)",
+        gw->ip_addr, gw->port, buflen
+    );
 }
 
+static struct lifxd_bulb *
+lifxd_gateway_get_or_open_bulb(struct lifxd_gateway *gw, const uint8_t *bulb_addr)
+{
+    assert(gw);
+    assert(bulb_addr);
+
+    struct lifxd_bulb *bulb = lifxd_bulb_get(gw, bulb_addr);
+    if (!bulb) {
+        bulb = lifxd_bulb_open(gw, bulb_addr);
+        if (bulb) {
+            SLIST_INSERT_HEAD(&gw->bulbs, bulb, link_by_gw);
+            lifxd_info(
+                "bulb %s on [%s]:%hu",
+                lifxd_addrtoa(bulb_addr), gw->ip_addr, gw->port
+            );
+        }
+    }
+    return bulb;
+}
 
 struct lifxd_gateway *
-lifxd_gateway_open(const char *hostname, uint16_t port, const uint8_t *site)
+lifxd_gateway_open(const struct sockaddr_storage *peer, const uint8_t *site)
 {
-    assert(hostname);
-    assert(port < UINT16_MAX);
-    assert(port > 0);
-
-    if (!site) {
-        lifxd_warnx("connecting directly to a bulb isn't supported yet");
-        return NULL;
-    }
+    assert(peer);
+    assert(site);
 
     struct lifxd_gateway *gw = calloc(1, sizeof(*gw));
     if (!gw) {
         lifxd_warn("can't allocate a new gateway bulb");
         return false;
     }
-    gw->io = bufferevent_socket_new(lifxd_ev_base, -1, 0);
-    if (!gw->io) {
-        lifxd_warn("can't allocate a new gateway bulb");
-        goto bev_alloc_error;
+    gw->socket = socket(peer->ss_family, SOCK_DGRAM, IPPROTO_UDP);
+    if (gw->socket == -1) {
+        lifxd_warn("can't open a new socket");
+        goto error_socket;
     }
-    gw->hostname = strdup(hostname);
-    if (!gw->hostname) {
-        lifxd_warn("can't allocate a new gateway bulb");
-        goto hostname_alloc_error;
+    if (connect(gw->socket, (const struct sockaddr *)peer, peer->ss_len) == -1
+        || evutil_make_socket_nonblocking(gw->socket) == -1) {
+        lifxd_warn("can't open a new socket");
+        goto error_connect;
     }
-    gw->port = port;
-    memcpy(gw->addr, site, sizeof(gw->addr));
-    bufferevent_setcb(
-        gw->io,
-        lifxd_gateway_data_read_callback,
-        NULL,
-        lifxd_gateway_event_callback,
+    gw->write_ev = event_new(
+        lifxd_ev_base,
+        gw->socket,
+        EV_WRITE|EV_PERSIST,
+        lifxd_gateway_write_callback,
         gw
     );
-
-    int error = bufferevent_socket_connect_hostname(
-        gw->io, NULL, AF_UNSPEC, hostname, port
+    gw->write_buf = evbuffer_new();
+    gw->refresh_ev = event_new(
+        lifxd_ev_base,
+        -1,
+        EV_PERSIST,
+        lifxd_gateway_refresh_callback,
+        gw
     );
-    if (!error) {
-        lifxd_info("new gateway at [%s]:%hu", hostname, port);
-        return gw;
+    memcpy(&gw->peer, peer, peer->ss_len);
+    lifxd_sockaddrtoa(peer, gw->ip_addr, sizeof(gw->ip_addr));
+    gw->port = lifxd_sockaddrport(peer);
+    memcpy(gw->site, site, sizeof(gw->site));
+
+    struct timeval refresh_interval = LIFXD_MSECS_TO_TV(
+        LIFXD_GATEWAY_REFRESH_INTERVAL_MSEC
+    );
+
+    if (!gw->write_ev || !gw->write_buf || !gw->refresh_ev
+        || event_add(gw->refresh_ev, &refresh_interval) != 0) {
+        lifxd_warn("can't allocate a new gateway bulb");
+        goto error_allocate;
     }
 
-    free(gw->hostname);
-hostname_alloc_error:
-    bufferevent_free(gw->io);
-bev_alloc_error:
+    lifxd_info(
+        "gateway for site %s at [%s]:%hu",
+        lifxd_addrtoa(gw->site), gw->ip_addr, gw->port
+    );
+    LIST_INSERT_HEAD(&lifxd_gateways, gw, link);
+    return gw;
+
+error_allocate:
+    if (gw->write_ev) {
+        event_free(gw->write_ev);
+    }
+    if (gw->write_buf) {
+        evbuffer_free(gw->write_buf);
+    }
+    if (gw->refresh_ev) {
+        event_free(gw->refresh_ev);
+    }
+error_connect:
+    close(gw->socket);
+error_socket:
     free(gw);
     return NULL;
 }
 
 struct lifxd_gateway *
-lifxd_gateway_get(const uint8_t *site)
+lifxd_gateway_get(const struct sockaddr_storage *peer)
 {
-    assert(site);
+    assert(peer);
 
     struct lifxd_gateway *gw, *next_gw;
     LIST_FOREACH_SAFE(gw, &lifxd_gateways, link, next_gw) {
-        if (!memcmp(gw->addr, site, sizeof(gw->addr))) {
+        if (peer->ss_family == gw->peer.ss_family
+            && !memcmp(&gw->peer, peer, peer->ss_len)) {
             return gw;
         }
     }
@@ -335,18 +259,21 @@ lifxd_gateway_close_all(void)
 }
 
 void
-lifxd_gateway_get_pan_gateway(struct lifxd_gateway *gw)
+lifxd_gateway_send_packet(struct lifxd_gateway *gw,
+                          const struct lifxd_packet_header *hdr,
+                          const void *pkt,
+                          int pkt_size)
 {
     assert(gw);
+    assert(hdr);
+    assert(!memcmp(hdr->site, gw->site, LIFXD_ADDR_LENGTH));
 
-    struct lifxd_packet_header hdr = {
-        .size = LIFXD_PACKET_HEADER_SIZE,
-        .protocol = LIFXD_PROTOCOL_VERSION,
-        .packet_type = LIFXD_GET_PAN_GATEWAY
-    };
-    lifxd_wire_encode_header(&hdr);
-    lifxd_debug("GET_PAN_GATEWAY → [%s]:%hu", gw->hostname, gw->port);
-    bufferevent_write(gw->io, &hdr, sizeof(hdr));
+    evbuffer_add(gw->write_buf, hdr, sizeof(*hdr));
+    if (pkt) {
+        assert(pkt_size == le16toh(hdr->size) - sizeof(*hdr));
+        evbuffer_add(gw->write_buf, pkt, pkt_size);
+    }
+    event_add(gw->write_ev, NULL);
 }
 
 void
@@ -357,27 +284,11 @@ lifxd_gateway_handle_pan_gateway(struct lifxd_gateway *gw,
     assert(gw && hdr && pkt);
 
     lifxd_debug(
-        "SET_PAN_GATEWAY ← [%s]:%hu - %s gw_addr=%s",
-        gw->hostname, gw->port,
-        lifxd_addrtoa(hdr->bulb_addr),
-        lifxd_addrtoa(hdr->gw_addr)
+        "SET_PAN_GATEWAY <-- [%s]:%hu - %s site=%s",
+        gw->ip_addr, gw->port,
+        lifxd_addrtoa(hdr->target.device_addr),
+        lifxd_addrtoa(hdr->site)
     );
-    memcpy(gw->addr, &gw->cur_hdr.gw_addr, sizeof(gw->addr));
-}
-
-void
-lifxd_gateway_get_light_status(struct lifxd_gateway *gw)
-{
-    assert(gw);
-
-    struct lifxd_packet_header hdr = {
-        .size = LIFXD_PACKET_HEADER_SIZE,
-        .protocol = LIFXD_PROTOCOL_VERSION,
-        .packet_type = LIFXD_GET_LIGHT_STATE
-    };
-    lifxd_wire_encode_header(&hdr);
-    lifxd_debug("GET_LIGHT_STATE → [%s]:%hu", gw->hostname, gw->port);
-    bufferevent_write(gw->io, &hdr, sizeof(hdr));
 }
 
 void
@@ -388,19 +299,23 @@ lifxd_gateway_handle_light_status(struct lifxd_gateway *gw,
     assert(gw && hdr && pkt);
 
     lifxd_debug(
-        "SET_LIGHT_STATUS ← [%s]:%hu - %s "
+        "SET_LIGHT_STATUS <-- [%s]:%hu - %s "
         "hue=%#hx, saturation=%#hx, brightness=%#hx, "
-        "kelvin=%#hx, dim=%#hx, power=%#hx, label=%.*s, tags=%lx",
-        gw->hostname, gw->port, lifxd_addrtoa(hdr->bulb_addr),
+        "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#lx",
+        gw->ip_addr, gw->port, lifxd_addrtoa(hdr->target.device_addr),
         pkt->hue, pkt->saturation, pkt->brightness, pkt->kelvin,
         pkt->dim, pkt->power, sizeof(pkt->label), pkt->label, pkt->tags
     );
 
-    struct lifxd_bulb *bulb = lifxd_bulb_get_or_open(gw, hdr->bulb_addr);
-    if (bulb) {
-        assert(sizeof(*pkt) == sizeof(bulb->status));
-        memcpy(&bulb->status, pkt, sizeof(*pkt));
+    struct lifxd_bulb *b = lifxd_gateway_get_or_open_bulb(
+        gw, hdr->target.device_addr
+    );
+    if (!b) {
+        return;
     }
+
+    assert(sizeof(*pkt) == sizeof(b->status));
+    lifxd_bulb_set_light_status(b, (const struct lifxd_light_status *)pkt);
 }
 
 void
@@ -411,12 +326,16 @@ lifxd_gateway_handle_power_state(struct lifxd_gateway *gw,
     assert(gw && hdr && pkt);
 
     lifxd_debug(
-        "SET_POWER_STATE ← [%s]:%hu - %s power=%#hx",
-        gw->hostname, gw->port, lifxd_addrtoa(hdr->bulb_addr), pkt->power
+        "SET_POWER_STATE <-- [%s]:%hu - %s power=%#hx",
+        gw->ip_addr, gw->port, lifxd_addrtoa(hdr->target.device_addr), pkt->power
     );
 
-    struct lifxd_bulb *bulb = lifxd_bulb_get_or_open(gw, hdr->bulb_addr);
-    if (bulb) {
-        bulb->status.power = pkt->power;
+    struct lifxd_bulb *b = lifxd_gateway_get_or_open_bulb(
+        gw, hdr->target.device_addr
+    );
+    if (!b) {
+        return;
     }
+
+    lifxd_bulb_set_power_state(b, pkt->power);
 }

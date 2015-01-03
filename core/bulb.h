@@ -45,14 +45,24 @@ struct lifxd_light_status {
 #pragma pack(pop)
 
 struct lifxd_bulb {
-    LIST_ENTRY(lifxd_bulb)      link;
+    RB_ENTRY(lifxd_bulb)        link;
+    SLIST_ENTRY(lifxd_bulb)     link_by_gw;
     struct lifxd_gateway        *gw;
     uint8_t                     addr[LIFXD_ADDR_LENGTH];
     struct lifxd_light_status   status;
 };
-LIST_HEAD(lifxd_bulb_list, lifxd_bulb);
+RB_HEAD(lifxd_bulb_map, lifxd_bulb);
+SLIST_HEAD(lifxd_bulb_list, lifxd_bulb);
+
+static inline int
+lifxd_bulb_cmp(const struct lifxd_bulb *a, const struct lifxd_bulb *b)
+{
+    return memcmp(a->addr, b->addr, sizeof(a->addr));
+}
 
 struct lifxd_bulb *lifxd_bulb_get(struct lifxd_gateway *, const uint8_t *);
 struct lifxd_bulb *lifxd_bulb_open(struct lifxd_gateway *, const uint8_t *);
-struct lifxd_bulb *lifxd_bulb_get_or_open(struct lifxd_gateway *, const uint8_t *);
 void lifxd_bulb_close(struct lifxd_bulb *);
+
+void lifxd_bulb_set_light_status(struct lifxd_bulb *, const struct lifxd_light_status *);
+void lifxd_bulb_set_power_state(struct lifxd_bulb *, uint16_t);

@@ -1,7 +1,9 @@
 lifxd, a LIFX broker
 ====================
 
-lifxd acts a central point of control for your LIFX_ WiFi bulbs.
+lifxd acts a central point of control for your LIFX_ WiFi bulbs. lifxd should be
+a small, simple and fast daemon exposing an easy to use protocol inspired by how
+musicpd_ works.
 
 Having to run a daemon to control your LIFX bulbs may seem a little bit
 backward but has some advantages:
@@ -13,13 +15,11 @@ backward but has some advantages:
 - For those of you with a high paranoia factor, lifxd let you place your bulbs
   in a totally separate and closed network.
 
-lifxd aims to be modular with a small core process that handles all the
-communications with the bulbs and a higher-level plugin API.
-
 .. _LIFX: http://lifx.co/
+.. _musicpd: http://www.musicpd.org/
 
-Features
---------
+Current features
+----------------
 
 lifxd doesn't do much yet, it just discovers your bulbs and stay in sync with
 them.
@@ -31,7 +31,7 @@ The project is far from being usable right now, but I'll be happy to hear your
 feedback and share ideas.
 
 Be aware that some parts of the code aren't really clean yet: I'm more focused
-on getting things working and good abstractions.
+on getting things working and good abstractions. Testing is definitely missing.
 
 Requirements
 ------------

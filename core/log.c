@@ -27,6 +27,9 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#include <sys/tree.h>
+#include <sys/time.h>
+#include <arpa/inet.h>
 #include <assert.h>
 #include <err.h>
 #include <errno.h>
@@ -34,11 +37,54 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <event2/event.h>
 
 #include "wire_proto.h"
 #include "lifxd.h"
+
+static void
+lifxd_isotime_now(char *strbuf, int bufsz)
+{
+    assert(strbuf);
+    assert(bufsz > 0);
+
+    struct timeval now;
+    if (gettimeofday(&now, NULL) == -1) {
+        goto error;
+    }
+    struct tm tm_now;
+    if (!localtime_r(&now.tv_sec, &tm_now)) {
+        goto error;
+    }
+    // '2015-01-02T10:13:16.132222+00:00'
+    snprintf(
+        strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%d+%02ld:%02ld",
+        1900 + tm_now.tm_year, 1 + tm_now.tm_mon, tm_now.tm_mday,
+        tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec,
+        now.tv_usec, tm_now.tm_gmtoff / 60 / 60,
+        tm_now.tm_gmtoff % (60 * 60)
+    );
+    return;
+error:
+    strbuf[0] = '\0';
+}
+
+static void
+lifxd_log_header(const char *loglvl, bool showprogname)
+{
+    if (lifxd_opts.log_timestamps) {
+        char timestr[64];
+        lifxd_isotime_now(timestr, sizeof(timestr));
+        fprintf(
+            stderr, "[%s] [%s] %s",
+            timestr, loglvl, showprogname ? "lifxd: " : ""
+        );
+        return;
+    }
+    fprintf(stderr, "[%s] %s", loglvl, showprogname ? "lifxd: " : "");
+}
 
 const char *
 lifxd_addrtoa(const uint8_t *addr)
@@ -51,6 +97,22 @@ lifxd_addrtoa(const uint8_t *addr)
         addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
     );
     return str;
+}
+
+void
+lifxd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
+{
+    assert(peer);
+    assert(buf);
+    assert(buflen > 0);
+
+    if (peer->ss_family == AF_INET) {
+        const struct sockaddr_in *in_peer = (const struct sockaddr_in *)peer;
+        inet_ntop(AF_INET, &in_peer->sin_addr, buf, buflen);
+    } else {
+        const struct sockaddr_in6 *in6_peer = (const struct sockaddr_in6 *)peer;
+        inet_ntop(AF_INET6, &in6_peer->sin6_addr, buf, buflen);
+    }
 }
 
 void
@@ -68,7 +130,7 @@ _lifxd_err(void (*errfn)(int, const char *, ...),
     vsnprintf(errmsg, sizeof(errmsg), fmt, ap);
     va_end(ap);
     lifxd_cleanup();
-    fputs("[ERR]   ", stderr);
+    lifxd_log_header("ERR", false);
     errno = errsave;
     errfn(eval, errmsg);
 }
@@ -79,7 +141,7 @@ _lifxd_warn(void (*warnfn)(const char *, va_list), const char *fmt, ...)
     if (lifxd_opts.verbosity <= LIFXD_WARN) {
         va_list ap;
         va_start(ap, fmt);
-        fputs("[WARN]  ", stderr);
+        lifxd_log_header("WARN", false);
         warnfn(fmt, ap);
         va_end(ap);
     }
@@ -91,7 +153,7 @@ lifxd_info(const char *fmt, ...)
     if (lifxd_opts.verbosity <= LIFXD_INFO) {
         va_list ap;
         va_start(ap, fmt);
-        fprintf(stderr, "[INFO]  lifxd: ");
+        lifxd_log_header("INFO", true);
         vfprintf(stderr, fmt, ap);
         va_end(ap);
         fprintf(stderr, "\n");
@@ -104,7 +166,7 @@ lifxd_debug(const char *fmt, ...)
     if (lifxd_opts.verbosity <= LIFXD_DEBUG) {
         va_list ap;
         va_start(ap, fmt);
-        fprintf(stderr, "[DEBUG] lifxd: ");
+        lifxd_log_header("DEBUG", true);
         vfprintf(stderr, fmt, ap);
         va_end(ap);
         fprintf(stderr, "\n");

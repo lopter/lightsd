@@ -29,5 +29,8 @@
 
 #pragma once
 
-bool lifxd_discovery_start(void);
-void lifxd_discovery_stop(void);
+enum { LIFXD_BROADCAST_DISCOVERY_TIMEOUT_MSEC = 2000 };
+
+bool lifxd_broadcast_setup(void);
+void lifxd_broadcast_close(void);
+bool lifxd_broadcast_discovery(void);

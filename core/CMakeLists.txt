@@ -2,9 +2,9 @@ CONFIGURE_FILE(version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
 ADD_EXECUTABLE(
     lifxd
+    broadcast.c
     bulb.c
     client.c
-    discovery.c
     gateway.c
     lifxd.c
     log.c

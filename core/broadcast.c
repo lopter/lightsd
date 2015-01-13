@@ -45,6 +45,7 @@
 #include <event2/util.h>
 
 #include "wire_proto.h"
+#include "time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "broadcast.h"
@@ -54,12 +55,10 @@ static struct {
     evutil_socket_t socket;
     struct event    *read_ev;
     struct event    *write_ev;
-    struct event    *discovery_timeout_ev;
 } lifxd_broadcast_endpoint = {
     .socket = -1,
     .read_ev = NULL,
     .write_ev = NULL,
-    .discovery_timeout_ev = NULL
 };
 
 static bool
@@ -94,6 +93,7 @@ lifxd_broadcast_handle_read(void)
             return false;
         }
 
+        lifxd_time_mono_t received_at = lifxd_time_monotonic_msecs();
         char peer_addr[INET6_ADDRSTRLEN];
         lifxd_sockaddrtoa(&peer, peer_addr, sizeof(peer_addr));
         short peer_port = lifxd_sockaddrport(&peer);
@@ -120,10 +120,6 @@ lifxd_broadcast_handle_read(void)
             );
         }
         if (read.hdr.packet_type == LIFXD_GET_PAN_GATEWAY) {
-            lifxd_debug(
-                "discarding GET_PAN_GATEWAY packet from [%s]:%hu",
-                peer_addr, peer_port
-            );
             continue;
         }
 
@@ -145,16 +141,14 @@ lifxd_broadcast_handle_read(void)
         }
         struct lifxd_gateway *gw = lifxd_gateway_get(&peer);
         if (!gw && read.hdr.packet_type == LIFXD_PAN_GATEWAY) {
-            gw = lifxd_gateway_open(&peer, read.hdr.site);
+            gw = lifxd_gateway_open(&peer, read.hdr.site, received_at);
             if (!gw) {
                 lifxd_err(1, "can't allocate gateway");
-            }
-            if (event_del(lifxd_broadcast_endpoint.discovery_timeout_ev)) {
-                lifxd_err(1, "can't setup events");
             }
         }
         if (gw) {
             void *pkt = &read.buf[LIFXD_PACKET_HEADER_SIZE];
+            gw->last_pkt_at = received_at;
             pkt_infos->decode(pkt);
             pkt_infos->handle(gw, &read.hdr, pkt);
         } else {
@@ -196,11 +190,7 @@ retry:
         sizeof(lifx_addr)
     );
     if (nbytes == sizeof(get_pan_gateway)) {
-        struct timeval tv = LIFXD_MSECS_TO_TV(
-            LIFXD_BROADCAST_DISCOVERY_TIMEOUT_MSEC
-        );
-        if (event_del(lifxd_broadcast_endpoint.write_ev)
-            || event_add(lifxd_broadcast_endpoint.discovery_timeout_ev, &tv)) {
+        if (event_del(lifxd_broadcast_endpoint.write_ev)) {
             lifxd_err(1, "can't setup events");
         }
         return true;
@@ -246,25 +236,6 @@ error_reset:
     lifxd_broadcast_discovery();
 }
 
-static void
-lifxd_broadcast_discovery_timeout_event_callback(evutil_socket_t socket,
-                                                 short events,
-                                                 void *ctx)
-{
-    (void)socket;
-    (void)events;
-    (void)ctx;
-
-    lifxd_info(
-        "discovery didn't returned anything in %dms, restarting it",
-        LIFXD_BROADCAST_DISCOVERY_TIMEOUT_MSEC
-    );
-
-    if (!lifxd_broadcast_discovery()) {
-        lifxd_err(1, "can't start discovery");
-    }
-}
-
 void
 lifxd_broadcast_close(void)
 {
@@ -277,11 +248,6 @@ lifxd_broadcast_close(void)
         event_del(lifxd_broadcast_endpoint.write_ev);
         event_free(lifxd_broadcast_endpoint.write_ev);
         lifxd_broadcast_endpoint.write_ev = NULL;
-    }
-    if (lifxd_broadcast_endpoint.discovery_timeout_ev) {
-        event_del(lifxd_broadcast_endpoint.discovery_timeout_ev);
-        event_free(lifxd_broadcast_endpoint.discovery_timeout_ev);
-        lifxd_broadcast_endpoint.discovery_timeout_ev = NULL;
     }
     if (lifxd_broadcast_endpoint.socket != -1) {
         evutil_closesocket(lifxd_broadcast_endpoint.socket);
@@ -347,16 +313,8 @@ lifxd_broadcast_setup(void)
         lifxd_broadcast_event_callback,
         NULL
     );
-    lifxd_broadcast_endpoint.discovery_timeout_ev = event_new(
-        lifxd_ev_base,
-        -1,
-        EV_PERSIST,
-        lifxd_broadcast_discovery_timeout_event_callback,
-        NULL
-    );
     if (!lifxd_broadcast_endpoint.read_ev
-        || !lifxd_broadcast_endpoint.write_ev
-        || !lifxd_broadcast_endpoint.discovery_timeout_ev) {
+        || !lifxd_broadcast_endpoint.write_ev) {
         goto error;
     }
 

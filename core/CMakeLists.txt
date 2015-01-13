@@ -1,3 +1,5 @@
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
 CONFIGURE_FILE(version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
 ADD_EXECUTABLE(
@@ -8,6 +10,8 @@ ADD_EXECUTABLE(
     gateway.c
     lifxd.c
     log.c
+    ${TIME_MONOTONIC_IMPL}
+    timer.c
     wire_proto.c
 )
 

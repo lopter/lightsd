@@ -1,4 +1,4 @@
-// Copyright (c) 2014, Louis Opter <kalessin@kalessin.fr>
+// Copyright (c) 2015, Louis Opter <kalessin@kalessin.fr>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,27 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+// This is pretty much Listing 2 from:
+//
+// https://developer.apple.com/library/mac/qa/qa1398/_index.html
 
-bool lifxd_broadcast_setup(void);
-void lifxd_broadcast_close(void);
-bool lifxd_broadcast_discovery(void);
+#include <mach/mach_time.h>
+#include <sys/time.h>
+#include <assert.h>
+
+#include "time_monotonic.h"
+
+enum { MSECS_IN_NSEC = 1000000 };
+
+time_t
+lifxd_time_monotonic_msecs(void)
+{
+    static mach_timebase_info_data_t timebase = { 0, 0 };
+    if (timebase.denom == 0) {
+        mach_timebase_info(&timebase);
+    }
+
+    uint64_t time = mach_absolute_time();
+
+    return time * timebase.numer / timebase.denom / MSECS_IN_NSEC;
+}

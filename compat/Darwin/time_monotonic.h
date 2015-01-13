@@ -1,4 +1,4 @@
-// Copyright (c) 2014, Louis Opter <kalessin@kalessin.fr>
+// Copyright (c) 2015, Louis Opter <kalessin@kalessin.fr>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,6 @@
 
 #pragma once
 
-bool lifxd_broadcast_setup(void);
-void lifxd_broadcast_close(void);
-bool lifxd_broadcast_discovery(void);
+typedef time_t lifxd_time_mono_t;
+
+lifxd_time_mono_t lifxd_time_monotonic_msecs(void);

@@ -38,22 +38,24 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <time.h>
 
 #include <event2/event.h>
 #include <event2/buffer.h>
 #include <event2/util.h>
 
 #include "wire_proto.h"
+#include "time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "broadcast.h"
+#include "timer.h"
 #include "lifxd.h"
 
-static struct lifxd_gateway_list lifxd_gateways = \
+struct lifxd_gateway_list lifxd_gateways =
     LIST_HEAD_INITIALIZER(&lifxd_gateways);
 
-static void
+void
 lifxd_gateway_close(struct lifxd_gateway *gw)
 {
     assert(gw);
@@ -105,6 +107,12 @@ lifxd_gateway_write_callback(evutil_socket_t socket, short events, void *ctx)
             }
             return;
         }
+        // Callbacks are called in any order, so we keep two timers to make
+        // sure we can get the latency right, otherwise we could be compute the
+        // latency with last_pkt_at < last_req_at, which isn't true since the
+        // pkt will be for an answer the previous write:
+        gw->last_req_at = gw->next_req_at;
+        gw->next_req_at = lifxd_time_monotonic_msecs();
         if (!evbuffer_get_length(gw->write_buf)) {
             event_del(gw->write_ev);
         }
@@ -112,30 +120,25 @@ lifxd_gateway_write_callback(evutil_socket_t socket, short events, void *ctx)
 }
 
 static void
+lifxd_gateway_send_get_all_light_state(struct lifxd_gateway *gw)
+{
+    assert(gw);
+
+    struct lifxd_packet_header hdr;
+    union lifxd_target target = { .addr = gw->site };
+    lifxd_wire_setup_header(
+        &hdr, LIFXD_TARGET_SITE, target, gw->site, LIFXD_GET_LIGHT_STATE
+    );
+    lifxd_debug("GET_LIGHT_STATE --> [%s]:%hu", gw->ip_addr, gw->port);
+    lifxd_gateway_send_packet(gw, &hdr, NULL, 0);
+}
+
+static void
 lifxd_gateway_refresh_callback(evutil_socket_t socket, short events, void *ctx)
 {
     (void)socket;
     (void)events;
-
-    assert(ctx);
-
-    struct lifxd_gateway *gw = (struct lifxd_gateway *)ctx;
-
-    int buflen = evbuffer_get_length(gw->write_buf);
-    if (buflen < LIFXD_GATEWAY_WRITE_HIGH_WATERMARK) {
-        struct lifxd_packet_header hdr;
-        union lifxd_target target = { .addr = gw->site };
-        lifxd_wire_setup_header(
-            &hdr, LIFXD_TARGET_SITE, target, gw->site, LIFXD_GET_LIGHT_STATE
-        );
-        lifxd_debug("GET_LIGHT_STATE --> [%s]:%hu", gw->ip_addr, gw->port);
-        lifxd_gateway_send_packet(gw, &hdr, NULL, 0);
-        return;
-    }
-    lifxd_info(
-        "refresh skipped on gateway [%s]:%hu, (buflen=%d)",
-        gw->ip_addr, gw->port, buflen
-    );
+    lifxd_gateway_send_get_all_light_state((struct lifxd_gateway *)ctx);
 }
 
 static struct lifxd_bulb *
@@ -159,7 +162,9 @@ lifxd_gateway_get_or_open_bulb(struct lifxd_gateway *gw, const uint8_t *bulb_add
 }
 
 struct lifxd_gateway *
-lifxd_gateway_open(const struct sockaddr_storage *peer, const uint8_t *site)
+lifxd_gateway_open(const struct sockaddr_storage *peer,
+                   const uint8_t *site,
+                   lifxd_time_mono_t received_at)
 {
     assert(peer);
     assert(site);
@@ -187,20 +192,19 @@ lifxd_gateway_open(const struct sockaddr_storage *peer, const uint8_t *site)
         gw
     );
     gw->write_buf = evbuffer_new();
-    gw->refresh_ev = event_new(
-        lifxd_ev_base,
-        -1,
-        EV_PERSIST,
-        lifxd_gateway_refresh_callback,
-        gw
+    gw->refresh_ev = evtimer_new(
+        lifxd_ev_base, lifxd_gateway_refresh_callback, gw
     );
     memcpy(&gw->peer, peer, peer->ss_len);
     lifxd_sockaddrtoa(peer, gw->ip_addr, sizeof(gw->ip_addr));
     gw->port = lifxd_sockaddrport(peer);
     memcpy(gw->site, site, sizeof(gw->site));
+    gw->last_req_at = received_at;
+    gw->next_req_at = received_at;
+    gw->last_pkt_at = received_at;
 
-    struct timeval refresh_interval = LIFXD_MSECS_TO_TV(
-        LIFXD_GATEWAY_REFRESH_INTERVAL_MSEC
+    struct timeval refresh_interval = LIFXD_MSECS_TO_TIMEVAL(
+        LIFXD_GATEWAY_MIN_REFRESH_INTERVAL_MSECS
     );
 
     if (!gw->write_ev || !gw->write_buf || !gw->refresh_ev
@@ -214,6 +218,11 @@ lifxd_gateway_open(const struct sockaddr_storage *peer, const uint8_t *site)
         lifxd_addrtoa(gw->site), gw->ip_addr, gw->port
     );
     LIST_INSERT_HEAD(&lifxd_gateways, gw, link);
+
+    // In case this is the first bulb (re-)discovered, start the watchdog, it
+    // will stop by itself:
+    lifxd_timer_start_watchdog();
+
     return gw;
 
 error_allocate:
@@ -227,7 +236,7 @@ error_allocate:
         event_free(gw->refresh_ev);
     }
 error_connect:
-    close(gw->socket);
+    evutil_closesocket(gw->socket);
 error_socket:
     free(gw);
     return NULL;
@@ -299,7 +308,7 @@ lifxd_gateway_handle_light_status(struct lifxd_gateway *gw,
     assert(gw && hdr && pkt);
 
     lifxd_debug(
-        "SET_LIGHT_STATUS <-- [%s]:%hu - %s "
+        "SET_LIGHT_STATE <-- [%s]:%hu - %s "
         "hue=%#hx, saturation=%#hx, brightness=%#hx, "
         "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#lx",
         gw->ip_addr, gw->port, lifxd_addrtoa(hdr->target.device_addr),
@@ -314,8 +323,28 @@ lifxd_gateway_handle_light_status(struct lifxd_gateway *gw,
         return;
     }
 
-    assert(sizeof(*pkt) == sizeof(b->status));
-    lifxd_bulb_set_light_status(b, (const struct lifxd_light_status *)pkt);
+    assert(sizeof(*pkt) == sizeof(b->state));
+    lifxd_bulb_set_light_state(
+        b, (const struct lifxd_light_state *)pkt, gw->last_pkt_at
+    );
+
+    int latency = gw->last_pkt_at - gw->last_req_at;
+    if (latency < LIFXD_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
+        int timeout = LIFXD_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
+        struct timeval tv = LIFXD_MSECS_TO_TIMEVAL(timeout);
+        evtimer_add(gw->refresh_ev, &tv);
+        lifxd_debug(
+            "[%s]:%hu latency is %dms, scheduling next GET_LIGHT_STATE in %dms",
+            gw->ip_addr, gw->port, latency, timeout
+        );
+        return;
+    }
+
+    lifxd_debug(
+        "[%s]:%hu latency is %dms, sending GET_LIGHT_STATE now",
+        gw->ip_addr, gw->port, latency
+    );
+    lifxd_gateway_send_get_all_light_state(gw);
 }
 
 void

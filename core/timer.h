@@ -1,4 +1,4 @@
-// Copyright (c) 2014, Louis Opter <kalessin@kalessin.fr>
+// Copyright (c) 2015, Louis Opter <kalessin@kalessin.fr>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,12 @@
 
 #pragma once
 
-bool lifxd_broadcast_setup(void);
-void lifxd_broadcast_close(void);
-bool lifxd_broadcast_discovery(void);
+enum { LIFXD_TIMER_WATCHDOG_INTERVAL_MSECS = 200 };
+enum { LIFXD_TIMER_ACTIVE_DISCOVERY_INTERVAL_MSECS = 2000 };
+enum { LIFXD_TIMER_PASSIVE_DISCOVERY_INTERVAL_MSECS = 10000 };
+enum { LIFXD_TIMER_DEVICE_TIMEOUT_MSECS = 2000 };
+
+bool lifxd_timer_setup(void);
+void lifxd_timer_close(void);
+void lifxd_timer_start_watchdog(void);
+void lifxd_timer_start_discovery(void);

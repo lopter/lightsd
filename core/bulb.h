@@ -32,7 +32,7 @@
 struct lifxd_gateway;
 
 #pragma pack(push, 1)
-struct lifxd_light_status {
+struct lifxd_light_state {
     uint16_t    hue;
     uint16_t    saturation;
     uint16_t    brightness;
@@ -49,10 +49,13 @@ struct lifxd_bulb {
     SLIST_ENTRY(lifxd_bulb)     link_by_gw;
     struct lifxd_gateway        *gw;
     uint8_t                     addr[LIFXD_ADDR_LENGTH];
-    struct lifxd_light_status   status;
+    struct lifxd_light_state    state;
+    lifxd_time_mono_t           last_light_state_at;
 };
 RB_HEAD(lifxd_bulb_map, lifxd_bulb);
 SLIST_HEAD(lifxd_bulb_list, lifxd_bulb);
+
+extern struct lifxd_bulb_map lifxd_bulbs_table;
 
 static inline int
 lifxd_bulb_cmp(const struct lifxd_bulb *a, const struct lifxd_bulb *b)
@@ -60,9 +63,18 @@ lifxd_bulb_cmp(const struct lifxd_bulb *a, const struct lifxd_bulb *b)
     return memcmp(a->addr, b->addr, sizeof(a->addr));
 }
 
+RB_GENERATE_STATIC(
+    lifxd_bulb_map,
+    lifxd_bulb,
+    link,
+    lifxd_bulb_cmp
+);
+
 struct lifxd_bulb *lifxd_bulb_get(struct lifxd_gateway *, const uint8_t *);
 struct lifxd_bulb *lifxd_bulb_open(struct lifxd_gateway *, const uint8_t *);
 void lifxd_bulb_close(struct lifxd_bulb *);
 
-void lifxd_bulb_set_light_status(struct lifxd_bulb *, const struct lifxd_light_status *);
+void lifxd_bulb_set_light_state(struct lifxd_bulb *,
+                                const struct lifxd_light_state *,
+                                lifxd_time_mono_t);
 void lifxd_bulb_set_power_state(struct lifxd_bulb *, uint16_t);

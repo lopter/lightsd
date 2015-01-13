@@ -1,4 +1,4 @@
-// Copyright (c) 2014, Louis Opter <kalessin@kalessin.fr>
+// Copyright (c) 2015, Louis Opter <kalessin@kalessin.fr>
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -27,8 +27,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#pragma once
+#include <time.h>
 
-bool lifxd_broadcast_setup(void);
-void lifxd_broadcast_close(void);
-bool lifxd_broadcast_discovery(void);
+#include "time_monotonic.h"
+
+time_t
+lifxd_time_monotonic_msecs(void)
+{
+    struct timespec tp;
+    clock_gettime(CLOCK_MONOTONIC, &tp);
+    return tp.tv_sec * 1000 + tp.tv_nsec / 1000000;
+}

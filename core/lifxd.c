@@ -47,10 +47,12 @@
 #include <event2/event_struct.h>
 
 #include "wire_proto.h"
+#include "time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "broadcast.h"
 #include "version.h"
+#include "timer.h"
 #include "lifxd.h"
 
 struct lifxd_opts lifxd_opts = {
@@ -65,6 +67,7 @@ struct event_base *lifxd_ev_base = NULL;
 void
 lifxd_cleanup(void)
 {
+    lifxd_timer_close();
     lifxd_broadcast_close();
     lifxd_gateway_close_all();
     event_base_free(lifxd_ev_base);
@@ -202,9 +205,11 @@ main(int argc, char *argv[])
     lifxd_configure_signal_handling();
 
     lifxd_wire_load_packet_infos_map();
-    if (!lifxd_broadcast_setup() || !lifxd_broadcast_discovery()) {
-        lifxd_err(1, "can't start auto discovery");
+    if (!lifxd_timer_setup() || !lifxd_broadcast_setup()) {
+        lifxd_err(1, "can't setup lifxd");
     }
+
+    lifxd_timer_start_discovery();
 
     event_base_dispatch(lifxd_ev_base);
 

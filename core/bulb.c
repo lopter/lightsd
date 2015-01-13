@@ -40,19 +40,12 @@
 #include <event2/util.h>
 
 #include "wire_proto.h"
+#include "time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "lifxd.h"
 
-static struct lifxd_bulb_map lifxd_bulbs_table =
-    RB_INITIALIZER(&lifxd_bulbs_by_addr);
-
-RB_GENERATE_STATIC(
-    lifxd_bulb_map,
-    lifxd_bulb,
-    link,
-    lifxd_bulb_cmp
-);
+struct lifxd_bulb_map lifxd_bulbs_table = RB_INITIALIZER(&lifxd_bulbs_table);
 
 struct lifxd_bulb *
 lifxd_bulb_get(struct lifxd_gateway *gw, const uint8_t *addr)
@@ -81,6 +74,8 @@ lifxd_bulb_open(struct lifxd_gateway *gw, const uint8_t *addr)
     memcpy(bulb->addr, addr, sizeof(bulb->addr));
     RB_INSERT(lifxd_bulb_map, &lifxd_bulbs_table, bulb);
 
+    bulb->last_light_state_at = lifxd_time_monotonic_msecs();
+
     return bulb;
 }
 
@@ -91,10 +86,11 @@ lifxd_bulb_close(struct lifxd_bulb *bulb)
     assert(bulb->gw);
 
     RB_REMOVE(lifxd_bulb_map, &lifxd_bulbs_table, bulb);
+    SLIST_REMOVE(&bulb->gw->bulbs, bulb, lifxd_bulb, link_by_gw);
     lifxd_info(
         "closed bulb \"%.*s\" on [%s]:%hu",
-        sizeof(bulb->status.label),
-        bulb->status.label,
+        sizeof(bulb->state.label),
+        bulb->state.label,
         bulb->gw->ip_addr,
         bulb->gw->port
     );
@@ -102,17 +98,19 @@ lifxd_bulb_close(struct lifxd_bulb *bulb)
 }
 
 void
-lifxd_bulb_set_light_status(struct lifxd_bulb *bulb,
-                            const struct lifxd_light_status *status)
+lifxd_bulb_set_light_state(struct lifxd_bulb *bulb,
+                           const struct lifxd_light_state *state,
+                           lifxd_time_mono_t received_at)
 {
     assert(bulb);
-    assert(status);
-    memcpy(&bulb->status, status, sizeof(bulb->status));
+    assert(state);
+    bulb->last_light_state_at = received_at;
+    memcpy(&bulb->state, state, sizeof(bulb->state));
 }
 
 void
 lifxd_bulb_set_power_state(struct lifxd_bulb *bulb, uint16_t power)
 {
     assert(bulb);
-    bulb->status.power = power;
+    bulb->state.power = power;
 }

@@ -29,15 +29,11 @@
 
 #pragma once
 
-// Let's start with something simple for now, in the future this will need to
-// account for each gateway response time. According to my own tests,
-// aggressively polling a bulb doesn't raise it's consumption at all (it's
-// interesting to note that a turned off bulb still draw about 2W in ZigBee and
-// about 3W in WiFi).
-enum { LIFXD_GATEWAY_REFRESH_INTERVAL_MSEC = 100 };
-
-// In the meantime skip a refresh if we have too many bytes in our write buffer:
-enum { LIFXD_GATEWAY_WRITE_HIGH_WATERMARK = 256 };
+// Send GET_LIGHT_STATE to the gateway at most every this interval. FYI,
+// according to my own tests, aggressively polling a bulb doesn't raise its
+// consumption at all (and it's interesting to note that a turned off bulb
+// still draw about 2W in ZigBee and about 3W in WiFi).
+enum { LIFXD_GATEWAY_MIN_REFRESH_INTERVAL_MSECS = 200 };
 
 struct lifxd_gateway {
     LIST_ENTRY(lifxd_gateway)   link;
@@ -52,15 +48,27 @@ struct lifxd_gateway {
     uint16_t                    port;
     uint8_t                     site[LIFXD_ADDR_LENGTH];
     evutil_socket_t             socket;
+    // Those three timers let us measure the latency of the gateway. If we
+    // aren't the only client on the network then this won't be accurate since
+    // we will get pushed packets we didn't ask for, but good enough for our
+    // purpose of rate limiting our requests to the gateway:
+    lifxd_time_mono_t           last_req_at;
+    lifxd_time_mono_t           next_req_at;
+    lifxd_time_mono_t           last_pkt_at;
     struct event                *write_ev;
     struct evbuffer             *write_buf;
     struct event                *refresh_ev;
 };
 LIST_HEAD(lifxd_gateway_list, lifxd_gateway);
 
+extern struct lifxd_gateway_list lifxd_gateways;
+
 struct lifxd_gateway *lifxd_gateway_get(const struct sockaddr_storage *);
 struct lifxd_gateway *lifxd_gateway_open(const struct sockaddr_storage *,
-                                         const uint8_t *);
+                                         const uint8_t *,
+                                         lifxd_time_mono_t);
+
+void lifxd_gateway_close(struct lifxd_gateway *);
 void lifxd_gateway_close_all(void);
 
 void lifxd_gateway_send_packet(struct lifxd_gateway *,

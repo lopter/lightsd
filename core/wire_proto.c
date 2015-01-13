@@ -42,6 +42,7 @@
 #include <event2/util.h>
 
 #include "wire_proto.h"
+#include "time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "lifxd.h"

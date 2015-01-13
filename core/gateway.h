@@ -65,6 +65,7 @@ extern struct lifxd_gateway_list lifxd_gateways;
 
 struct lifxd_gateway *lifxd_gateway_get(const struct sockaddr_storage *);
 struct lifxd_gateway *lifxd_gateway_open(const struct sockaddr_storage *,
+                                         ev_socklen_t,
                                          const uint8_t *,
                                          lifxd_time_mono_t);
 

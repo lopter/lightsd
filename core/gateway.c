@@ -163,6 +163,7 @@ lifxd_gateway_get_or_open_bulb(struct lifxd_gateway *gw, const uint8_t *bulb_add
 
 struct lifxd_gateway *
 lifxd_gateway_open(const struct sockaddr_storage *peer,
+                   ev_socklen_t addrlen,
                    const uint8_t *site,
                    lifxd_time_mono_t received_at)
 {
@@ -179,7 +180,7 @@ lifxd_gateway_open(const struct sockaddr_storage *peer,
         lifxd_warn("can't open a new socket");
         goto error_socket;
     }
-    if (connect(gw->socket, (const struct sockaddr *)peer, sizeof(*peer)) == -1
+    if (connect(gw->socket, (const struct sockaddr *)peer, addrlen) == -1
         || evutil_make_socket_nonblocking(gw->socket) == -1) {
         lifxd_warn("can't open a new socket");
         goto error_connect;

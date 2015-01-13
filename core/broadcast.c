@@ -145,7 +145,7 @@ lifxd_broadcast_handle_read(void)
         }
         struct lifxd_gateway *gw = lifxd_gateway_get(&peer);
         if (!gw && read.hdr.packet_type == LIFXD_PAN_GATEWAY) {
-            gw = lifxd_gateway_open(&peer, read.hdr.site, received_at);
+            gw = lifxd_gateway_open(&peer, addrlen, read.hdr.site, received_at);
             if (!gw) {
                 lifxd_err(1, "can't allocate gateway");
             }

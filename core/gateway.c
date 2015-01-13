@@ -179,7 +179,7 @@ lifxd_gateway_open(const struct sockaddr_storage *peer,
         lifxd_warn("can't open a new socket");
         goto error_socket;
     }
-    if (connect(gw->socket, (const struct sockaddr *)peer, peer->ss_len) == -1
+    if (connect(gw->socket, (const struct sockaddr *)peer, sizeof(*peer)) == -1
         || evutil_make_socket_nonblocking(gw->socket) == -1) {
         lifxd_warn("can't open a new socket");
         goto error_connect;
@@ -195,7 +195,7 @@ lifxd_gateway_open(const struct sockaddr_storage *peer,
     gw->refresh_ev = evtimer_new(
         lifxd_ev_base, lifxd_gateway_refresh_callback, gw
     );
-    memcpy(&gw->peer, peer, peer->ss_len);
+    memcpy(&gw->peer, peer, sizeof(gw->peer));
     lifxd_sockaddrtoa(peer, gw->ip_addr, sizeof(gw->ip_addr));
     gw->port = lifxd_sockaddrport(peer);
     memcpy(gw->site, site, sizeof(gw->site));
@@ -250,7 +250,7 @@ lifxd_gateway_get(const struct sockaddr_storage *peer)
     struct lifxd_gateway *gw, *next_gw;
     LIST_FOREACH_SAFE(gw, &lifxd_gateways, link, next_gw) {
         if (peer->ss_family == gw->peer.ss_family
-            && !memcmp(&gw->peer, peer, peer->ss_len)) {
+            && !memcmp(&gw->peer, peer, sizeof(*peer))) {
             return gw;
         }
     }
@@ -275,11 +275,12 @@ lifxd_gateway_send_packet(struct lifxd_gateway *gw,
 {
     assert(gw);
     assert(hdr);
+    assert(pkt_size >= 0 && pkt_size < LIFXD_MAX_PACKET_SIZE);
     assert(!memcmp(hdr->site, gw->site, LIFXD_ADDR_LENGTH));
 
     evbuffer_add(gw->write_buf, hdr, sizeof(*hdr));
     if (pkt) {
-        assert(pkt_size == le16toh(hdr->size) - sizeof(*hdr));
+        assert((unsigned)pkt_size == le16toh(hdr->size) - sizeof(*hdr));
         evbuffer_add(gw->write_buf, pkt, pkt_size);
     }
     event_add(gw->write_ev, NULL);

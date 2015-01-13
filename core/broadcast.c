@@ -68,6 +68,10 @@ lifxd_broadcast_handle_read(void)
 
     while (true) {
         struct sockaddr_storage peer;
+        // if we get back from recvfrom with a sockaddr_in the end of the struct
+        // will not be initialized and we will be comparing unintialized stuff
+        // in lifxd_gateway_get:
+        memset(&peer, 0, sizeof(peer));
         ev_socklen_t addrlen = sizeof(peer);
         union {
             char buf[LIFXD_MAX_PACKET_SIZE];
@@ -165,7 +169,6 @@ lifxd_broadcast_handle_write(void)
     assert(lifxd_broadcast_endpoint.socket != -1);
 
     struct sockaddr_in lifx_addr = {
-        .sin_len = sizeof(lifx_addr),
         .sin_family = AF_INET,
         .sin_addr = { INADDR_BROADCAST },
         .sin_port = htons(lifxd_opts.master_port)
@@ -284,7 +287,6 @@ lifxd_broadcast_setup(void)
     }
 
     struct sockaddr_in lifx_addr = {
-        .sin_len = sizeof(lifx_addr),
         .sin_family = AF_INET,
         .sin_addr = { INADDR_ANY },
         .sin_port = htons(lifxd_opts.master_port)

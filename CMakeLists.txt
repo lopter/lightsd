@@ -24,10 +24,18 @@ INCLUDE(CompatTimeMonotonic)
 
 SET(CMAKE_C_FLAGS "-pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
 
-ADD_DEFINITIONS("-D_POSIX_C_SOURCE=200809L" "-D_BSD_SOURCE=1")
+# Only relevant for the GNU libc:
+ADD_DEFINITIONS(
+    "-D_POSIX_C_SOURCE=200809L"
+    "-D_BSD_SOURCE=1"
+    "-D_DEFAULT_SOURCE=1"
+)
 
 IF (CMAKE_BUILD_TYPE MATCHES "DEBUG")
     ADD_DEFINITIONS("-DQUEUE_MACRO_DEBUG=1")
+    IF (CMAKE_COMPILER_IS_GNUCC)
+        ADD_DEFINITIONS("-g3" "-ggdb")
+    ENDIF ()
 ENDIF ()
 
 INCLUDE_DIRECTORIES(${LIFXD_SOURCE_DIR}/compat/generic ${LIFXD_BINARY_DIR}/compat)

@@ -29,6 +29,7 @@
 
 #pragma once
 
+#define LIFXD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
 #define LIFXD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define LIFXD_MSECS_TO_TIMEVAL(v) { \
     .tv_sec = (v) / 1000,           \

@@ -2,8 +2,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 PROJECT(LIFXD C)
 
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${LIFXD_SOURCE_DIR}/CMakeScripts)
-
 SET(CPACK_PACKAGE_VERSION_MAJOR "0")
 SET(CPACK_PACKAGE_VERSION_MINOR "0")
 SET(CPACK_PACKAGE_VERSION_PATCH "1")
@@ -16,11 +14,20 @@ MESSAGE(STATUS "System: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION}")
 MESSAGE(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 MESSAGE(STATUS "Source directory: ${LIFXD_SOURCE_DIR}")
 
+SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${LIFXD_SOURCE_DIR}/CMakeScripts)
+
+### Platform checks ############################################################
+
 # TODO: we need at least 2.0.19-stable because of the logging defines
 FIND_PACKAGE(Event2 REQUIRED COMPONENTS core)
 FIND_PACKAGE(Endian REQUIRED)
-
 INCLUDE(CompatTimeMonotonic)
+
+INCLUDE(CheckTypeSize)
+CHECK_TYPE_SIZE(suseconds_t SUSECONDS_T_SIZE)
+ADD_DEFINITIONS("-DLIFXD_SUSECONDS_T_SIZE=${SUSECONDS_T_SIZE}")
+
+### Global definitions #########################################################
 
 SET(CMAKE_C_FLAGS "-pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
 

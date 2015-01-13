@@ -89,7 +89,7 @@ lifxd_bulb_close(struct lifxd_bulb *bulb)
     SLIST_REMOVE(&bulb->gw->bulbs, bulb, lifxd_bulb, link_by_gw);
     lifxd_info(
         "closed bulb \"%.*s\" on [%s]:%hu",
-        sizeof(bulb->state.label),
+        LIFXD_LABEL_SIZE,
         bulb->state.label,
         bulb->gw->ip_addr,
         bulb->gw->port

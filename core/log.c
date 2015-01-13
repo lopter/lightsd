@@ -181,10 +181,10 @@ void
 lifxd_libevent_log(int severity, const char *msg)
 {
     switch (severity) {
-    case EVENT_LOG_DEBUG:   lifxd_debug(msg);   break;
-    case EVENT_LOG_MSG:     lifxd_info(msg);    break;
-    case EVENT_LOG_WARN:    lifxd_warnx(msg)    break;
-    case EVENT_LOG_ERR:     lifxd_warnx(msg);   break;
-    default:                                    break;
+    case EVENT_LOG_DEBUG:   lifxd_debug("%s", msg); break;
+    case EVENT_LOG_MSG:     lifxd_info("%s", msg);  break;
+    case EVENT_LOG_WARN:    lifxd_warnx("%s", msg)  break;
+    case EVENT_LOG_ERR:     lifxd_warnx("%s", msg); break;
+    default:                                        break;
     }
 }

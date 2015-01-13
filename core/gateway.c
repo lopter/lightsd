@@ -312,10 +312,10 @@ lifxd_gateway_handle_light_status(struct lifxd_gateway *gw,
     lifxd_debug(
         "SET_LIGHT_STATE <-- [%s]:%hu - %s "
         "hue=%#hx, saturation=%#hx, brightness=%#hx, "
-        "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#lx",
+        "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#llx",
         gw->ip_addr, gw->port, lifxd_addrtoa(hdr->target.device_addr),
         pkt->hue, pkt->saturation, pkt->brightness, pkt->kelvin,
-        pkt->dim, pkt->power, sizeof(pkt->label), pkt->label, pkt->tags
+        pkt->dim, pkt->power, LIFXD_LABEL_SIZE, pkt->label, pkt->tags
     );
 
     struct lifxd_bulb *b = lifxd_gateway_get_or_open_bulb(

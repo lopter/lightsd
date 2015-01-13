@@ -29,6 +29,10 @@
 
 #pragma once
 
+#ifndef __attribute__
+# define __atttribute__(e)
+#endif
+
 #define LIFXD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
 #define LIFXD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define LIFXD_MSECS_TO_TIMEVAL(v) { \
@@ -59,14 +63,16 @@ const char *lifxd_addrtoa(const uint8_t *);
 void lifxd_sockaddrtoa(const struct sockaddr_storage *, char *buf, int buflen);
 short lifxd_sockaddrport(const struct sockaddr_storage *);
 
-void _lifxd_err(void (*)(int, const char *, ...), int, const char *, ...);
+void _lifxd_err(void (*)(int, const char *, ...), int, const char *, ...)
+    __attribute__((format(printf, 3, 4)));
 #define lifxd_err(eval, fmt, ...) _lifxd_err(err, (eval), (fmt), ##__VA_ARGS__);
 #define lifxd_errx(eval, fmt, ...) _lifxd_err(errx, (eval), (fmt), ##__VA_ARGS__);
-void _lifxd_warn(void (*)(const char *, va_list), const char *, ...);
+void _lifxd_warn(void (*)(const char *, va_list), const char *, ...)
+    __attribute__((format(printf, 2, 3)));
 #define lifxd_warn(fmt, ...) _lifxd_warn(vwarn, (fmt), ##__VA_ARGS__);
 #define lifxd_warnx(fmt, ...) _lifxd_warn(vwarnx, (fmt), ##__VA_ARGS__);
-void lifxd_info(const char *, ...);
-void lifxd_debug(const char *, ...);
+void lifxd_info(const char *, ...) __attribute__((format(printf, 1, 2)));
+void lifxd_debug(const char *, ...) __attribute__((format(printf, 1, 2)));
 void lifxd_libevent_log(int, const char *);
 
 void lifxd_cleanup(void);

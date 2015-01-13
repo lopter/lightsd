@@ -98,10 +98,8 @@ lifxd_timer_watchdog_timeout_event_callback(evutil_socket_t socket,
         int light_state_lag = now - bulb->last_light_state_at;
         if (light_state_lag >= LIFXD_TIMER_DEVICE_TIMEOUT_MSECS) {
             lifxd_info(
-                "closing bulb \"%.s\" that hasn't been updated for %dms",
-                sizeof(bulb->state.label),
-                bulb->state.label,
-                light_state_lag
+                "closing bulb \"%.*s\" that hasn't been updated for %dms",
+                LIFXD_LABEL_SIZE, bulb->state.label, light_state_lag
             );
             lifxd_bulb_close(bulb);
             start_discovery = true;

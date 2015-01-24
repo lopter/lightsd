@@ -40,56 +40,57 @@
 #include <event2/util.h>
 
 #include "wire_proto.h"
-#include "time_monotonic.h"
+#include "core/time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
-#include "lifxd.h"
+#include "core/lightsd.h"
 
-struct lifxd_bulb_map lifxd_bulbs_table = RB_INITIALIZER(&lifxd_bulbs_table);
+struct lgtd_lifx_bulb_map lgtd_lifx_bulbs_table =
+    RB_INITIALIZER(&lgtd_lifx_bulbs_table);
 
-struct lifxd_bulb *
-lifxd_bulb_get(struct lifxd_gateway *gw, const uint8_t *addr)
+struct lgtd_lifx_bulb *
+lgtd_lifx_bulb_get(struct lgtd_lifx_gateway *gw, const uint8_t *addr)
 {
     assert(gw);
     assert(addr);
 
-    struct lifxd_bulb bulb;
+    struct lgtd_lifx_bulb bulb;
     memcpy(bulb.addr, addr, sizeof(bulb.addr));
-    return RB_FIND(lifxd_bulb_map, &lifxd_bulbs_table, &bulb);
+    return RB_FIND(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, &bulb);
 }
 
-struct lifxd_bulb *
-lifxd_bulb_open(struct lifxd_gateway *gw, const uint8_t *addr)
+struct lgtd_lifx_bulb *
+lgtd_lifx_bulb_open(struct lgtd_lifx_gateway *gw, const uint8_t *addr)
 {
     assert(gw);
     assert(addr);
 
-    struct lifxd_bulb *bulb = calloc(1, sizeof(*bulb));
+    struct lgtd_lifx_bulb *bulb = calloc(1, sizeof(*bulb));
     if (!bulb) {
-        lifxd_warn("can't allocate a new bulb");
+        lgtd_warn("can't allocate a new bulb");
         return NULL;
     }
 
     bulb->gw = gw;
     memcpy(bulb->addr, addr, sizeof(bulb->addr));
-    RB_INSERT(lifxd_bulb_map, &lifxd_bulbs_table, bulb);
+    RB_INSERT(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
 
-    bulb->last_light_state_at = lifxd_time_monotonic_msecs();
+    bulb->last_light_state_at = lgtd_time_monotonic_msecs();
 
     return bulb;
 }
 
 void
-lifxd_bulb_close(struct lifxd_bulb *bulb)
+lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *bulb)
 {
     assert(bulb);
     assert(bulb->gw);
 
-    RB_REMOVE(lifxd_bulb_map, &lifxd_bulbs_table, bulb);
-    SLIST_REMOVE(&bulb->gw->bulbs, bulb, lifxd_bulb, link_by_gw);
-    lifxd_info(
+    RB_REMOVE(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
+    SLIST_REMOVE(&bulb->gw->bulbs, bulb, lgtd_lifx_bulb, link_by_gw);
+    lgtd_info(
         "closed bulb \"%.*s\" on [%s]:%hu",
-        LIFXD_LABEL_SIZE,
+        LGTD_LIFX_LABEL_SIZE,
         bulb->state.label,
         bulb->gw->ip_addr,
         bulb->gw->port
@@ -98,9 +99,9 @@ lifxd_bulb_close(struct lifxd_bulb *bulb)
 }
 
 void
-lifxd_bulb_set_light_state(struct lifxd_bulb *bulb,
-                           const struct lifxd_light_state *state,
-                           lifxd_time_mono_t received_at)
+lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *bulb,
+                               const struct lgtd_lifx_light_state *state,
+                               lgtd_time_mono_t received_at)
 {
     assert(bulb);
     assert(state);
@@ -109,7 +110,7 @@ lifxd_bulb_set_light_state(struct lifxd_bulb *bulb,
 }
 
 void
-lifxd_bulb_set_power_state(struct lifxd_bulb *bulb, uint16_t power)
+lgtd_lifx_bulb_set_power_state(struct lgtd_lifx_bulb *bulb, uint16_t power)
 {
     assert(bulb);
     bulb->state.power = power;

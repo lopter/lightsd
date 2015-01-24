@@ -41,11 +41,11 @@
 
 #include <event2/event.h>
 
-#include "wire_proto.h"
-#include "lifxd.h"
+#include "lifx/wire_proto.h"
+#include "lightsd.h"
 
 static void
-lifxd_isotime_now(char *strbuf, int bufsz)
+lgtd_isotime_now(char *strbuf, int bufsz)
 {
     assert(strbuf);
     assert(bufsz > 0);
@@ -60,7 +60,7 @@ lifxd_isotime_now(char *strbuf, int bufsz)
     }
     // '2015-01-02T10:13:16.132222+00:00'
     snprintf(
-#if LIFXD_SUSECONDS_T_SIZE == 4
+#if LGTD_SUSECONDS_T_SIZE == 4
         strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%d%c%02ld:%02ld",
 #else
         strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%ld%c%02ld:%02ld",
@@ -68,7 +68,7 @@ lifxd_isotime_now(char *strbuf, int bufsz)
         1900 + tm_now.tm_year, 1 + tm_now.tm_mon, tm_now.tm_mday,
         tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec,
         now.tv_usec, tm_now.tm_gmtoff >= 0 ? '+' : '-', // %+02ld doesn't work
-        LIFXD_ABS(tm_now.tm_gmtoff / 60 / 60), tm_now.tm_gmtoff % (60 * 60)
+        LGTD_ABS(tm_now.tm_gmtoff / 60 / 60), tm_now.tm_gmtoff % (60 * 60)
     );
     return;
 error:
@@ -76,26 +76,26 @@ error:
 }
 
 static void
-lifxd_log_header(const char *loglvl, bool showprogname)
+lgtd_log_header(const char *loglvl, bool showprogname)
 {
-    if (lifxd_opts.log_timestamps) {
+    if (lgtd_opts.log_timestamps) {
         char timestr[64];
-        lifxd_isotime_now(timestr, sizeof(timestr));
+        lgtd_isotime_now(timestr, sizeof(timestr));
         fprintf(
             stderr, "[%s] [%s] %s",
-            timestr, loglvl, showprogname ? "lifxd: " : ""
+            timestr, loglvl, showprogname ? "lightsd " : ""
         );
         return;
     }
-    fprintf(stderr, "[%s] %s", loglvl, showprogname ? "lifxd: " : "");
+    fprintf(stderr, "[%s] %s", loglvl, showprogname ? "lightsd " : "");
 }
 
 const char *
-lifxd_addrtoa(const uint8_t *addr)
+lgtd_addrtoa(const uint8_t *addr)
 {
     assert(addr);
 
-    static char str[LIFXD_ADDR_LENGTH * 2 + LIFXD_ADDR_LENGTH - 1 + 1];
+    static char str[LGTD_LIFX_ADDR_LENGTH * 2 + LGTD_LIFX_ADDR_LENGTH - 1 + 1];
     snprintf(
         str, sizeof(str), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
         addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
@@ -104,7 +104,7 @@ lifxd_addrtoa(const uint8_t *addr)
 }
 
 void
-lifxd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
+lgtd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
 {
     assert(peer);
     assert(buf);
@@ -120,7 +120,7 @@ lifxd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
 }
 
 void
-_lifxd_err(void (*errfn)(int, const char *, ...),
+_lgtd_err(void (*errfn)(int, const char *, ...),
            int eval,
            const char *fmt,
            ...)
@@ -128,36 +128,36 @@ _lifxd_err(void (*errfn)(int, const char *, ...),
     int errsave = errno;
     va_list ap;
     va_start(ap, fmt);
-    // lifxd_cleanup is probably going to free some of the arguments we got, so
+    // lgtd_cleanup is probably going to free some of the arguments we got, so
     // let's print to a buffer before we call err.
-    char errmsg[LIFXD_ERROR_MSG_BUFSIZE];
+    char errmsg[LGTD_ERROR_MSG_BUFSIZE];
     vsnprintf(errmsg, sizeof(errmsg), fmt, ap);
     va_end(ap);
-    lifxd_cleanup();
-    lifxd_log_header("ERR", false);
+    lgtd_cleanup();
+    lgtd_log_header("ERR", false);
     errno = errsave;
     errfn(eval, errmsg);
 }
 
 void
-_lifxd_warn(void (*warnfn)(const char *, va_list), const char *fmt, ...)
+_lgtd_warn(void (*warnfn)(const char *, va_list), const char *fmt, ...)
 {
-    if (lifxd_opts.verbosity <= LIFXD_WARN) {
+    if (lgtd_opts.verbosity <= LGTD_WARN) {
         va_list ap;
         va_start(ap, fmt);
-        lifxd_log_header("WARN", false);
+        lgtd_log_header("WARN", false);
         warnfn(fmt, ap);
         va_end(ap);
     }
 }
 
 void
-lifxd_info(const char *fmt, ...)
+lgtd_info(const char *fmt, ...)
 {
-    if (lifxd_opts.verbosity <= LIFXD_INFO) {
+    if (lgtd_opts.verbosity <= LGTD_INFO) {
         va_list ap;
         va_start(ap, fmt);
-        lifxd_log_header("INFO", true);
+        lgtd_log_header("INFO", true);
         vfprintf(stderr, fmt, ap);
         va_end(ap);
         fprintf(stderr, "\n");
@@ -165,12 +165,12 @@ lifxd_info(const char *fmt, ...)
 }
 
 void
-lifxd_debug(const char *fmt, ...)
+lgtd_debug(const char *fmt, ...)
 {
-    if (lifxd_opts.verbosity <= LIFXD_DEBUG) {
+    if (lgtd_opts.verbosity <= LGTD_DEBUG) {
         va_list ap;
         va_start(ap, fmt);
-        lifxd_log_header("DEBUG", true);
+        lgtd_log_header("DEBUG", true);
         vfprintf(stderr, fmt, ap);
         va_end(ap);
         fprintf(stderr, "\n");
@@ -178,13 +178,13 @@ lifxd_debug(const char *fmt, ...)
 }
 
 void
-lifxd_libevent_log(int severity, const char *msg)
+lgtd_libevent_log(int severity, const char *msg)
 {
     switch (severity) {
-    case EVENT_LOG_DEBUG:   lifxd_debug("%s", msg); break;
-    case EVENT_LOG_MSG:     lifxd_info("%s", msg);  break;
-    case EVENT_LOG_WARN:    lifxd_warnx("%s", msg)  break;
-    case EVENT_LOG_ERR:     lifxd_warnx("%s", msg); break;
+    case EVENT_LOG_DEBUG:   lgtd_debug("%s", msg); break;
+    case EVENT_LOG_MSG:     lgtd_info("%s", msg);  break;
+    case EVENT_LOG_WARN:    lgtd_warnx("%s", msg)  break;
+    case EVENT_LOG_ERR:     lgtd_warnx("%s", msg); break;
     default:                                        break;
     }
 }

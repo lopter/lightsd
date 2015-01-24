@@ -45,40 +45,40 @@
 #include <event2/util.h>
 
 #include "wire_proto.h"
-#include "time_monotonic.h"
+#include "core/time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
 #include "broadcast.h"
-#include "lifxd.h"
+#include "core/lightsd.h"
 
 static struct {
     evutil_socket_t socket;
     struct event    *read_ev;
     struct event    *write_ev;
-} lifxd_broadcast_endpoint = {
+} lgtd_lifx_broadcast_endpoint = {
     .socket = -1,
     .read_ev = NULL,
     .write_ev = NULL,
 };
 
 static bool
-lifxd_broadcast_handle_read(void)
+lgtd_lifx_broadcast_handle_read(void)
 {
-    assert(lifxd_broadcast_endpoint.socket != -1);
+    assert(lgtd_lifx_broadcast_endpoint.socket != -1);
 
     while (true) {
         struct sockaddr_storage peer;
         // if we get back from recvfrom with a sockaddr_in the end of the struct
         // will not be initialized and we will be comparing unintialized stuff
-        // in lifxd_gateway_get:
+        // in lgtd_lifx_gateway_get:
         memset(&peer, 0, sizeof(peer));
         ev_socklen_t addrlen = sizeof(peer);
         union {
-            char buf[LIFXD_MAX_PACKET_SIZE];
-            struct lifxd_packet_header hdr;
+            char buf[LGTD_LIFX_MAX_PACKET_SIZE];
+            struct lgtd_lifx_packet_header hdr;
         } read;
         int nbytes = recvfrom(
-            lifxd_broadcast_endpoint.socket,
+            lgtd_lifx_broadcast_endpoint.socket,
             read.buf,
             sizeof(read.buf),
             0,
@@ -93,70 +93,72 @@ lifxd_broadcast_handle_read(void)
             if (error == EAGAIN) {
                 return true;
             }
-            lifxd_warn("can't receive broadcast packet");
+            lgtd_warn("can't receive broadcast packet");
             return false;
         }
 
-        lifxd_time_mono_t received_at = lifxd_time_monotonic_msecs();
+        lgtd_time_mono_t received_at = lgtd_time_monotonic_msecs();
         char peer_addr[INET6_ADDRSTRLEN];
-        lifxd_sockaddrtoa(&peer, peer_addr, sizeof(peer_addr));
-        short peer_port = lifxd_sockaddrport(&peer);
+        lgtd_sockaddrtoa(&peer, peer_addr, sizeof(peer_addr));
+        short peer_port = lgtd_sockaddrport(&peer);
 
-        if (nbytes < LIFXD_PACKET_HEADER_SIZE) {
-            lifxd_warnx(
+        if (nbytes < LGTD_LIFX_PACKET_HEADER_SIZE) {
+            lgtd_warnx(
                 "broadcast packet too short from [%s]:%hu", peer_addr, peer_port
             );
             return false;
         }
 
-        lifxd_wire_decode_header(&read.hdr);
+        lgtd_lifx_wire_decode_header(&read.hdr);
         if (read.hdr.size != nbytes) {
-            lifxd_warnx(
+            lgtd_warnx(
                 "incomplete broadcast packet from [%s]:%hu",
                 peer_addr, peer_port
             );
             return false;
         }
-        if (read.hdr.protocol.version != LIFXD_LIFX_PROTOCOL_V1) {
-            lifxd_warnx(
+        if (read.hdr.protocol.version != LGTD_LIFX_PROTOCOL_V1) {
+            lgtd_warnx(
                 "unsupported protocol %d from [%s]:%hu",
                 read.hdr.protocol.version, peer_addr, peer_port
             );
         }
-        if (read.hdr.packet_type == LIFXD_GET_PAN_GATEWAY) {
+        if (read.hdr.packet_type == LGTD_LIFX_GET_PAN_GATEWAY) {
             continue;
         }
 
-        const struct lifxd_packet_infos *pkt_infos =
-            lifxd_wire_get_packet_infos(read.hdr.packet_type);
+        const struct lgtd_lifx_packet_infos *pkt_infos =
+            lgtd_lifx_wire_get_packet_infos(read.hdr.packet_type);
         if (!pkt_infos) {
-            lifxd_warnx(
+            lgtd_warnx(
                 "received unknown packet %#x from [%s]:%hu",
                 read.hdr.packet_type, peer_addr, peer_port
             )
             continue;
         }
         if (read.hdr.protocol.tagged || !read.hdr.protocol.addressable) {
-            lifxd_warnx(
+            lgtd_warnx(
                 "received non-addressable packet %s from [%s]:%hu",
                 pkt_infos->name, peer_addr, peer_port
             );
             continue;
         }
-        struct lifxd_gateway *gw = lifxd_gateway_get(&peer);
-        if (!gw && read.hdr.packet_type == LIFXD_PAN_GATEWAY) {
-            gw = lifxd_gateway_open(&peer, addrlen, read.hdr.site, received_at);
+        struct lgtd_lifx_gateway *gw = lgtd_lifx_gateway_get(&peer);
+        if (!gw && read.hdr.packet_type == LGTD_LIFX_PAN_GATEWAY) {
+            gw = lgtd_lifx_gateway_open(
+                &peer, addrlen, read.hdr.site, received_at
+            );
             if (!gw) {
-                lifxd_err(1, "can't allocate gateway");
+                lgtd_err(1, "can't allocate gateway");
             }
         }
         if (gw) {
-            void *pkt = &read.buf[LIFXD_PACKET_HEADER_SIZE];
+            void *pkt = &read.buf[LGTD_LIFX_PACKET_HEADER_SIZE];
             gw->last_pkt_at = received_at;
             pkt_infos->decode(pkt);
             pkt_infos->handle(gw, &read.hdr, pkt);
         } else {
-            lifxd_warnx(
+            lgtd_warnx(
                 "got packet from unknown gateway [%s]:%hu", peer_addr, peer_port
             );
         }
@@ -164,28 +166,28 @@ lifxd_broadcast_handle_read(void)
 }
 
 static bool
-lifxd_broadcast_handle_write(void)
+lgtd_lifx_broadcast_handle_write(void)
 {
-    assert(lifxd_broadcast_endpoint.socket != -1);
+    assert(lgtd_lifx_broadcast_endpoint.socket != -1);
 
     struct sockaddr_in lifx_addr = {
         .sin_family = AF_INET,
         .sin_addr = { INADDR_BROADCAST },
-        .sin_port = htons(lifxd_opts.master_port)
+        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT)
     };
-    struct lifxd_packet_header get_pan_gateway;
-    lifxd_wire_setup_header(
+    struct lgtd_lifx_packet_header get_pan_gateway;
+    lgtd_lifx_wire_setup_header(
         &get_pan_gateway,
-        LIFXD_TARGET_ALL_DEVICES,
-        LIFXD_UNSPEC_TARGET,
+        LGTD_LIFX_TARGET_ALL_DEVICES,
+        LGTD_LIFX_UNSPEC_TARGET,
         NULL,
-        LIFXD_GET_PAN_GATEWAY
+        LGTD_LIFX_GET_PAN_GATEWAY
     );
 
     int nbytes;
 retry:
     nbytes = sendto(
-        lifxd_broadcast_endpoint.socket,
+        lgtd_lifx_broadcast_endpoint.socket,
         (void *)&get_pan_gateway,
         sizeof(get_pan_gateway),
         0,
@@ -193,8 +195,8 @@ retry:
         sizeof(lifx_addr)
     );
     if (nbytes == sizeof(get_pan_gateway)) {
-        if (event_del(lifxd_broadcast_endpoint.write_ev)) {
-            lifxd_err(1, "can't setup events");
+        if (event_del(lgtd_lifx_broadcast_endpoint.write_ev)) {
+            lgtd_err(1, "can't setup events");
         }
         return true;
     }
@@ -202,31 +204,33 @@ retry:
         if (EVUTIL_SOCKET_ERROR() == EINTR) {
             goto retry;
         }
-        lifxd_warn("can't broadcast discovery packet");
+        lgtd_warn("can't broadcast discovery packet");
     } else {
-        lifxd_warnx("can't broadcast discovery packet");
+        lgtd_warnx("can't broadcast discovery packet");
     }
     return false;
 }
 
 static void
-lifxd_broadcast_event_callback(evutil_socket_t socket, short events, void *ctx)
+lgtd_lifx_broadcast_event_callback(evutil_socket_t socket,
+                                   short events,
+                                   void *ctx)
 {
     (void)socket;
     (void)ctx;
 
     if (events & EV_TIMEOUT) {
         // not sure how that could happen but eh.
-        lifxd_warnx("timeout on the udp broadcast socket");
+        lgtd_warnx("timeout on the udp broadcast socket");
         goto error_reset;
     }
     if (events & EV_READ) {
-        if (!lifxd_broadcast_handle_read()) {
+        if (!lgtd_lifx_broadcast_handle_read()) {
             goto error_reset;
         }
     }
     if (events & EV_WRITE) {
-        if (!lifxd_broadcast_handle_write()) {
+        if (!lgtd_lifx_broadcast_handle_write()) {
             goto error_reset;
         }
     }
@@ -234,45 +238,47 @@ lifxd_broadcast_event_callback(evutil_socket_t socket, short events, void *ctx)
     return;
 
 error_reset:
-    lifxd_broadcast_close();
-    lifxd_broadcast_setup();
-    lifxd_broadcast_discovery();
+    lgtd_lifx_broadcast_close();
+    lgtd_lifx_broadcast_setup();
+    lgtd_lifx_broadcast_discovery();
 }
 
 void
-lifxd_broadcast_close(void)
+lgtd_lifx_broadcast_close(void)
 {
-    if (lifxd_broadcast_endpoint.read_ev) {
-        event_del(lifxd_broadcast_endpoint.read_ev);
-        event_free(lifxd_broadcast_endpoint.read_ev);
-        lifxd_broadcast_endpoint.read_ev = NULL;
+    if (lgtd_lifx_broadcast_endpoint.read_ev) {
+        event_del(lgtd_lifx_broadcast_endpoint.read_ev);
+        event_free(lgtd_lifx_broadcast_endpoint.read_ev);
+        lgtd_lifx_broadcast_endpoint.read_ev = NULL;
     }
-    if (lifxd_broadcast_endpoint.write_ev) {
-        event_del(lifxd_broadcast_endpoint.write_ev);
-        event_free(lifxd_broadcast_endpoint.write_ev);
-        lifxd_broadcast_endpoint.write_ev = NULL;
+    if (lgtd_lifx_broadcast_endpoint.write_ev) {
+        event_del(lgtd_lifx_broadcast_endpoint.write_ev);
+        event_free(lgtd_lifx_broadcast_endpoint.write_ev);
+        lgtd_lifx_broadcast_endpoint.write_ev = NULL;
     }
-    if (lifxd_broadcast_endpoint.socket != -1) {
-        evutil_closesocket(lifxd_broadcast_endpoint.socket);
-        lifxd_broadcast_endpoint.socket = -1;
+    if (lgtd_lifx_broadcast_endpoint.socket != -1) {
+        evutil_closesocket(lgtd_lifx_broadcast_endpoint.socket);
+        lgtd_lifx_broadcast_endpoint.socket = -1;
     }
 }
 
 bool
-lifxd_broadcast_setup(void)
+lgtd_lifx_broadcast_setup(void)
 {
-    assert(lifxd_broadcast_endpoint.socket == -1);
-    assert(lifxd_broadcast_endpoint.read_ev == NULL);
-    assert(lifxd_broadcast_endpoint.write_ev == NULL);
+    assert(lgtd_lifx_broadcast_endpoint.socket == -1);
+    assert(lgtd_lifx_broadcast_endpoint.read_ev == NULL);
+    assert(lgtd_lifx_broadcast_endpoint.write_ev == NULL);
 
-    lifxd_broadcast_endpoint.socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (lifxd_broadcast_endpoint.socket == -1) {
+    lgtd_lifx_broadcast_endpoint.socket = socket(
+        AF_INET, SOCK_DGRAM, IPPROTO_UDP
+    );
+    if (lgtd_lifx_broadcast_endpoint.socket == -1) {
         return false;
     }
 
     int val = 1;
     int err = setsockopt(
-        lifxd_broadcast_endpoint.socket,
+        lgtd_lifx_broadcast_endpoint.socket,
         SOL_SOCKET,
         SO_BROADCAST,
         &val,
@@ -282,18 +288,19 @@ lifxd_broadcast_setup(void)
         goto error;
     }
 
-    if (evutil_make_socket_nonblocking(lifxd_broadcast_endpoint.socket) == -1) {
+    err = evutil_make_socket_nonblocking(lgtd_lifx_broadcast_endpoint.socket);
+    if (err == -1) {
         goto error;
     }
 
     struct sockaddr_in lifx_addr = {
         .sin_family = AF_INET,
         .sin_addr = { INADDR_ANY },
-        .sin_port = htons(lifxd_opts.master_port)
+        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT)
     };
 
     err = bind(
-        lifxd_broadcast_endpoint.socket,
+        lgtd_lifx_broadcast_endpoint.socket,
         (const struct sockaddr *)&lifx_addr,
         sizeof(lifx_addr)
     );
@@ -301,40 +308,40 @@ lifxd_broadcast_setup(void)
         goto error;
     }
 
-    lifxd_broadcast_endpoint.read_ev = event_new(
-        lifxd_ev_base,
-        lifxd_broadcast_endpoint.socket,
+    lgtd_lifx_broadcast_endpoint.read_ev = event_new(
+        lgtd_ev_base,
+        lgtd_lifx_broadcast_endpoint.socket,
         EV_READ|EV_PERSIST,
-        lifxd_broadcast_event_callback,
+        lgtd_lifx_broadcast_event_callback,
         NULL
     );
-    lifxd_broadcast_endpoint.write_ev = event_new(
-        lifxd_ev_base,
-        lifxd_broadcast_endpoint.socket,
+    lgtd_lifx_broadcast_endpoint.write_ev = event_new(
+        lgtd_ev_base,
+        lgtd_lifx_broadcast_endpoint.socket,
         EV_WRITE|EV_PERSIST,
-        lifxd_broadcast_event_callback,
+        lgtd_lifx_broadcast_event_callback,
         NULL
     );
-    if (!lifxd_broadcast_endpoint.read_ev
-        || !lifxd_broadcast_endpoint.write_ev) {
+    if (!lgtd_lifx_broadcast_endpoint.read_ev
+        || !lgtd_lifx_broadcast_endpoint.write_ev) {
         goto error;
     }
 
-    if (!event_add(lifxd_broadcast_endpoint.read_ev, NULL)) {
+    if (!event_add(lgtd_lifx_broadcast_endpoint.read_ev, NULL)) {
         return true;
     }
 
     int errsave;
 error:
     errsave = errno;
-    lifxd_broadcast_close();
+    lgtd_lifx_broadcast_close();
     errno = errsave;
     return false;
 }
 
 bool
-lifxd_broadcast_discovery(void)
+lgtd_lifx_broadcast_discovery(void)
 {
-    assert(lifxd_broadcast_endpoint.write_ev);
-    return event_add(lifxd_broadcast_endpoint.write_ev, NULL) == 0;
+    assert(lgtd_lifx_broadcast_endpoint.write_ev);
+    return event_add(lgtd_lifx_broadcast_endpoint.write_ev, NULL) == 0;
 }

@@ -42,33 +42,33 @@
 #include <event2/util.h>
 
 #include "wire_proto.h"
-#include "time_monotonic.h"
+#include "core/time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
-#include "lifxd.h"
+#include "core/lightsd.h"
 
-union lifxd_target LIFXD_UNSPEC_TARGET = { .tags = 0 };
+union lgtd_lifx_target LGTD_LIFX_UNSPEC_TARGET = { .tags = 0 };
 
-static struct lifxd_packet_infos_map lifxd_packet_infos =
-    RB_INITIALIZER(&lifxd_packets_infos);
+static struct lgtd_lifx_packet_infos_map lgtd_lifx_packet_infos =
+    RB_INITIALIZER(&lgtd_lifx_packets_infos);
 
 RB_GENERATE_STATIC(
-    lifxd_packet_infos_map,
-    lifxd_packet_infos,
+    lgtd_lifx_packet_infos_map,
+    lgtd_lifx_packet_infos,
     link,
-    lifxd_packet_infos_cmp
+    lgtd_lifx_packet_infos_cmp
 );
 
 static void
-lifxd_wire_null_packet_encoder_decoder(void *pkt)
+lgtd_lifx_wire_null_packet_encoder_decoder(void *pkt)
 {
     (void)pkt;
 }
 
 static void
-lifxd_wire_null_packet_handler(struct lifxd_gateway *gw,
-                               const struct lifxd_packet_header *hdr,
-                               const void *pkt)
+lgtd_lifx_wire_null_packet_handler(struct lgtd_lifx_gateway *gw,
+                                   const struct lgtd_lifx_packet_header *hdr,
+                                   const void *pkt)
 {
     (void)gw;
     (void)hdr;
@@ -76,74 +76,76 @@ lifxd_wire_null_packet_handler(struct lifxd_gateway *gw,
 }
 
 void
-lifxd_wire_load_packet_infos_map(void)
+lgtd_lifx_wire_load_packet_infos_map(void)
 {
 #define DECODER(x)  ((void (*)(void *))(x))
 #define ENCODER(x)  ((void (*)(void *))(x))
 #define HANDLER(x)                                  \
-    ((void (*)(struct lifxd_gateway *,              \
-               const struct lifxd_packet_header *,  \
+    ((void (*)(struct lgtd_lifx_gateway *,              \
+               const struct lgtd_lifx_packet_header *,  \
                const void *))(x))
 #define REQUEST_ONLY                                    \
-    .decode = lifxd_wire_null_packet_encoder_decoder,   \
-    .encode = lifxd_wire_null_packet_encoder_decoder,   \
-    .handle = lifxd_wire_null_packet_handler
+    .decode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
+    .encode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
+    .handle = lgtd_lifx_wire_null_packet_handler
 
-    static struct lifxd_packet_infos packet_table[] = {
+    static struct lgtd_lifx_packet_infos packet_table[] = {
         {
             REQUEST_ONLY,
             .name = "GET_PAN_GATEWAY",
-            .type = LIFXD_GET_PAN_GATEWAY
+            .type = LGTD_LIFX_GET_PAN_GATEWAY
         },
         {
             .name = "PAN_GATEWAY",
-            .type = LIFXD_PAN_GATEWAY,
-            .size = sizeof(struct lifxd_packet_pan_gateway),
-            .decode = DECODER(lifxd_wire_decode_pan_gateway),
-            .encode = ENCODER(lifxd_wire_encode_pan_gateway),
-            .handle = HANDLER(lifxd_gateway_handle_pan_gateway)
+            .type = LGTD_LIFX_PAN_GATEWAY,
+            .size = sizeof(struct lgtd_lifx_packet_pan_gateway),
+            .decode = DECODER(lgtd_lifx_wire_decode_pan_gateway),
+            .encode = ENCODER(lgtd_lifx_wire_encode_pan_gateway),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_pan_gateway)
         },
         {
             REQUEST_ONLY,
             .name = "GET_LIGHT_STATUS",
-            .type = LIFXD_GET_LIGHT_STATE
+            .type = LGTD_LIFX_GET_LIGHT_STATE
         },
         {
             .name = "LIGHT_STATUS",
-            .type = LIFXD_LIGHT_STATUS,
-            .size = sizeof(struct lifxd_packet_light_status),
-            .decode = DECODER(lifxd_wire_decode_light_status),
-            .encode = ENCODER(lifxd_wire_encode_light_status),
-            .handle = HANDLER(lifxd_gateway_handle_light_status)
+            .type = LGTD_LIFX_LIGHT_STATUS,
+            .size = sizeof(struct lgtd_lifx_packet_light_status),
+            .decode = DECODER(lgtd_lifx_wire_decode_light_status),
+            .encode = ENCODER(lgtd_lifx_wire_encode_light_status),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_light_status)
         },
         {
             .name = "POWER_STATE",
-            .type = LIFXD_POWER_STATE,
-            .size = sizeof(struct lifxd_packet_power_state),
-            .decode = DECODER(lifxd_wire_decode_power_state),
-            .handle = HANDLER(lifxd_gateway_handle_power_state)
+            .type = LGTD_LIFX_POWER_STATE,
+            .size = sizeof(struct lgtd_lifx_packet_power_state),
+            .decode = DECODER(lgtd_lifx_wire_decode_power_state),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_power_state)
         }
     };
 
-    for (int i = 0; i != LIFXD_ARRAY_SIZE(packet_table); ++i) {
+    for (int i = 0; i != LGTD_ARRAY_SIZE(packet_table); ++i) {
         RB_INSERT(
-            lifxd_packet_infos_map, &lifxd_packet_infos, &packet_table[i]
+            lgtd_lifx_packet_infos_map,
+            &lgtd_lifx_packet_infos,
+            &packet_table[i]
         );
     }
 }
 
-const struct lifxd_packet_infos *
-lifxd_wire_get_packet_infos(enum lifxd_packet_type packet_type)
+const struct lgtd_lifx_packet_infos *
+lgtd_lifx_wire_get_packet_infos(enum lgtd_lifx_packet_type packet_type)
 {
-    struct lifxd_packet_infos pkt_infos = { .type = packet_type };
-    return RB_FIND(lifxd_packet_infos_map, &lifxd_packet_infos, &pkt_infos);
+    struct lgtd_lifx_packet_infos pkt_infos = { .type = packet_type };
+    return RB_FIND(lgtd_lifx_packet_infos_map, &lgtd_lifx_packet_infos, &pkt_infos);
 }
 
 // Convert all the fields in the header to the host endianness.
 //
 // \return The payload size or -1 if the header is invalid.
 void
-lifxd_wire_decode_header(struct lifxd_packet_header *hdr)
+lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *hdr)
 {
     assert(hdr);
 
@@ -156,53 +158,52 @@ lifxd_wire_decode_header(struct lifxd_packet_header *hdr)
     hdr->packet_type = le16toh(hdr->packet_type);
 }
 
-const struct lifxd_packet_infos *
-lifxd_wire_setup_header(struct lifxd_packet_header *hdr,
-                        enum lifxd_target_type target_type,
-                        union lifxd_target target,
-                        const uint8_t *site,
-                        enum lifxd_packet_type packet_type)
+const struct lgtd_lifx_packet_infos *
+lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
+                            enum lgtd_lifx_target_type target_type,
+                            union lgtd_lifx_target target,
+                            const uint8_t *site,
+                            enum lgtd_lifx_packet_type packet_type)
 {
     assert(hdr);
 
-    const struct lifxd_packet_infos *pkt_infos = lifxd_wire_get_packet_infos(
-        packet_type
-    );
+    const struct lgtd_lifx_packet_infos *pkt_infos =
+        lgtd_lifx_wire_get_packet_infos(packet_type);
 
     memset(hdr, 0, sizeof(*hdr));
     hdr->size = pkt_infos->size + sizeof(*hdr);
-    hdr->protocol.version = LIFXD_LIFX_PROTOCOL_V1;
+    hdr->protocol.version = LGTD_LIFX_PROTOCOL_V1;
     hdr->packet_type = packet_type;
     if (site) {
         memcpy(hdr->site, site, sizeof(hdr->site));
     } else {
-        assert(target_type == LIFXD_TARGET_ALL_DEVICES);
+        assert(target_type == LGTD_LIFX_TARGET_ALL_DEVICES);
     }
 
     switch (target_type) {
-    case LIFXD_TARGET_SITE:
+    case LGTD_LIFX_TARGET_SITE:
         hdr->protocol.tagged = true;
         break;
-    case LIFXD_TARGET_TAGS:
+    case LGTD_LIFX_TARGET_TAGS:
         hdr->protocol.tagged = true;
         hdr->target.tags = target.tags;
         break;
-    case LIFXD_TARGET_DEVICE:
+    case LGTD_LIFX_TARGET_DEVICE:
         hdr->protocol.addressable = false;
-        memcpy(hdr->target.device_addr, target.addr, LIFXD_ADDR_LENGTH);
+        memcpy(hdr->target.device_addr, target.addr, LGTD_LIFX_ADDR_LENGTH);
         break;
-    case LIFXD_TARGET_ALL_DEVICES:
+    case LGTD_LIFX_TARGET_ALL_DEVICES:
         hdr->protocol.tagged = true;
         break;
     }
 
-    lifxd_wire_encode_header(hdr);
+    lgtd_lifx_wire_encode_header(hdr);
 
     return pkt_infos;
 }
 
 void
-lifxd_wire_encode_header(struct lifxd_packet_header *hdr)
+lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr)
 {
     assert(hdr);
 
@@ -216,7 +217,7 @@ lifxd_wire_encode_header(struct lifxd_packet_header *hdr)
 }
 
 void
-lifxd_wire_decode_pan_gateway(struct lifxd_packet_pan_gateway *pkt)
+lgtd_lifx_wire_decode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *pkt)
 {
     assert(pkt);
 
@@ -224,7 +225,7 @@ lifxd_wire_decode_pan_gateway(struct lifxd_packet_pan_gateway *pkt)
 }
 
 void
-lifxd_wire_encode_pan_gateway(struct lifxd_packet_pan_gateway *pkt)
+lgtd_lifx_wire_encode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *pkt)
 {
     assert(pkt);
 
@@ -232,7 +233,7 @@ lifxd_wire_encode_pan_gateway(struct lifxd_packet_pan_gateway *pkt)
 }
 
 void
-lifxd_wire_decode_light_status(struct lifxd_packet_light_status *pkt)
+lgtd_lifx_wire_decode_light_status(struct lgtd_lifx_packet_light_status *pkt)
 {
     assert(pkt);
 
@@ -246,7 +247,7 @@ lifxd_wire_decode_light_status(struct lifxd_packet_light_status *pkt)
 }
 
 void
-lifxd_wire_encode_light_status(struct lifxd_packet_light_status *pkt)
+lgtd_lifx_wire_encode_light_status(struct lgtd_lifx_packet_light_status *pkt)
 {
     assert(pkt);
 
@@ -260,7 +261,7 @@ lifxd_wire_encode_light_status(struct lifxd_packet_light_status *pkt)
 }
 
 void
-lifxd_wire_decode_power_state(struct lifxd_packet_power_state *pkt)
+lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *pkt)
 {
     assert(pkt);
 }

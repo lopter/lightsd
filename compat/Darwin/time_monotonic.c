@@ -40,7 +40,7 @@
 enum { MSECS_IN_NSEC = 1000000 };
 
 time_t
-lifxd_time_monotonic_msecs(void)
+lgtd_time_monotonic_msecs(void)
 {
     static mach_timebase_info_data_t timebase = { 0, 0 };
     if (timebase.denom == 0) {

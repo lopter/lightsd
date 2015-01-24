@@ -240,7 +240,6 @@ lgtd_lifx_broadcast_event_callback(evutil_socket_t socket,
 error_reset:
     lgtd_lifx_broadcast_close();
     lgtd_lifx_broadcast_setup();
-    lgtd_lifx_broadcast_discovery();
 }
 
 void

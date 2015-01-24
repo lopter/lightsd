@@ -29,50 +29,52 @@
 
 #pragma once
 
-#ifndef __attribute__
-# define __atttribute__(e)
-#endif
+struct lgtd_lifx_gateway;
 
-#define LIFXD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
-#define LIFXD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-#define LIFXD_MSECS_TO_TIMEVAL(v) { \
-    .tv_sec = (v) / 1000,           \
-    .tv_usec = ((v) % 1000) * 1000  \
+#pragma pack(push, 1)
+struct lgtd_lifx_light_state {
+    uint16_t    hue;
+    uint16_t    saturation;
+    uint16_t    brightness;
+    uint16_t    kelvin;
+    uint16_t    dim;
+    uint16_t    power;
+    char        label[LGTD_LIFX_LABEL_SIZE];
+    uint64_t    tags;
+};
+#pragma pack(pop)
+
+struct lgtd_lifx_bulb {
+    RB_ENTRY(lgtd_lifx_bulb)        link;
+    SLIST_ENTRY(lgtd_lifx_bulb)     link_by_gw;
+    struct lgtd_lifx_gateway        *gw;
+    uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
+    struct lgtd_lifx_light_state    state;
+    lgtd_time_mono_t                last_light_state_at;
+};
+RB_HEAD(lgtd_lifx_bulb_map, lgtd_lifx_bulb);
+SLIST_HEAD(lgtd_lifx_bulb_list, lgtd_lifx_bulb);
+
+extern struct lgtd_lifx_bulb_map lgtd_lifx_bulbs_table;
+
+static inline int
+lgtd_lifx_bulb_cmp(const struct lgtd_lifx_bulb *a, const struct lgtd_lifx_bulb *b)
+{
+    return memcmp(a->addr, b->addr, sizeof(a->addr));
 }
 
-enum lifxd_verbosity {
-    LIFXD_DEBUG = 0,
-    LIFXD_INFO,
-    LIFXD_WARN,
-    LIFXD_ERR
-};
+RB_GENERATE_STATIC(
+    lgtd_lifx_bulb_map,
+    lgtd_lifx_bulb,
+    link,
+    lgtd_lifx_bulb_cmp
+);
 
-enum { LIFXD_ERROR_MSG_BUFSIZE = 2048 };
+struct lgtd_lifx_bulb *lgtd_lifx_bulb_get(struct lgtd_lifx_gateway *, const uint8_t *);
+struct lgtd_lifx_bulb *lgtd_lifx_bulb_open(struct lgtd_lifx_gateway *, const uint8_t *);
+void lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *);
 
-struct lifxd_opts {
-    bool                    foreground;
-    bool                    log_timestamps;
-    uint16_t                master_port;
-    enum lifxd_verbosity    verbosity;
-};
-
-extern struct lifxd_opts lifxd_opts;
-extern struct event_base *lifxd_ev_base;
-
-const char *lifxd_addrtoa(const uint8_t *);
-void lifxd_sockaddrtoa(const struct sockaddr_storage *, char *buf, int buflen);
-short lifxd_sockaddrport(const struct sockaddr_storage *);
-
-void _lifxd_err(void (*)(int, const char *, ...), int, const char *, ...)
-    __attribute__((format(printf, 3, 4)));
-#define lifxd_err(eval, fmt, ...) _lifxd_err(err, (eval), (fmt), ##__VA_ARGS__);
-#define lifxd_errx(eval, fmt, ...) _lifxd_err(errx, (eval), (fmt), ##__VA_ARGS__);
-void _lifxd_warn(void (*)(const char *, va_list), const char *, ...)
-    __attribute__((format(printf, 2, 3)));
-#define lifxd_warn(fmt, ...) _lifxd_warn(vwarn, (fmt), ##__VA_ARGS__);
-#define lifxd_warnx(fmt, ...) _lifxd_warn(vwarnx, (fmt), ##__VA_ARGS__);
-void lifxd_info(const char *, ...) __attribute__((format(printf, 1, 2)));
-void lifxd_debug(const char *, ...) __attribute__((format(printf, 1, 2)));
-void lifxd_libevent_log(int, const char *);
-
-void lifxd_cleanup(void);
+void lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *,
+                                    const struct lgtd_lifx_light_state *,
+                                    lgtd_time_mono_t);
+void lgtd_lifx_bulb_set_power_state(struct lgtd_lifx_bulb *, uint16_t);

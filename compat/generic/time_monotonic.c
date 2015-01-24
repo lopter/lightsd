@@ -32,7 +32,7 @@
 #include "time_monotonic.h"
 
 time_t
-lifxd_time_monotonic_msecs(void)
+lgtd_time_monotonic_msecs(void)
 {
     struct timespec tp;
     clock_gettime(CLOCK_MONOTONIC, &tp);

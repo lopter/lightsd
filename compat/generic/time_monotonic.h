@@ -29,6 +29,6 @@
 
 #pragma once
 
-typedef time_t lifxd_time_mono_t;
+typedef time_t lgtd_time_mono_t;
 
-lifxd_time_mono_t lifxd_time_monotonic_msecs(void);
+lgtd_time_mono_t lgtd_time_monotonic_msecs(void);

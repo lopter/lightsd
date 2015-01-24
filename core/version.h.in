@@ -29,4 +29,4 @@
 
 #pragma once
 
-const char LIFXD_VERSION[] = "@LIFXD_VERSION@";
+const char LGTD_VERSION[] = "@LGTD_VERSION@";

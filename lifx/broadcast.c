@@ -286,6 +286,12 @@ lgtd_lifx_broadcast_setup(void)
     if (err) {
         goto error;
     }
+    err = evutil_make_listen_socket_reuseable(
+        lgtd_lifx_broadcast_endpoint.socket
+    );
+    if (err) {
+        goto error;
+    }
 
     err = evutil_make_socket_nonblocking(lgtd_lifx_broadcast_endpoint.socket);
     if (err == -1) {

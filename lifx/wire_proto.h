@@ -124,7 +124,7 @@ enum lgtd_lifx_packet_type {
     LGTD_LIFX_SET_FACTORY_TEST_MODE = 0x27,
     LGTD_LIFX_DISABLE_FACTORY_TEST_MODE = 0x28,
     LGTD_LIFX_GET_LIGHT_STATE = 0x65,
-    LGTD_LIFX_SET_LIGHT_COLOUR = 0x66,
+    LGTD_LIFX_SET_LIGHT_COLOR = 0x66,
     LGTD_LIFX_SET_WAVEFORM = 0x67,
     LGTD_LIFX_SET_DIM_ABSOLUTE = 0x68,
     LGTD_LIFX_SET_DIM_RELATIVE = 0x69,
@@ -176,6 +176,15 @@ enum lgtd_lifx_target_type {
     LGTD_LIFX_TARGET_ALL_DEVICES
 };
 
+struct lgtd_lifx_packet_light_color {
+    uint8_t     stream; // should be 0
+    uint16le_t  hue;
+    uint16le_t  saturation;
+    uint16le_t  brightness;
+    uint16le_t  kelvin;
+    uint32le_t  transition; // transition time to the color in msecs
+};
+
 #pragma pack(pop)
 
 struct lgtd_lifx_gateway;
@@ -195,7 +204,7 @@ RB_HEAD(lgtd_lifx_packet_infos_map, lgtd_lifx_packet_infos);
 
 static inline int
 lgtd_lifx_packet_infos_cmp(struct lgtd_lifx_packet_infos *a,
-                       struct lgtd_lifx_packet_infos *b)
+                           struct lgtd_lifx_packet_infos *b)
 {
     return a->type - b->type;
 }
@@ -223,3 +232,5 @@ void lgtd_lifx_wire_encode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *);
 void lgtd_lifx_wire_decode_light_status(struct lgtd_lifx_packet_light_status *);
 void lgtd_lifx_wire_encode_light_status(struct lgtd_lifx_packet_light_status *);
 void lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *);
+
+void lgtd_lifx_wire_encode_light_color(struct lgtd_lifx_packet_light_color *);

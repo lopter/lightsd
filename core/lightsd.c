@@ -51,8 +51,11 @@
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"
 #include "lifx/broadcast.h"
-#include "version.h"
 #include "lifx/timer.h"
+#include "version.h"
+#include "jsmn.h"
+#include "client.h"
+#include "listen.h"
 #include "lightsd.h"
 
 struct lgtd_opts lgtd_opts = {
@@ -66,6 +69,8 @@ struct event_base *lgtd_ev_base = NULL;
 void
 lgtd_cleanup(void)
 {
+    lgtd_listen_close_all();
+    lgtd_client_close_all();
     lgtd_lifx_timer_close();
     lgtd_lifx_broadcast_close();
     lgtd_lifx_gateway_close_all();
@@ -131,7 +136,8 @@ static void
 lgtd_usage(const char *progname)
 {
     printf(
-        "Usage: %s [-v debug|info|warning|error] [-f] [-t] [-h] [-V]\n",
+        "Usage: %s -l addr:port [-l ...] [-f] [-t] [-h] [-V] "
+        "[-v debug|info|warning|error]\n",
         progname
     );
     exit(0);
@@ -140,7 +146,11 @@ lgtd_usage(const char *progname)
 int
 main(int argc, char *argv[])
 {
+    lgtd_configure_libevent();
+    lgtd_configure_signal_handling();
+
     static const struct option long_opts[] = {
+        {"listen",          required_argument, NULL, 'l'},
         {"foreground",      no_argument,       NULL, 'f'},
         {"no-timestamps",   no_argument,       NULL, 't'},
         {"help",            no_argument,       NULL, 'h'},
@@ -148,12 +158,22 @@ main(int argc, char *argv[])
         {"version",         no_argument,       NULL, 'V'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "fthv:V";
+    const char short_opts[] = "l:fthv:V";
 
     for (int rv = getopt_long(argc, argv, short_opts, long_opts, NULL);
          rv != -1;
          rv = getopt_long(argc, argv, short_opts, long_opts, NULL)) {
         switch (rv) {
+        case 'l':
+            (void)0;
+            char *sep = strrchr(optarg, ':');
+            if (!sep || !sep[1]) {
+                lgtd_usage(argv[0]);
+            }
+            *sep = '\0';
+            if (!lgtd_listen_open(optarg, sep + 1)) {
+                exit(1);
+            }
         case 'f':
             lgtd_opts.foreground = true;
             break;
@@ -187,12 +207,9 @@ main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
-    lgtd_configure_libevent();
-    lgtd_configure_signal_handling();
-
     lgtd_lifx_wire_load_packet_infos_map();
     if (!lgtd_lifx_timer_setup() || !lgtd_lifx_broadcast_setup()) {
-        lgtd_err(1, "can't setup lgtd_lifx");
+        lgtd_err(1, "can't setup lightsd");
     }
 
     lgtd_lifx_timer_start_discovery();

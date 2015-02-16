@@ -145,6 +145,14 @@ lgtd_lifx_gateway_refresh_callback(evutil_socket_t socket,
     lgtd_lifx_gateway_send_get_all_light_state((struct lgtd_lifx_gateway *)ctx);
 }
 
+void
+lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *gw)
+{
+    assert(gw);
+
+    event_active(gw->refresh_ev, 0, 0);
+}
+
 static struct lgtd_lifx_bulb *
 lgtd_lifx_gateway_get_or_open_bulb(struct lgtd_lifx_gateway *gw,
                                    const uint8_t *bulb_addr)

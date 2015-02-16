@@ -72,6 +72,8 @@ struct lgtd_lifx_gateway *lgtd_lifx_gateway_open(const struct sockaddr_storage *
 void lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *);
 void lgtd_lifx_gateway_close_all(void);
 
+void lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *);
+
 void lgtd_lifx_gateway_send_packet(struct lgtd_lifx_gateway *,
                                    const struct lgtd_lifx_packet_header *,
                                    const void *,

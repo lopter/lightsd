@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+
+import json
+import socket
+import time
+
+
+def jsonrpc_call(socket, id, method, params):
+    payload = {
+        "method": method,
+        "params": params,
+        "jsonrpc": "2.0",
+        "id": id,
+    }
+    socket.send(json.dumps(payload).encode("ascii"))
+    response = socket.recv(2048)
+    response = json.loads(response.decode("ascii"))
+    print(response)
+
+
+def set_light_from_hsbk(socket, id, h, s, b, k):
+    jsonrpc_call(socket, id, "set_light_from_hsbk", {
+        "target": "*",
+        "hue": h,
+        "saturation": s,
+        "brightness": b,
+        "kelvin": k
+    })
+
+
+def power_on(socket, id):
+    jsonrpc_call(socket, id, "power_on", {"target": "*"})
+
+
+def power_off(socket, id):
+    jsonrpc_call(socket, id, "power_off", {"target": "*"})
+
+if __name__ == "__main__":
+    s = socket.create_connection(("localhost", 1234))
+    h = 0
+    id = 0
+    try:
+        power_on(s, id)
+        while True:
+            h = (h + 1) % 360
+            id += 1
+            set_light_from_hsbk(s, id, h, 0.7, 0.02, 2500)
+            time.sleep(0.1)
+    finally:
+        power_off(s, id)
+        s.close()

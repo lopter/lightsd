@@ -84,14 +84,18 @@ lgtd_lifx_wire_load_packet_infos_map(void)
     ((void (*)(struct lgtd_lifx_gateway *,              \
                const struct lgtd_lifx_packet_header *,  \
                const void *))(x))
-#define REQUEST_ONLY                                    \
+#define NO_PAYLOAD                                          \
+    .encode = lgtd_lifx_wire_null_packet_encoder_decoder
+#define RESPONSE_ONLY                                       \
+    .encode = lgtd_lifx_wire_null_packet_encoder_decoder
+#define REQUEST_ONLY                                        \
     .decode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
-    .encode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
     .handle = lgtd_lifx_wire_null_packet_handler
 
     static struct lgtd_lifx_packet_infos packet_table[] = {
         {
             REQUEST_ONLY,
+            NO_PAYLOAD,
             .name = "GET_PAN_GATEWAY",
             .type = LGTD_LIFX_GET_PAN_GATEWAY
         },
@@ -105,16 +109,24 @@ lgtd_lifx_wire_load_packet_infos_map(void)
         },
         {
             REQUEST_ONLY,
+            NO_PAYLOAD,
             .name = "GET_LIGHT_STATUS",
             .type = LGTD_LIFX_GET_LIGHT_STATE
         },
         {
+            RESPONSE_ONLY,
             .name = "LIGHT_STATUS",
             .type = LGTD_LIFX_LIGHT_STATUS,
             .size = sizeof(struct lgtd_lifx_packet_light_status),
             .decode = DECODER(lgtd_lifx_wire_decode_light_status),
-            .encode = ENCODER(lgtd_lifx_wire_encode_light_status),
             .handle = HANDLER(lgtd_lifx_gateway_handle_light_status)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD, // well it has a payload, but it's just 0 or 1...
+            .size = sizeof(struct lgtd_lifx_packet_power_state),
+            .name = "SET_POWER_STATE",
+            .type = LGTD_LIFX_SET_POWER_STATE,
         },
         {
             .name = "POWER_STATE",
@@ -122,6 +134,13 @@ lgtd_lifx_wire_load_packet_infos_map(void)
             .size = sizeof(struct lgtd_lifx_packet_power_state),
             .decode = DECODER(lgtd_lifx_wire_decode_power_state),
             .handle = HANDLER(lgtd_lifx_gateway_handle_power_state)
+        },
+        {
+            REQUEST_ONLY,
+            .name = "SET_LIGHT_COLOR",
+            .type = LGTD_LIFX_SET_LIGHT_COLOR,
+            .size = sizeof(struct lgtd_lifx_packet_light_color),
+            .encode = ENCODER(lgtd_lifx_wire_encode_light_color)
         }
     };
 
@@ -247,7 +266,13 @@ lgtd_lifx_wire_decode_light_status(struct lgtd_lifx_packet_light_status *pkt)
 }
 
 void
-lgtd_lifx_wire_encode_light_status(struct lgtd_lifx_packet_light_status *pkt)
+lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *pkt)
+{
+    assert(pkt);
+}
+
+void
+lgtd_lifx_wire_encode_light_color(struct lgtd_lifx_packet_light_color *pkt)
 {
     assert(pkt);
 
@@ -255,13 +280,5 @@ lgtd_lifx_wire_encode_light_status(struct lgtd_lifx_packet_light_status *pkt)
     pkt->saturation = htole16(pkt->saturation);
     pkt->brightness = htole16(pkt->brightness);
     pkt->kelvin = htole16(pkt->kelvin);
-    pkt->dim = htole16(pkt->dim);
-    pkt->power = htole16(pkt->power);
-    pkt->tags = htole64(pkt->tags);
-}
-
-void
-lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *pkt)
-{
-    assert(pkt);
+    pkt->transition = htole32(pkt->transition);
 }

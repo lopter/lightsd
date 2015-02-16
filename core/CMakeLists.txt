@@ -10,10 +10,18 @@ INCLUDE_DIRECTORIES(
 
 CONFIGURE_FILE(version.h.in ${CMAKE_CURRENT_BINARY_DIR}/version.h)
 
+ADD_DEFINITIONS("-DJSMN_STRICT=1")
+
 ADD_EXECUTABLE(
     lightsd
+    client.c
+    jsmn.c
+    jsonrpc.c
+    listen.c
     lightsd.c
     log.c
+    proto.c
+    router.c
     ${TIME_MONOTONIC_IMPL}
 )
 

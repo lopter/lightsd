@@ -83,11 +83,11 @@ lgtd_log_header(const char *loglvl, bool showprogname)
         lgtd_isotime_now(timestr, sizeof(timestr));
         fprintf(
             stderr, "[%s] [%s] %s",
-            timestr, loglvl, showprogname ? "lightsd " : ""
+            timestr, loglvl, showprogname ? "lightsd: " : ""
         );
         return;
     }
-    fprintf(stderr, "[%s] %s", loglvl, showprogname ? "lightsd " : "");
+    fprintf(stderr, "[%s] %s", loglvl, showprogname ? "lightsd: " : "");
 }
 
 const char *

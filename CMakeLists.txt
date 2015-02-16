@@ -16,6 +16,8 @@ MESSAGE(STATUS "Source directory: ${LIGHTSD_SOURCE_DIR}")
 
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${LIGHTSD_SOURCE_DIR}/CMakeScripts)
 
+ENABLE_TESTING()
+
 ### Platform checks ############################################################
 
 # TODO: we need at least 2.0.19-stable because of the logging defines
@@ -28,6 +30,9 @@ CHECK_TYPE_SIZE(suseconds_t SUSECONDS_T_SIZE)
 ADD_DEFINITIONS("-DLGTD_SUSECONDS_T_SIZE=${SUSECONDS_T_SIZE}")
 
 ### Global definitions #########################################################
+
+INCLUDE(AddAllSubdirectories)
+INCLUDE(AddTestFromSources)
 
 SET(CMAKE_C_FLAGS "-pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
 
@@ -49,3 +54,4 @@ INCLUDE_DIRECTORIES(${LIGHTSD_SOURCE_DIR}/compat/generic ${LIGHTSD_BINARY_DIR}/c
 
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(lifx)
+ADD_SUBDIRECTORY(tests)

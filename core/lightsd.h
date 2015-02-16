@@ -34,6 +34,7 @@
 #endif
 
 #define LGTD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
+#define LGTD_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define LGTD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define LGTD_MSECS_TO_TIMEVAL(v) { \
     .tv_sec = (v) / 1000,           \
@@ -50,9 +51,9 @@ enum lgtd_verbosity {
 enum { LGTD_ERROR_MSG_BUFSIZE = 2048 };
 
 struct lgtd_opts {
-    bool                    foreground;
-    bool                    log_timestamps;
-    enum lgtd_verbosity    verbosity;
+    bool                foreground;
+    bool                log_timestamps;
+    enum lgtd_verbosity verbosity;
 };
 
 extern struct lgtd_opts lgtd_opts;

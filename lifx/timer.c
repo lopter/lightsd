@@ -126,6 +126,12 @@ lgtd_lifx_timer_watchdog_timeout_event_callback(evutil_socket_t socket,
             );
             lgtd_lifx_gateway_close(gw);
             start_discovery = true;
+        } else if (gw_lag >= LGTD_LIFX_TIMER_DEVICE_FORCE_REFRESH_MSECS) {
+            lgtd_info(
+                "no update on bulb gateway [%s]:%hu for %dms, forcing refresh",
+                gw->ip_addr, gw->port, gw_lag
+            );
+            lgtd_lifx_gateway_force_refresh(gw);
         }
     }
 

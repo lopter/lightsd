@@ -328,7 +328,8 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#jx",
         gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
         pkt->hue, pkt->saturation, pkt->brightness, pkt->kelvin,
-        pkt->dim, pkt->power, LGTD_LIFX_LABEL_SIZE, pkt->label, pkt->tags
+        pkt->dim, pkt->power, LGTD_LIFX_LABEL_SIZE, pkt->label,
+        (uintmax_t)pkt->tags
     );
 
     struct lgtd_lifx_bulb *b = lgtd_lifx_gateway_get_or_open_bulb(

@@ -229,9 +229,7 @@ lgtd_jsonrpc_extract_values_from_schema_and_dict(void *output,
                                                  int ntokens,
                                                  const char *json)
 {
-    if (tokens[0].type != JSMN_OBJECT) {
-        return false;
-    }
+    assert(tokens[0].type == JSMN_OBJECT);
 
     for (int ti = 1; ti < ntokens;) {
         // make sure it's a key:
@@ -305,6 +303,66 @@ lgtd_jsonrpc_extract_values_from_schema_and_dict(void *output,
     }
 
     return true;
+}
+
+static bool
+lgtd_jsonrpc_extract_values_from_schema_and_array(void *output,
+                                                  const struct lgtd_jsonrpc_node *schema,
+                                                  int schema_size,
+                                                  const jsmntok_t *tokens,
+                                                  int ntokens,
+                                                  const char *json)
+{
+    assert(tokens[0].type == JSMN_ARRAY);
+
+    int si, ti;
+    for (si = 0, ti = 1; si < schema_size && ti < ntokens; si++) {
+        if (!schema[si].type_cmp(&tokens[ti], json)) {
+            lgtd_debug(
+                "jsonrpc client sent an invalid value for %s",
+                schema[si].key
+            );
+            return false;
+        }
+        if (schema[si].value_offset != -1) {
+            LGTD_JSONRPC_SET_JSMNTOK(
+                output, schema[si].value_offset, &tokens[ti]
+            );
+        }
+        // skip the value, if it's an object or an array we need to
+        // skip everything in it:
+        if (tokens[ti].type == JSMN_OBJECT || tokens[ti].type == JSMN_ARRAY) {
+            ti = lgtd_jsonrpc_consume_object_or_array(
+                tokens, ti, ntokens, json
+            );
+        } else {
+            ti++;
+        }
+    }
+
+    return si == schema_size;
+}
+
+static bool
+lgtd_jsonrpc_extract_and_validate_params_against_schema(void *output,
+                                                        const struct lgtd_jsonrpc_node *schema,
+                                                        int schema_size,
+                                                        const jsmntok_t *tokens,
+                                                        int ntokens,
+                                                        const char *json)
+{
+    switch (tokens[0].type) {
+    case JSMN_OBJECT:
+        return lgtd_jsonrpc_extract_values_from_schema_and_dict(
+            output, schema, schema_size, tokens, ntokens, json
+        );
+    case JSMN_ARRAY:
+        return lgtd_jsonrpc_extract_values_from_schema_and_array(
+            output, schema, schema_size, tokens, ntokens, json
+        );
+    default:
+        return false;
+    }
 }
 
 static void
@@ -471,7 +529,7 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client,
         ),
     };
 
-    bool ok = lgtd_jsonrpc_extract_values_from_schema_and_dict(
+    bool ok = lgtd_jsonrpc_extract_and_validate_params_against_schema(
         &params,
         schema,
         LGTD_ARRAY_SIZE(schema),
@@ -527,7 +585,7 @@ lgtd_jsonrpc_extract_target_only(struct lgtd_client *client,
         LGTD_JSONRPC_NODE("target", 0, lgtd_jsonrpc_type_string, false)
     };
 
-    bool ok = lgtd_jsonrpc_extract_values_from_schema_and_dict(
+    bool ok = lgtd_jsonrpc_extract_and_validate_params_against_schema(
         &target, schema, 1, request->params, request->params_ntokens, json
     );
     if (!ok) {

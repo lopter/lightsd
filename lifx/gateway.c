@@ -325,7 +325,7 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
     lgtd_debug(
         "SET_LIGHT_STATE <-- [%s]:%hu - %s "
         "hue=%#hx, saturation=%#hx, brightness=%#hx, "
-        "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#llx",
+        "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#jx",
         gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
         pkt->hue, pkt->saturation, pkt->brightness, pkt->kelvin,
         pkt->dim, pkt->power, LGTD_LIFX_LABEL_SIZE, pkt->label, pkt->tags

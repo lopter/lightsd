@@ -19,13 +19,9 @@ def jsonrpc_call(socket, id, method, params):
 
 
 def set_light_from_hsbk(socket, id, h, s, b, k):
-    jsonrpc_call(socket, id, "set_light_from_hsbk", {
-        "target": "*",
-        "hue": h,
-        "saturation": s,
-        "brightness": b,
-        "kelvin": k
-    })
+    jsonrpc_call(socket, id, "set_light_from_hsbk", [
+        "*", h, s, b, k
+    ])
 
 
 def power_on(socket, id):

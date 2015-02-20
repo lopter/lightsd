@@ -214,11 +214,6 @@ lgtd_lifx_timer_start_discovery(void)
         lgtd_lifx_timer_context.discovery_timeout_ev, NULL
     ));
 
-    struct timeval tv = LGTD_MSECS_TO_TIMEVAL(
-        LGTD_LIFX_TIMER_ACTIVE_DISCOVERY_INTERVAL_MSECS
-    );
-    if (event_add(lgtd_lifx_timer_context.discovery_timeout_ev, &tv)) {
-        lgtd_err(1, "can't start discovery timer");
-    }
+    lgtd_lifx_timer_discovery_timeout_event_callback(-1, 0, NULL);
     lgtd_debug("starting discovery timer");
 }

@@ -96,6 +96,7 @@ lgtd_lifx_timer_watchdog_timeout_event_callback(evutil_socket_t socket,
             );
             lgtd_lifx_bulb_close(bulb);
             start_discovery = true;
+            continue;
         }
     }
 

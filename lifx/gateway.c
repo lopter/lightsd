@@ -332,6 +332,21 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         b, (const struct lgtd_lifx_light_state *)pkt, gw->last_pkt_at
     );
 
+    if (b->dirty_at
+        && b->last_light_state_at > b->dirty_at
+        && b->gw->last_pkt_at - b->dirty_at > 400) {
+        if (b->expected_power_on == b->state.power) {
+            lgtd_warnx("clearing dirty_at on %s", b->state.label);
+            b->dirty_at = 0;
+        } else if (b->expected_power_on) {
+            lgtd_warnx("retransmiting power on %s", b->state.label);
+            lgtd_proto_power_on("*");
+        } else {
+            lgtd_warnx("retransmiting power off on %s", b->state.label);
+            lgtd_proto_power_off("*");
+        }
+    }
+
     int latency = gw->last_pkt_at - gw->last_req_at;
     if (latency < LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
         int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;

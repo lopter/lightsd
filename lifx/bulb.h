@@ -60,7 +60,7 @@ RB_GENERATE_STATIC(
     lgtd_lifx_bulb_cmp
 );
 
-struct lgtd_lifx_bulb *lgtd_lifx_bulb_get(struct lgtd_lifx_gateway *, const uint8_t *);
+struct lgtd_lifx_bulb *lgtd_lifx_bulb_get(const uint8_t *);
 struct lgtd_lifx_bulb *lgtd_lifx_bulb_open(struct lgtd_lifx_gateway *, const uint8_t *);
 void lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *);
 

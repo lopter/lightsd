@@ -67,6 +67,33 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
     }
 }
 
+static void
+lgtd_router_device(struct lgtd_lifx_bulb *bulb,
+                   enum lgtd_lifx_packet_type pkt_type,
+                   void *pkt)
+{
+    assert(bulb);
+
+    struct lgtd_lifx_packet_header hdr;
+    union lgtd_lifx_target target = { .addr = bulb->addr };
+
+    const struct lgtd_lifx_packet_infos *pkt_infos;
+    pkt_infos = lgtd_lifx_wire_setup_header(
+        &hdr, LGTD_LIFX_TARGET_DEVICE, target, bulb->gw->site, pkt_type
+    );
+    assert(pkt_infos);
+
+    lgtd_lifx_gateway_send_packet(bulb->gw, &hdr, pkt, pkt_infos->size);
+
+    if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
+        bulb->dirty_at = lgtd_time_monotonic_msecs();
+        struct lgtd_lifx_packet_power_state *payload = pkt;
+        bulb->expected_power_on = payload->power;
+    }
+
+    lgtd_debug("sending %s to %s", pkt_infos->name, lgtd_addrtoa(bulb->addr));
+}
+
 bool
 lgtd_router_send(const char *target,
                  enum lgtd_lifx_packet_type pkt_type,
@@ -76,6 +103,26 @@ lgtd_router_send(const char *target,
 
     if (!strcmp(target, "*")) {
         lgtd_router_broadcast(pkt_type, pkt);
+        return true;
+    }
+
+    if (isxdigit(target[0])) {
+        const char *endptr = NULL;
+        errno = 0;
+        long long device = strtoll(target, (char **)&endptr, 16);
+        if (*endptr || errno == ERANGE) {
+            lgtd_debug("invalid target device %s", target);
+            return false;
+        }
+        device = htobe64(device);
+        struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(
+            (uint8_t *)&device + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
+        );
+        if (!bulb) {
+            lgtd_debug("target device %#llx not found", device);
+            return false;
+        }
+        lgtd_router_device(bulb, pkt_type, pkt);
         return true;
     }
 

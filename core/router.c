@@ -48,6 +48,15 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
         );
         assert(pkt_infos);
         lgtd_lifx_gateway_send_packet(gw, &hdr, pkt, pkt_infos->size);
+        struct lgtd_lifx_bulb *bulb;
+        lgtd_time_mono_t now = lgtd_time_monotonic_msecs();
+        SLIST_FOREACH(bulb, &gw->bulbs, link_by_gw) {
+            if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
+                bulb->dirty_at = now;
+                struct lgtd_lifx_packet_power_state *payload = pkt;
+                bulb->expected_power_on = payload->power;
+            }
+        }
     }
 
     if (pkt_infos) {

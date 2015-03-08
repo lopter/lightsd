@@ -39,6 +39,8 @@ struct lgtd_lifx_bulb {
     uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
     struct lgtd_lifx_light_state    state;
     lgtd_time_mono_t                last_light_state_at;
+    lgtd_time_mono_t                dirty_at;
+    uint16_t                        expected_power_on;
 };
 RB_HEAD(lgtd_lifx_bulb_map, lgtd_lifx_bulb);
 SLIST_HEAD(lgtd_lifx_bulb_list, lgtd_lifx_bulb);

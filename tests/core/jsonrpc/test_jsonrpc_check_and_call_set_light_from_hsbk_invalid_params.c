@@ -64,7 +64,8 @@ main(void)
             "\"hue\": 324.2341514, "
             "\"saturation\": 0.234, "
             "\"brightness\": 1.0, "
-            "\"kelvin\": -4200"
+            "\"kelvin\": -4200,"
+            "\"transition\": 42"
         "},"
         "\"id\": \"42\""
     "}");
@@ -78,7 +79,8 @@ main(void)
             "\"hue\": 324.2341514, "
             "\"saturation\": 3.234, "
             "\"brightness\": 1.0, "
-            "\"kelvin\": 4200"
+            "\"kelvin\": 4200,"
+            "\"transition\": 42"
         "},"
         "\"id\": \"42\""
     "}");
@@ -92,7 +94,8 @@ main(void)
             "\"hue\": 424.2341514, "
             "\"saturation\": 0.234, "
             "\"brightness\": 1.0, "
-            "\"kelvin\": 4200"
+            "\"kelvin\": 4200,"
+            "\"transition\": 42"
         "},"
         "\"id\": \"42\""
     "}");
@@ -106,10 +109,25 @@ main(void)
             "\"hue\": 224.2341514, "
             "\"saturation\": 0.234, "
             "\"brightness\": -1.0, "
-            "\"kelvin\": 4200"
+            "\"kelvin\": 4200,"
+            "\"transition\": 42"
         "},"
         "\"id\": \"42\""
     "}");
 
+    // negative transition
+    test_request("{"
+        "\"jsonrpc\": \"2.0\","
+        "\"method\": \"set_light_from_hsbk\","
+        "\"params\": {"
+            "\"target\": \"*\", "
+            "\"hue\": 224.2341514, "
+            "\"saturation\": 0.234, "
+            "\"brightness\": -1.0, "
+            "\"kelvin\": 4200,"
+            "\"transition\": -42"
+        "},"
+        "\"id\": \"42\""
+    "}");
     return 0;
 }

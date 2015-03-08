@@ -154,7 +154,7 @@ lgtd_lifx_gateway_get_or_open_bulb(struct lgtd_lifx_gateway *gw,
     assert(gw);
     assert(bulb_addr);
 
-    struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(gw, bulb_addr);
+    struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(bulb_addr);
     if (!bulb) {
         bulb = lgtd_lifx_bulb_open(gw, bulb_addr);
         if (bulb) {

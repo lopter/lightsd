@@ -1,7 +1,9 @@
 INCLUDE_DIRECTORIES(
     ${LIGHTSD_SOURCE_DIR}
+    ${LIGHTSD_SOURCE_DIR}/../
     ${LIGHTSD_SOURCE_DIR}/core/
     ${LIGHTSD_BINARY_DIR}
+    ${LIGHTSD_BINARY_DIR}/../
     ${LIGHTSD_BINARY_DIR}/core/
 )
 
@@ -9,7 +11,8 @@ ADD_LIBRARY(
     test_core_jsonrpc STATIC
     ${LIGHTSD_SOURCE_DIR}/core/jsmn.c
     ${LIGHTSD_SOURCE_DIR}/core/log.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/../utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
 )
 
 FUNCTION(ADD_JSONRPC_TEST TEST_SOURCE)

@@ -196,7 +196,7 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
         hdr->target.tags = target.tags;
         break;
     case LGTD_LIFX_TARGET_DEVICE:
-        hdr->protocol.addressable = false;
+        hdr->protocol.addressable = true;
         memcpy(hdr->target.device_addr, target.addr, LGTD_LIFX_ADDR_LENGTH);
         break;
     case LGTD_LIFX_TARGET_ALL_DEVICES:

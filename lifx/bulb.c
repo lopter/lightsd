@@ -37,9 +37,8 @@ struct lgtd_lifx_bulb_map lgtd_lifx_bulbs_table =
     RB_INITIALIZER(&lgtd_lifx_bulbs_table);
 
 struct lgtd_lifx_bulb *
-lgtd_lifx_bulb_get(struct lgtd_lifx_gateway *gw, const uint8_t *addr)
+lgtd_lifx_bulb_get(const uint8_t *addr)
 {
-    assert(gw);
     assert(addr);
 
     struct lgtd_lifx_bulb bulb;
@@ -77,9 +76,10 @@ lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *bulb)
     RB_REMOVE(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
     SLIST_REMOVE(&bulb->gw->bulbs, bulb, lgtd_lifx_bulb, link_by_gw);
     lgtd_info(
-        "closed bulb \"%.*s\" on [%s]:%hu",
+        "closed bulb \"%.*s\" (%s) on [%s]:%hu",
         LGTD_LIFX_LABEL_SIZE,
         bulb->state.label,
+        lgtd_addrtoa(bulb->addr),
         bulb->gw->ip_addr,
         bulb->gw->port
     );

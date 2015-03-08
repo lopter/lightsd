@@ -1,0 +1,33 @@
+INCLUDE_DIRECTORIES(
+    ${LIGHTSD_SOURCE_DIR}
+    ${LIGHTSD_SOURCE_DIR}/../
+    ${LIGHTSD_SOURCE_DIR}/core/
+    ${LIGHTSD_SOURCE_DIR}/tests/core/
+    ${LIGHTSD_BINARY_DIR}
+    ${LIGHTSD_BINARY_DIR}/../
+    ${LIGHTSD_BINARY_DIR}/core/
+    ${LIGHTSD_BINARY_DIR}/tests/core/
+)
+
+ADD_LIBRARY(
+    test_core_router STATIC
+    ${LIGHTSD_SOURCE_DIR}/core/log.c
+    ${LIGHTSD_SOURCE_DIR}/core/proto.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/timer.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
+    ${TIME_MONOTONIC_IMPL}
+)
+
+TARGET_LINK_LIBRARIES(test_core_router ${EVENT2_CORE_LIBRARY})
+
+FUNCTION(ADD_ROUTER_TEST TEST_SOURCE)
+    ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_core_router)
+ENDFUNCTION()
+
+FILE(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test_*.c")
+FOREACH(TEST ${TESTS})
+    ADD_ROUTER_TEST(${TEST})
+ENDFOREACH()

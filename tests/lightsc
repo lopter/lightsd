@@ -18,30 +18,34 @@ def jsonrpc_call(socket, id, method, params):
     print(response)
 
 
-def set_light_from_hsbk(socket, id, h, s, b, k):
+def set_light_from_hsbk(socket, id, target, h, s, b, k):
     jsonrpc_call(socket, id, "set_light_from_hsbk", [
-        "*", h, s, b, k
+        target, h, s, b, k
     ])
 
 
-def power_on(socket, id):
-    jsonrpc_call(socket, id, "power_on", {"target": "*"})
+def power_on(socket, id, target):
+    jsonrpc_call(socket, id, "power_on", {"target": target})
 
 
-def power_off(socket, id):
-    jsonrpc_call(socket, id, "power_off", {"target": "*"})
+def power_off(socket, id, target):
+    jsonrpc_call(socket, id, "power_off", {"target": target})
 
 if __name__ == "__main__":
     s = socket.create_connection(("localhost", 1234))
     h = 0
     id = 0
+    nb = "d073d501a0d5"
+    fugu = "d073d500603b"
+    neko = "d073d5018fb6"
+    target = "*"
     try:
-        power_on(s, id)
+        power_on(s, id, target)
         while True:
             h = (h + 1) % 360
             id += 1
-            set_light_from_hsbk(s, id, h, 0.7, 0.02, 2500)
+            set_light_from_hsbk(s, id, target, h, 0.7, 0.02, 2500)
             time.sleep(0.1)
     finally:
-        power_off(s, id)
+        power_off(s, id, target)
         s.close()

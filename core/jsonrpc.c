@@ -492,7 +492,8 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client,
         const jsmntok_t *s;
         const jsmntok_t *b;
         const jsmntok_t *k;
-    } params = { NULL, NULL, NULL, NULL, NULL };
+        const jsmntok_t *t;
+    } params = { NULL, NULL, NULL, NULL, NULL, NULL };
     static const struct lgtd_jsonrpc_node schema[] = {
         LGTD_JSONRPC_NODE(
             "target",
@@ -524,6 +525,12 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client,
             lgtd_jsonrpc_type_integer,
             false
         ),
+        LGTD_JSONRPC_NODE(
+            "transition",
+            offsetof(struct lgtd_jsonrpc_set_brightness_args, t),
+            lgtd_jsonrpc_type_integer,
+            false
+        ),
     };
 
     bool ok = lgtd_jsonrpc_extract_and_validate_params_against_schema(
@@ -552,14 +559,19 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client,
     if (k < 2500 || k > 9000 || errno == ERANGE) {
         goto error_invalid_params;
     }
+    int t = strtol(&json[params.t->start], NULL, 10);
+    if (t < 0 || errno == ERANGE) {
+        goto error_invalid_params;
+    }
 
-    char *t = lgtd_jsonrpc_dup_target(client, request, json, params.target);
-    if (!t) {
+    char *target;
+    target = lgtd_jsonrpc_dup_target(client, request, json, params.target);
+    if (!target) {
         return;
     }
 
-    ok = lgtd_proto_set_light_from_hsbk(t, h, s, b, k, 0);
-    free(t);
+    ok = lgtd_proto_set_light_from_hsbk(target, h, s, b, k, t);
+    free(target);
     if (ok) {
         lgtd_jsonrpc_send_response(client, request, json, "true");
         return;
@@ -659,7 +671,7 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client,
             lgtd_jsonrpc_check_and_call_power_off
         ),
         LGTD_JSONRPC_METHOD(
-            "set_light_from_hsbk", 5, // t, h, s, b, k
+            "set_light_from_hsbk", 6, // t, h, s, b, k, t
             lgtd_jsonrpc_check_and_call_set_light_from_hsbk
         ),
     };

@@ -42,9 +42,9 @@ lgtd_proto_set_light_from_hsbk(const char *target,
             1, "Invalid temperature: %d, expected: 4200", kelvin
         );
     }
-    if (transition_msecs != 0) {
+    if (transition_msecs != 60) {
         errx(
-            1, "Invalid transition duration: %d, expected: 0", transition_msecs
+            1, "Invalid transition duration: %d, expected: 60", transition_msecs
         );
     }
     set_light_called = true;
@@ -63,7 +63,8 @@ main(void)
             "\"hue\": 324.2341514, "
             "\"saturation\": 0.234, "
             "\"brightness\": 1.0, "
-            "\"kelvin\": 4200"
+            "\"kelvin\": 4200,"
+            "\"transition\": 60"
         "},"
         "\"id\": \"42\""
     "}");

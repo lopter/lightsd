@@ -6,13 +6,10 @@ int
 main(void)
 {
     struct lgtd_client client = { .io = NULL };
+
+    const char *json = "\"42\"";
     jsmntok_t token = { .start = 1, .end = 3, .type = JSMN_STRING };
     struct lgtd_jsonrpc_request req = { .id = &token };
-
-    lgtd_jsonrpc_send_error(
-        &client, &req, "\"42\"",LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
-    );
-
     const char *expected = (
         "{"
         "\"jsonrpc\": \"2.0\", "
@@ -20,8 +17,30 @@ main(void)
         "\"error\": {\"code\": -32600, \"message\": \"Invalid Request\"}"
         "}"
     );
-
+    lgtd_jsonrpc_send_error(
+        &client, &req, json, LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
+    );
     int diff = memcmp(client_write_buf, expected, strlen(expected));
+    if (diff) {
+        printf("expected: %s\n", expected);
+        printf("received: %s\n", client_write_buf);
+        return 1;
+    }
+
+    reset_client_write_buf();
+
+    req.id = NULL;
+    expected = (
+        "{"
+        "\"jsonrpc\": \"2.0\", "
+        "\"id\": null, "
+        "\"error\": {\"code\": -32600, \"message\": \"Invalid Request\"}"
+        "}"
+    );
+    lgtd_jsonrpc_send_error(
+        &client, &req, NULL, LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
+    );
+    diff = memcmp(client_write_buf, expected, strlen(expected));
     if (diff) {
         printf("expected: %s\n", expected);
         printf("received: %s\n", client_write_buf);

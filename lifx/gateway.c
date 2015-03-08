@@ -344,12 +344,24 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         if (b->expected_power_on == b->state.power) {
             lgtd_warnx("clearing dirty_at on %s", b->state.label);
             b->dirty_at = 0;
-        } else if (b->expected_power_on) {
-            lgtd_warnx("retransmiting power on %s", b->state.label);
-            lgtd_proto_power_on("*");
         } else {
-            lgtd_warnx("retransmiting power off on %s", b->state.label);
-            lgtd_proto_power_off("*");
+            char target[LGTD_LIFX_ADDR_LENGTH * 2 + 1];
+            snprintf(
+                target, sizeof(target), "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
+                b->addr[0], b->addr[1], b->addr[2],
+                b->addr[3], b->addr[4], b->addr[5]
+            );
+            if (b->expected_power_on) {
+                lgtd_warnx(
+                    "retransmiting power on %s (0x%s)", b->state.label, target
+                );
+                lgtd_proto_power_on(target);
+            } else {
+                lgtd_warnx(
+                    "retransmiting power off %s (0x%s)", b->state.label, target
+                );
+                lgtd_proto_power_off(target);
+            }
         }
     }
 

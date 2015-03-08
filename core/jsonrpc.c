@@ -358,6 +358,11 @@ lgtd_jsonrpc_write_id(struct lgtd_client *client,
                       const struct lgtd_jsonrpc_request *request,
                       const char *json)
 {
+    if (!request->id) {
+        LGTD_CLIENT_WRITE_STRING(client, "null");
+        return;
+    }
+
     int start, stop;
     if (request->id->type == JSMN_STRING) { // get the quotes
         start = request->id->start - 1;

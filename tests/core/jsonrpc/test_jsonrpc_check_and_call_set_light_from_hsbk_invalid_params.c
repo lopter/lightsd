@@ -49,8 +49,7 @@ test_request(const char *json)
         errx(1, "lgtd_proto_power_off was called");
     }
 
-    memset(client_write_buf, 0, sizeof(client_write_buf));
-    client_write_buf_idx = 0;
+    reset_client_write_buf();
 }
 
 int

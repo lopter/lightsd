@@ -50,5 +50,12 @@ main(void)
         errx(1, "wrong id");
     }
 
+    ok = lgtd_jsonrpc_check_and_extract_request(
+        &req, tokens, 0, json
+    );
+    if (ok) {
+        errx(1, "empty request should return false");
+    }
+
     return 0;
 }

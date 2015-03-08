@@ -217,7 +217,9 @@ lgtd_jsonrpc_extract_values_from_schema_and_dict(void *output,
                                                  int ntokens,
                                                  const char *json)
 {
-    assert(tokens[0].type == JSMN_OBJECT);
+    if (!ntokens || tokens[0].type != JSMN_OBJECT) {
+        return false;
+    }
 
     for (int ti = 1; ti < ntokens;) {
         // make sure it's a key:
@@ -301,7 +303,9 @@ lgtd_jsonrpc_extract_values_from_schema_and_array(void *output,
                                                   int ntokens,
                                                   const char *json)
 {
-    assert(tokens[0].type == JSMN_ARRAY);
+    if (!ntokens || tokens[0].type != JSMN_ARRAY) {
+        return false;
+    }
 
     int si, ti;
     for (si = 0, ti = 1; si < schema_size && ti < ntokens; si++) {
@@ -661,7 +665,7 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client,
     };
 
     assert(client);
-    assert(parsed > 0);
+    assert(parsed >= 0);
 
     const jsmntok_t *tokens = client->jsmn_tokens;
 

@@ -45,6 +45,7 @@ struct lgtd_lifx_gateway {
     lgtd_time_mono_t                last_pkt_at;
     struct event                    *write_ev;
     struct evbuffer                 *write_buf;
+    bool                            pending_refresh_req;
     struct event                    *refresh_ev;
 };
 LIST_HEAD(lgtd_lifx_gateway_list, lgtd_lifx_gateway);

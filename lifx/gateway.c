@@ -38,6 +38,7 @@
 #include "gateway.h"
 #include "broadcast.h"
 #include "timer.h"
+#include "core/proto.h"
 #include "core/lightsd.h"
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
@@ -100,9 +101,13 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
         // Callbacks are called in any order, so we keep two timers to make
         // sure we can get the latency right, otherwise we could be compute the
         // latency with last_pkt_at < last_req_at, which isn't true since the
-        // pkt will be for an answer the previous write:
+        // pkt will be for an answer to the previous write:
         gw->last_req_at = gw->next_req_at;
         gw->next_req_at = lgtd_time_monotonic_msecs();
+        // XXX this isn't perfect because we don't know what we just sent, I
+        // just assume that everything pending will alway be transmitted in a
+        // single call:
+        gw->pending_refresh_req = false;
         if (!evbuffer_get_length(gw->write_buf)) {
             event_del(gw->write_ev);
         }
@@ -121,6 +126,7 @@ lgtd_lifx_gateway_send_get_all_light_state(struct lgtd_lifx_gateway *gw)
     );
     lgtd_debug("GET_LIGHT_STATE --> [%s]:%hu", gw->ip_addr, gw->port);
     lgtd_lifx_gateway_send_packet(gw, &hdr, NULL, 0);
+    gw->pending_refresh_req = true;
 }
 
 static void
@@ -349,21 +355,30 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 
     int latency = gw->last_pkt_at - gw->last_req_at;
     if (latency < LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
-        int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
-        struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
-        evtimer_add(gw->refresh_ev, &tv);
-        lgtd_debug(
-            "[%s]:%hu latency is %dms, scheduling next GET_LIGHT_STATE in %dms",
-            gw->ip_addr, gw->port, latency, timeout
-        );
+        if (!event_pending(gw->refresh_ev, EV_TIMEOUT, NULL)) {
+            int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
+            struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
+            evtimer_add(gw->refresh_ev, &tv);
+            lgtd_info(
+                "[%s]:%hu latency is %dms, scheduling next GET_LIGHT_STATE in %dms",
+                gw->ip_addr, gw->port, latency, timeout
+            );
+        }
         return;
     }
 
-    lgtd_debug(
-        "[%s]:%hu latency is %dms, sending GET_LIGHT_STATE now",
-        gw->ip_addr, gw->port, latency
-    );
-    lgtd_lifx_gateway_send_get_all_light_state(gw);
+    if (!gw->pending_refresh_req) {
+        lgtd_info(
+            "[%s]:%hu latency is %dms, sending GET_LIGHT_STATE now",
+            gw->ip_addr, gw->port, latency
+        );
+        lgtd_lifx_gateway_send_get_all_light_state(gw);
+    } else {
+        lgtd_debug(
+            "[%s]:%hu GET_LIGHT_STATE for all bulbs on this gw has already "
+            "been enqueued", gw->ip_addr, gw->port
+        );
+    }
 }
 
 void

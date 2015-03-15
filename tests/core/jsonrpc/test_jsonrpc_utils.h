@@ -66,3 +66,25 @@ lgtd_proto_power_off(const char *target)
     return true;
 }
 #endif
+
+#ifndef LGTD_TESTING_SET_WAVEFORM
+bool lgtd_proto_set_waveform(const char *target,
+                             enum lgtd_lifx_waveform_type waveform,
+                             int hue, int saturation,
+                             int brightness, int kelvin,
+                             int period, float cycles,
+                             int skew_ratio, bool transient)
+{
+    (void)target;
+    (void)waveform;
+    (void)hue;
+    (void)saturation;
+    (void)brightness;
+    (void)kelvin;
+    (void)period;
+    (void)cycles;
+    (void)skew_ratio;
+    (void)transient;
+    return true;
+}
+#endif

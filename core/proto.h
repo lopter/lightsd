@@ -18,5 +18,9 @@
 #pragma once
 
 bool lgtd_proto_set_light_from_hsbk(const char *, int, int, int, int, int);
+bool lgtd_proto_set_waveform(const char *,
+                             enum lgtd_lifx_waveform_type,
+                             int, int, int, int,
+                             int, float, int, bool);
 bool lgtd_proto_power_on(const char *);
 bool lgtd_proto_power_off(const char *);

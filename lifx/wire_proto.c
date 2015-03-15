@@ -129,6 +129,13 @@ lgtd_lifx_wire_load_packet_infos_map(void)
             .type = LGTD_LIFX_SET_LIGHT_COLOR,
             .size = sizeof(struct lgtd_lifx_packet_light_color),
             .encode = ENCODER(lgtd_lifx_wire_encode_light_color)
+        },
+        {
+            REQUEST_ONLY,
+            .name = "SET_WAVEFORM",
+            .type = LGTD_LIFX_SET_WAVEFORM,
+            .size = sizeof(struct lgtd_lifx_packet_waveform),
+            .encode = ENCODER(lgtd_lifx_wire_encode_waveform)
         }
     };
 
@@ -146,6 +153,34 @@ lgtd_lifx_wire_get_packet_infos(enum lgtd_lifx_packet_type packet_type)
 {
     struct lgtd_lifx_packet_infos pkt_infos = { .type = packet_type };
     return RB_FIND(lgtd_lifx_packet_infos_map, &lgtd_lifx_packet_infos, &pkt_infos);
+}
+
+
+#define WAVEFORM_ENTRY(e) { .str = e, .len = sizeof(e) - 1 }
+const struct lgtd_lifx_waveform_string_id lgtd_lifx_waveform_table[] = {
+    WAVEFORM_ENTRY("SAW"),
+    WAVEFORM_ENTRY("SINE"),
+    WAVEFORM_ENTRY("HALF_SINE"),
+    WAVEFORM_ENTRY("TRIANGLE"),
+    WAVEFORM_ENTRY("PULSE"),
+    WAVEFORM_ENTRY("INVALID")
+};
+
+enum lgtd_lifx_waveform_type
+lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
+{
+    assert(s);
+    assert(len >= 0);
+
+    for (int i = 0; i != LGTD_ARRAY_SIZE(lgtd_lifx_waveform_table); i++) {
+        const struct lgtd_lifx_waveform_string_id *entry;
+        entry = &lgtd_lifx_waveform_table[i];
+        if (entry->len == len && !memcmp(entry->str, s, len)) {
+            return i;
+        }
+    }
+
+    return LGTD_LIFX_WAVEFORM_INVALID;
 }
 
 // Convert all the fields in the header to the host endianness.
@@ -176,6 +211,8 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
 
     const struct lgtd_lifx_packet_infos *pkt_infos =
         lgtd_lifx_wire_get_packet_infos(packet_type);
+
+    assert(pkt_infos);
 
     memset(hdr, 0, sizeof(*hdr));
     hdr->size = pkt_infos->size + sizeof(*hdr);
@@ -269,4 +306,17 @@ lgtd_lifx_wire_encode_light_color(struct lgtd_lifx_packet_light_color *pkt)
     pkt->brightness = htole16(pkt->brightness);
     pkt->kelvin = htole16(pkt->kelvin);
     pkt->transition = htole32(pkt->transition);
+}
+
+void
+lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *pkt)
+{
+    assert(pkt);
+
+    pkt->hue = htole16(pkt->hue);
+    pkt->saturation = htole16(pkt->saturation);
+    pkt->brightness = htole16(pkt->brightness);
+    pkt->kelvin = htole16(pkt->kelvin);
+    pkt->period = htole16(pkt->period);
+    pkt->skew_ratio = htole16(pkt->skew_ratio);
 }

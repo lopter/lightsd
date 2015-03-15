@@ -74,3 +74,37 @@ lgtd_proto_set_light_from_hsbk(const char *target,
     lgtd_lifx_wire_encode_light_color(&pkt);
     return lgtd_router_send(target, LGTD_LIFX_SET_LIGHT_COLOR, &pkt);
 }
+
+bool lgtd_proto_set_waveform(const char *target,
+                             enum lgtd_lifx_waveform_type waveform,
+                             int hue, int saturation,
+                             int brightness, int kelvin,
+                             int period, float cycles,
+                             int skew_ratio, bool transient)
+{
+    assert(target);
+    assert(hue >= 0 && hue <= UINT16_MAX);
+    assert(saturation >= 0 && saturation <= UINT16_MAX);
+    assert(brightness >= 0 && brightness <= UINT16_MAX);
+    assert(kelvin >= 2500 && kelvin <= 9000);
+    assert(waveform <= LGTD_LIFX_WAVEFORM_PULSE);
+    assert(skew_ratio >= -32767 && skew_ratio <= 32768);
+    assert(period >= 0);
+    assert(cycles >= 0);
+
+    struct lgtd_lifx_packet_waveform pkt = {
+        .stream = 0,
+        .transient = transient,
+        .hue = hue,
+        .saturation = saturation,
+        .brightness = brightness,
+        .kelvin = kelvin,
+        .period = period,
+        .cycles = cycles,
+        .skew_ratio = skew_ratio,
+        .waveform = waveform
+    };
+
+    lgtd_lifx_wire_encode_waveform(&pkt);
+    return lgtd_router_send(target, LGTD_LIFX_SET_WAVEFORM, &pkt);
+}

@@ -2,7 +2,10 @@
 
 import json
 import socket
+import sys
 import time
+
+from IPython.terminal.embed import InteractiveShellEmbed
 
 
 def jsonrpc_call(socket, id, method, params):
@@ -24,6 +27,34 @@ def set_light_from_hsbk(socket, id, target, h, s, b, k, t):
     ])
 
 
+def set_waveform(socket, id, target, waveform,
+                 h, s, b, k,
+                 period, cycles, skew_ratio, transient):
+    jsonrpc_call(socket, id, "set_waveform", [
+        target, waveform, h, s, b, k, period, cycles, skew_ratio, transient
+    ])
+
+
+def saw(socket, id, target, h, s, b, k, period, cycles, transient=True):
+    set_waveform(
+        socket, id, target, "SAW", h, s, b, k,
+        cycles=cycles,
+        period=period,
+        skew_ratio=0.5,
+        transient=transient
+    )
+
+
+def sine(socket, id, target, h, s, b, k, period, cycles, peak=0.5, transient=True):
+    set_waveform(
+        socket, id, target, "SINE", h, s, b, k,
+        cycles=cycles,
+        period=period,
+        skew_ratio=peak,
+        transient=transient
+    )
+
+
 def power_on(socket, id, target):
     jsonrpc_call(socket, id, "power_on", {"target": target})
 
@@ -38,14 +69,19 @@ if __name__ == "__main__":
     nb = "d073d501a0d5"
     fugu = "d073d500603b"
     neko = "d073d5018fb6"
+    middle = "d073d502e530"
     target = "*"
     try:
+        if len(sys.argv) == 2 and sys.argv[1] == "shell":
+            ipshell = InteractiveShellEmbed()
+            ipshell()
+            sys.exit(0)
         power_on(s, id, target)
         while True:
             h = (h + 5) % 360
             id += 1
             set_light_from_hsbk(s, id, target, h, 0.8, 0.1, 2500, 450)
             time.sleep(0.5)
-    finally:
         power_off(s, id, target)
+    finally:
         s.close()

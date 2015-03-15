@@ -7,6 +7,7 @@ ADD_LIBRARY(
     test_core_jsonrpc STATIC
     ${LIGHTSD_SOURCE_DIR}/core/jsmn.c
     ${LIGHTSD_SOURCE_DIR}/core/log.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
 )

@@ -1,3 +1,3 @@
-.*\.sw[p-z]$
+.*\.sw[a-z]$
 .*\.py[co]$
 ^build

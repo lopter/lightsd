@@ -173,7 +173,37 @@ struct lgtd_lifx_packet_light_color {
     uint32le_t  transition; // transition time to the color in msecs
 };
 
+// note: those can be used as indexes for lgtd_lifx_waveform_table
+enum lgtd_lifx_waveform_type {
+    LGTD_LIFX_WAVEFORM_SAW = 0,
+    LGTD_LIFX_WAVEFORM_SINE = 1,
+    LGTD_LIFX_WAVEFORM_HALF_SINE = 2,
+    LGTD_LIFX_WAVEFORM_TRIANGLE = 3,
+    LGTD_LIFX_WAVEFORM_PULSE = 4,
+    LGTD_LIFX_WAVEFORM_INVALID = 5,
+};
+
+struct lgtd_lifx_packet_waveform {
+    uint8_t     stream;
+    uint8_t     transient;
+    uint16le_t  hue;
+    uint16le_t  saturation;
+    uint16le_t  brightness;
+    uint16le_t  kelvin;
+    uint32le_t  period; // milliseconds
+    float       cycles; // yes, this value is really encoded as a float.
+    uint16le_t  skew_ratio;
+    uint8_t     waveform; // see enum lgtd_lifx_waveform_type
+};
+
 #pragma pack(pop)
+
+struct lgtd_lifx_waveform_string_id {
+    const char  *str;
+    int         len;
+};
+
+extern const struct lgtd_lifx_waveform_string_id lgtd_lifx_waveform_table[];
 
 struct lgtd_lifx_gateway;
 
@@ -204,6 +234,8 @@ union lgtd_lifx_target {
 
 extern union lgtd_lifx_target LGTD_LIFX_UNSPEC_TARGET;
 
+enum lgtd_lifx_waveform_type lgtd_lifx_wire_waveform_string_id_to_type(const char *, int);
+
 const struct lgtd_lifx_packet_infos *lgtd_lifx_wire_get_packet_infos(enum lgtd_lifx_packet_type);
 void lgtd_lifx_wire_load_packet_infos_map(void);
 
@@ -222,3 +254,4 @@ void lgtd_lifx_wire_encode_light_status(struct lgtd_lifx_packet_light_status *);
 void lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *);
 
 void lgtd_lifx_wire_encode_light_color(struct lgtd_lifx_packet_light_color *);
+void lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *pkt);

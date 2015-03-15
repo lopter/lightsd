@@ -16,6 +16,7 @@
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <sys/queue.h>
+#include <sys/tree.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
@@ -30,6 +31,7 @@
 #include <event2/bufferevent.h>
 #include <event2/util.h>
 
+#include "lifx/wire_proto.h"
 #include "jsmn.h"
 #include "client.h"
 #include "jsonrpc.h"
@@ -486,7 +488,7 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client,
                                                 const struct lgtd_jsonrpc_request *request,
                                                 const char *json)
 {
-    struct lgtd_jsonrpc_set_brightness_args {
+    struct lgtd_jsonrpc_set_light_from_hsbk_args {
         const jsmntok_t *target;
         const jsmntok_t *h;
         const jsmntok_t *s;
@@ -497,37 +499,37 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client,
     static const struct lgtd_jsonrpc_node schema[] = {
         LGTD_JSONRPC_NODE(
             "target",
-            offsetof(struct lgtd_jsonrpc_set_brightness_args, target),
+            offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, target),
             lgtd_jsonrpc_type_string,
             false
         ),
         LGTD_JSONRPC_NODE(
             "hue",
-            offsetof(struct lgtd_jsonrpc_set_brightness_args, h),
+            offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, h),
             lgtd_jsonrpc_type_float_between_0_and_360,
             false
         ),
         LGTD_JSONRPC_NODE(
             "saturation",
-            offsetof(struct lgtd_jsonrpc_set_brightness_args, s),
+            offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, s),
             lgtd_jsonrpc_type_float_between_0_and_1,
             false
         ),
         LGTD_JSONRPC_NODE(
             "brightness",
-            offsetof(struct lgtd_jsonrpc_set_brightness_args, b),
+            offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, b),
             lgtd_jsonrpc_type_float_between_0_and_1,
             false
         ),
         LGTD_JSONRPC_NODE(
             "kelvin",
-            offsetof(struct lgtd_jsonrpc_set_brightness_args, k),
+            offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, k),
             lgtd_jsonrpc_type_integer,
             false
         ),
         LGTD_JSONRPC_NODE(
             "transition",
-            offsetof(struct lgtd_jsonrpc_set_brightness_args, t),
+            offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, t),
             lgtd_jsonrpc_type_integer,
             false
         ),
@@ -633,6 +635,160 @@ lgtd_jsonrpc_check_and_call_power_on(struct lgtd_client *client,
 }
 
 static void
+lgtd_jsonrpc_check_and_call_set_waveform(struct lgtd_client *client,
+                                         const struct lgtd_jsonrpc_request *request,
+                                         const char *json)
+{
+    struct lgtd_jsonrpc_set_waveform_args {
+        const jsmntok_t *target;
+        const jsmntok_t *waveform;
+        const jsmntok_t *h;
+        const jsmntok_t *s;
+        const jsmntok_t *b;
+        const jsmntok_t *k;
+        const jsmntok_t *period;
+        const jsmntok_t *cycles;
+        const jsmntok_t *skew_ratio;
+        const jsmntok_t *transient;
+    } params = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    static const struct lgtd_jsonrpc_node schema[] = {
+        LGTD_JSONRPC_NODE(
+            "target",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, target),
+            lgtd_jsonrpc_type_string,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "waveform",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, waveform),
+            lgtd_jsonrpc_type_string,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "hue",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, h),
+            lgtd_jsonrpc_type_float_between_0_and_360,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "saturation",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, s),
+            lgtd_jsonrpc_type_float_between_0_and_1,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "brightness",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, b),
+            lgtd_jsonrpc_type_float_between_0_and_1,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "kelvin",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, k),
+            lgtd_jsonrpc_type_integer,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "period",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, period),
+            lgtd_jsonrpc_type_integer,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "cycles",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, cycles),
+            lgtd_jsonrpc_type_integer,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "skew_ratio",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, skew_ratio),
+            lgtd_jsonrpc_type_float_between_0_and_1,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "transient",
+            offsetof(struct lgtd_jsonrpc_set_waveform_args, transient),
+            lgtd_jsonrpc_type_bool,
+            false
+        ),
+    };
+
+    bool ok = lgtd_jsonrpc_extract_and_validate_params_against_schema(
+        &params,
+        schema,
+        LGTD_ARRAY_SIZE(schema),
+        request->params,
+        request->params_ntokens,
+        json
+    );
+    if (!ok) {
+        goto error_invalid_params;
+    }
+
+    enum lgtd_lifx_waveform_type waveform;
+    waveform = lgtd_lifx_wire_waveform_string_id_to_type(
+        &json[params.waveform->start], LGTD_JSONRPC_TOKEN_LEN(params.waveform)
+    );
+    if (waveform == LGTD_LIFX_WAVEFORM_INVALID) {
+        goto error_invalid_params;
+    }
+
+    int h = lgtd_jsonrpc_float_range_to_uint16(
+        &json[params.h->start], LGTD_JSONRPC_TOKEN_LEN(params.h), 0, 360
+    );
+    int s = lgtd_jsonrpc_float_range_to_uint16(
+        &json[params.s->start], LGTD_JSONRPC_TOKEN_LEN(params.s), 0, 1
+    );
+    int b = lgtd_jsonrpc_float_range_to_uint16(
+        &json[params.b->start], LGTD_JSONRPC_TOKEN_LEN(params.b), 0, 1
+    );
+    errno = 0;
+    int k = strtol(&json[params.k->start], NULL, 10);
+    if (k < 2500 || k > 9000 || errno == ERANGE) {
+        goto error_invalid_params;
+    }
+    int period = strtol(&json[params.period->start], NULL, 10);
+    if (period <= 0 || errno == ERANGE) {
+        goto error_invalid_params;
+    }
+    int cycles = strtol(&json[params.cycles->start], NULL, 10);
+    if (cycles <= 0 || errno == ERANGE) {
+        goto error_invalid_params;
+    }
+    int skew_ratio = lgtd_jsonrpc_float_range_to_uint16(
+        &json[params.skew_ratio->start],
+        LGTD_JSONRPC_TOKEN_LEN(params.skew_ratio),
+        0, 1
+    );
+    skew_ratio -= UINT16_MAX / 2;
+    bool transient = json[params.transient->start] == 't';
+
+
+    char *target;
+    target = lgtd_jsonrpc_dup_target(client, request, json, params.target);
+    if (!target) {
+        return;
+    }
+
+    lgtd_proto_set_waveform(
+        target, waveform, h, s, b, k, period, cycles, skew_ratio, transient
+    );
+
+    free(target);
+    if (ok) {
+        lgtd_jsonrpc_send_response(client, request, json, "true");
+        return;
+    }
+
+error_invalid_params:
+    lgtd_jsonrpc_send_error(
+        client, request, json, LGTD_JSONRPC_INVALID_PARAMS,
+        "Invalid parameters"
+    );
+}
+
+static void
 lgtd_jsonrpc_check_and_call_power_off(struct lgtd_client *client,
                                       const struct lgtd_jsonrpc_request *request,
                                       const char *json)
@@ -673,6 +829,11 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client,
         LGTD_JSONRPC_METHOD(
             "set_light_from_hsbk", 6, // t, h, s, b, k, t
             lgtd_jsonrpc_check_and_call_set_light_from_hsbk
+        ),
+        LGTD_JSONRPC_METHOD(
+            // t, waveform, h, s, b, k, period, cycles, skew_ratio, transient
+            "set_waveform", 10,
+            lgtd_jsonrpc_check_and_call_set_waveform
         ),
     };
 

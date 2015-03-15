@@ -1,20 +1,3 @@
-#include <sys/queue.h>
-#include <sys/tree.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-
-#include <event2/util.h>
-
-#include "lifx/wire_proto.h"
-#include "core/time_monotonic.h"
-#include "lifx/bulb.h"
-#include "lifx/gateway.h"
-#include "tests_utils.h"
-
 int lgtd_tests_gw_pkt_queue_size = 0;
 struct {
     struct lgtd_lifx_gateway        *gw;

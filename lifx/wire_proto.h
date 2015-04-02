@@ -61,7 +61,9 @@ struct lgtd_lifx_packet_header {
     }               flags;
     //! Wrap-around sequence number, LIFX internal use.
     uint8_t         seqn;
-    uint64le_t      timestamp;
+    //! Apparently this is a unix epoch timestamp in milliseconds at which the
+    //! payload should be run.
+    uint64le_t      at_time;
     uint16le_t      packet_type;
     uint8_t         reserved[2];
 };

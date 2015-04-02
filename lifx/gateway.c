@@ -371,7 +371,7 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
             int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
             struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
             evtimer_add(gw->refresh_ev, &tv);
-            lgtd_info(
+            lgtd_debug(
                 "[%s]:%hu latency is %dms, scheduling next GET_LIGHT_STATE in %dms",
                 gw->ip_addr, gw->port, latency, timeout
             );
@@ -380,7 +380,7 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
     }
 
     if (!gw->pending_refresh_req) {
-        lgtd_info(
+        lgtd_debug(
             "[%s]:%hu latency is %dms, sending GET_LIGHT_STATE now",
             gw->ip_addr, gw->port, latency
         );

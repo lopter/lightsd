@@ -196,7 +196,7 @@ lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *hdr)
     if (hdr->protocol.tagged) {
         le64toh(hdr->target.tags);
     }
-    hdr->timestamp = le64toh(hdr->timestamp);
+    hdr->at_time = le64toh(hdr->at_time);
     hdr->packet_type = le16toh(hdr->packet_type);
 }
 
@@ -256,7 +256,7 @@ lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr)
     if (hdr->protocol.tagged) {
         le64toh(hdr->target.tags);
     }
-    hdr->timestamp = htole64(hdr->timestamp);
+    hdr->at_time = htole64(hdr->at_time);
     hdr->packet_type = htole16(hdr->packet_type);
 }
 

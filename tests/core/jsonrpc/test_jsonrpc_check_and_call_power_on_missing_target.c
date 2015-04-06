@@ -6,9 +6,9 @@
 static bool power_on_called = false;
 
 bool
-lgtd_proto_power_on(const char *target)
+lgtd_proto_power_on(const struct lgtd_proto_target_list *targets)
 {
-    (void)target;
+    (void)targets;
     power_on_called = true;
     return true;
 }

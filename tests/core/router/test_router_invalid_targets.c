@@ -9,7 +9,9 @@ test_target(const char *target)
     struct lgtd_lifx_packet_power_state payload = {
         .power = LGTD_LIFX_POWER_ON
     };
-    bool ok = lgtd_router_send(target, LGTD_LIFX_SET_POWER_STATE, &payload);
+    struct lgtd_proto_target_list *targets;
+    targets = lgtd_tests_build_target_list(target, NULL);
+    bool ok = lgtd_router_send(targets, LGTD_LIFX_SET_POWER_STATE, &payload);
     if (ok) {
         lgtd_errx(1, "router_send didn't return false for an unknown device");
     }

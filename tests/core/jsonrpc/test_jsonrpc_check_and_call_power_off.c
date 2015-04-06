@@ -6,10 +6,13 @@
 static bool power_off_called = false;
 
 bool
-lgtd_proto_power_off(const char *target)
+lgtd_proto_power_off(const struct lgtd_proto_target_list *targets)
 {
-    if (strcmp(target, "*")) {
-        errx(1, "Invalid target [%s] (expected=[*])", target);
+    if (strcmp(SLIST_FIRST(targets)->target, "*")) {
+        errx(
+            1, "Invalid target [%s] (expected=[*])",
+            SLIST_FIRST(targets)->target
+        );
     }
     power_off_called = true;
     return true;

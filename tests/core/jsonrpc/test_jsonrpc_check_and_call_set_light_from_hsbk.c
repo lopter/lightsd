@@ -6,15 +6,18 @@
 static bool set_light_called = false;
 
 bool
-lgtd_proto_set_light_from_hsbk(const char *target,
+lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
                                int hue,
                                int saturation,
                                int brightness,
                                int kelvin,
                                int transition_msecs)
 {
-    if (strcmp(target, "*")) {
-        errx(1, "Invalid target [%s] (expected=[*])", target);
+    if (strcmp(SLIST_FIRST(targets)->target, "*")) {
+        errx(
+            1, "Invalid target [%s] (expected=[*])",
+            SLIST_FIRST(targets)->target
+        );
     }
     int expected_hue = lgtd_jsonrpc_float_range_to_uint16(
         "324.2341", strlen("324.2341"), 0, 360

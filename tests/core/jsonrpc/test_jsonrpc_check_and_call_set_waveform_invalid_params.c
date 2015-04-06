@@ -6,14 +6,14 @@
 static bool set_waveform_called = false;
 
 bool
-lgtd_proto_set_waveform(const char *target,
+lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
                         enum lgtd_lifx_waveform_type waveform,
                         int hue, int saturation,
                         int brightness, int kelvin,
                         int period, float cycles,
                         int skew_ratio, bool transient)
 {
-    (void)target;
+    (void)targets;
     (void)waveform;
     (void)hue;
     (void)saturation;

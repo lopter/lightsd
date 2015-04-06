@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <endian.h>
 #include <netinet/in.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -13,6 +14,7 @@
 
 #include "lifx/wire_proto.h"
 #include "core/time_monotonic.h"
+#include "core/proto.h"
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"
 #include "tests_utils.h"
@@ -44,4 +46,29 @@ lgtd_tests_insert_mock_bulb(struct lgtd_lifx_gateway *gw, uint64_t addr)
     } bulb_addr = { .as_scalar = htobe64(addr) >> 16 };
 
     return lgtd_lifx_bulb_open(gw, bulb_addr.as_array);
+}
+
+struct lgtd_proto_target_list *
+lgtd_tests_build_target_list(const char *target, ...)
+{
+    struct lgtd_proto_target_list *targets = malloc(sizeof(*targets));
+    SLIST_INIT(targets);
+
+    struct lgtd_proto_target *tail = malloc(
+        sizeof(*tail) + strlen(target) + 1
+    );
+    strcpy(tail->target, target);
+    SLIST_INSERT_HEAD(targets, tail, link);
+
+    va_list ap;
+    va_start(ap, target);
+    while ((target = va_arg(ap, const char *))) {
+        struct lgtd_proto_target *t = malloc(sizeof(*t) + strlen(target) + 1);
+        strcpy(t->target, target);
+        SLIST_INSERT_AFTER(tail, t, link);
+        tail = t;
+    }
+    va_end(ap);
+
+    return targets;
 }

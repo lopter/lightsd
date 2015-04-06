@@ -39,6 +39,7 @@
 #include "broadcast.h"
 #include "timer.h"
 #include "core/proto.h"
+#include "core/router.h"
 #include "core/lightsd.h"
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
@@ -345,23 +346,14 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
             lgtd_warnx("clearing dirty_at on %s", b->state.label);
             b->dirty_at = 0;
         } else {
-            char target[LGTD_LIFX_ADDR_LENGTH * 2 + 1];
-            snprintf(
-                target, sizeof(target), "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
-                b->addr[0], b->addr[1], b->addr[2],
-                b->addr[3], b->addr[4], b->addr[5]
+            lgtd_warnx(
+                "retransmiting power %s to %s",
+                b->expected_power_on ? "on" : "off", b->state.label
             );
-            if (b->expected_power_on) {
-                lgtd_warnx(
-                    "retransmiting power on %s (0x%s)", b->state.label, target
-                );
-                lgtd_proto_power_on(target);
-            } else {
-                lgtd_warnx(
-                    "retransmiting power off %s (0x%s)", b->state.label, target
-                );
-                lgtd_proto_power_off(target);
-            }
+            struct lgtd_lifx_packet_power_state pkt;
+            pkt.power = b->expected_power_on ?
+                    LGTD_LIFX_POWER_ON : LGTD_LIFX_POWER_OFF;
+            lgtd_router_send_to_device(b, LGTD_LIFX_SET_POWER_STATE, &pkt);
         }
     }
 

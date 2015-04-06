@@ -20,9 +20,11 @@ bulb(s) the operation should apply:
 +-----------------------------+-----------------------------------------------+
 | ``label``                   | directly target the bulb with the given label |
 +-----------------------------+-----------------------------------------------+
+| ``[#TagName, 123f31a5]``    | composite target (JSON array)                 |
++-----------------------------+-----------------------------------------------+
 
-You can use JSON-RPC's batch feature to send a command to multiple targets at
-the same time.
+A target is either a string, a hexadecimal number (without any prefix like 0x)
+or an array of targets.
 
 Available methods
 -----------------

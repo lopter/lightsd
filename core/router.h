@@ -17,4 +17,6 @@
 
 #pragma once
 
-bool lgtd_router_send(const char *, enum lgtd_lifx_packet_type, void *);
+bool lgtd_router_send(const struct lgtd_proto_target_list *, enum lgtd_lifx_packet_type, void *);
+void lgtd_router_send_to_device(struct lgtd_lifx_bulb *, enum lgtd_lifx_packet_type, void *);
+void lgtd_router_broadcast(enum lgtd_lifx_packet_type, void *);

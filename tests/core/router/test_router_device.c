@@ -16,7 +16,9 @@ main(void)
     struct lgtd_lifx_packet_power_state payload = {
         .power = LGTD_LIFX_POWER_ON
     };
-    lgtd_router_send("1", LGTD_LIFX_SET_POWER_STATE, &payload);
+    struct lgtd_proto_target_list *targets;
+    targets = lgtd_tests_build_target_list("1", NULL);
+    lgtd_router_send(targets, LGTD_LIFX_SET_POWER_STATE, &payload);
 
     if (lgtd_tests_gw_pkt_queue_size != 1) {
         lgtd_errx(1, "1 packet should have been sent");

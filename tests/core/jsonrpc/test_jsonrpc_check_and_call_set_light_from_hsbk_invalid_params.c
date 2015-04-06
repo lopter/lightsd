@@ -6,14 +6,14 @@
 static bool set_light_called = false;
 
 bool
-lgtd_proto_set_light_from_hsbk(const char *target,
+lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
                                int hue,
                                int saturation,
                                int brightness,
                                int kelvin,
                                int transition_msecs)
 {
-    (void)target;
+    (void)targets;
     (void)hue;
     (void)saturation;
     (void)brightness;

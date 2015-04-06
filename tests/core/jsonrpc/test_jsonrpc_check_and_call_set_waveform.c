@@ -6,15 +6,18 @@
 static bool set_waveform_called = false;
 
 bool
-lgtd_proto_set_waveform(const char *target,
+lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
                         enum lgtd_lifx_waveform_type waveform,
                         int hue, int saturation,
                         int brightness, int kelvin,
                         int period, float cycles,
                         int skew_ratio, bool transient)
 {
-    if (strcmp(target, "*")) {
-        errx(1, "Invalid target [%s] (expected=[*])", target);
+    if (strcmp(SLIST_FIRST(targets)->target, "*")) {
+        errx(
+            1, "Invalid target [%s] (expected=[*])",
+            SLIST_FIRST(targets)->target
+        );
     }
     int expected_hue = lgtd_jsonrpc_float_range_to_uint16(
         "324.2341", strlen("324.2341"), 0, 360

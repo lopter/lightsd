@@ -34,10 +34,12 @@
 #include "lifx/wire_proto.h"
 #include "time_monotonic.h"
 #include "lifx/bulb.h"
+#include "proto.h"
+#include "router.h"
 #include "lifx/gateway.h"
 #include "lightsd.h"
 
-static void
+void
 lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
 {
     struct lgtd_lifx_packet_header hdr;
@@ -63,14 +65,14 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
     }
 
     if (pkt_infos) {
-        lgtd_debug("broadcasting %s", pkt_infos->name);
+        lgtd_info("broadcasting %s", pkt_infos->name);
     }
 }
 
-static void
-lgtd_router_device(struct lgtd_lifx_bulb *bulb,
-                   enum lgtd_lifx_packet_type pkt_type,
-                   void *pkt)
+void
+lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
+                           enum lgtd_lifx_packet_type pkt_type,
+                           void *pkt)
 {
     assert(bulb);
 
@@ -91,40 +93,43 @@ lgtd_router_device(struct lgtd_lifx_bulb *bulb,
         bulb->expected_power_on = payload->power;
     }
 
-    lgtd_debug("sending %s to %s", pkt_infos->name, lgtd_addrtoa(bulb->addr));
+    lgtd_info("sending %s to %s", pkt_infos->name, lgtd_addrtoa(bulb->addr));
 }
 
 bool
-lgtd_router_send(const char *target,
+lgtd_router_send(const struct lgtd_proto_target_list *targets,
                  enum lgtd_lifx_packet_type pkt_type,
                  void *pkt)
 {
-    assert(target);
+    assert(targets);
 
-    if (!strcmp(target, "*")) {
-        lgtd_router_broadcast(pkt_type, pkt);
-        return true;
-    }
+    bool rv = true;
 
-    if (isxdigit(target[0])) {
-        const char *endptr = NULL;
-        errno = 0;
-        long long device = strtoll(target, (char **)&endptr, 16);
-        if (*endptr || errno == ERANGE) {
-            lgtd_debug("invalid target device %s", target);
-            return false;
-        }
-        device = htobe64(device);
-        struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(
-            (uint8_t *)&device + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
-        );
-        if (!bulb) {
+    const struct lgtd_proto_target *target;
+    SLIST_FOREACH(target, targets, link) {
+        if (!strcmp(target->target, "*")) {
+            lgtd_router_broadcast(pkt_type, pkt);
+            continue;
+        } else if (isxdigit(target->target[0])) {
+            const char *endptr = NULL;
+            errno = 0;
+            long long device = strtoll(target->target, (char **)&endptr, 16);
+            if (*endptr || errno == ERANGE) {
+                lgtd_debug("invalid target device %s", target->target);
+                rv = false;
+            }
+            device = htobe64(device);
+            struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(
+                (uint8_t *)&device + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
+            );
+            if (bulb) {
+                lgtd_router_send_to_device(bulb, pkt_type, pkt);
+                continue;
+            }
             lgtd_debug("target device %#llx not found", device);
-            return false;
         }
-        lgtd_router_device(bulb, pkt_type, pkt);
-        return true;
+        rv = false;
     }
 
-    return false;
+    return rv;
 }

@@ -28,6 +28,7 @@ struct lgtd_jsonrpc_node {
     const char      *key;
     int             keylen;
     int             value_offset;
+    int             ntokens_offset;
     bool            (*type_cmp)(const jsmntok_t *, const char *);
     bool            optional;
 };
@@ -37,14 +38,19 @@ struct lgtd_jsonrpc_node {
 } while (0)
 
 #define LGTD_JSONRPC_GET_JSMNTOK(object, value_offset)          \
-    *(const jsmntok_t **)(&((char *)(object))[value_offset]);   \
+    *(const jsmntok_t **)(&((char *)(object))[value_offset]);
 
-#define LGTD_JSONRPC_NODE(key_, value_offset_, fn_type_cmp, optional_)   { \
-    .key = (key_),                                                          \
-    .keylen = sizeof((key_)) - 1,                                           \
-    .value_offset = (value_offset_),                                        \
-    .type_cmp = (fn_type_cmp),                                              \
-    .optional = (optional_)                                                 \
+#define LGTD_JSONRPC_SET_NTOKENS(object, ntokens_offset, ntokens) do {  \
+    *(int *)(&(((char *)(object))[ntokens_offset])) = (ntokens);          \
+} while (0)
+
+#define LGTD_JSONRPC_NODE(key_, value_offset_, ntokens_offset_, fn_type_cmp, optional_)   { \
+    .key = (key_),                                                                          \
+    .keylen = sizeof((key_)) - 1,                                                           \
+    .value_offset = (value_offset_),                                                        \
+    .ntokens_offset = (ntokens_offset_),                                                    \
+    .type_cmp = (fn_type_cmp),                                                              \
+    .optional = (optional_)                                                                 \
 }
 
 #define LGTD_JSONRPC_TOKEN_LEN(t) ((t)->end - (t)->start)

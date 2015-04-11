@@ -60,4 +60,8 @@ Available methods
                           end of the waveform, otherwise it will revert back to
                           its original state.
 
+.. function:: tag_list(tag)
+
+    Return an array of labels or adresses of the devices having the given tag.
+
 .. vim: set tw=80 spelllang=en spell:

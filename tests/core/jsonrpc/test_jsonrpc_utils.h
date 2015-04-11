@@ -30,56 +30,63 @@ bufferevent_write(struct bufferevent *bev, const void *data, size_t nbytes)
     return 0;
 }
 
-void lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
+void
+lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
 {
     assert(targets);
 }
 
 #ifndef LGTD_TESTING_SET_LIGHT_FROM_HSBK
-bool
-lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
+void
+lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
+                               const struct lgtd_proto_target_list *targets,
                                int hue,
                                int saturation,
                                int brightness,
                                int kelvin,
                                int transition_msecs)
 {
+    (void)client;
     (void)targets;
     (void)hue;
     (void)saturation;
     (void)brightness;
     (void)kelvin;
     (void)transition_msecs;
-    return true;
 }
 #endif
 
 #ifndef LGTD_TESTING_POWER_ON
-bool
-lgtd_proto_power_on(const struct lgtd_proto_target_list *targets)
+void
+lgtd_proto_power_on(struct lgtd_client *client,
+                    const struct lgtd_proto_target_list *targets)
 {
+    (void)client;
     (void)targets;
-    return true;
 }
 #endif
 
 #ifndef LGTD_TESTING_POWER_OFF
-bool
-lgtd_proto_power_off(const struct lgtd_proto_target_list *targets)
+void
+lgtd_proto_power_off(struct lgtd_client *client,
+                     const struct lgtd_proto_target_list *targets)
 {
+    (void)client;
     (void)targets;
-    return true;
 }
 #endif
 
 #ifndef LGTD_TESTING_SET_WAVEFORM
-bool lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
-                             enum lgtd_lifx_waveform_type waveform,
-                             int hue, int saturation,
-                             int brightness, int kelvin,
-                             int period, float cycles,
-                             int skew_ratio, bool transient)
+void
+lgtd_proto_set_waveform(struct lgtd_client *client,
+                        const struct lgtd_proto_target_list *targets,
+                        enum lgtd_lifx_waveform_type waveform,
+                        int hue, int saturation,
+                        int brightness, int kelvin,
+                        int period, float cycles,
+                        int skew_ratio, bool transient)
 {
+    (void)client;
     (void)targets;
     (void)waveform;
     (void)hue;
@@ -90,6 +97,5 @@ bool lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
     (void)cycles;
     (void)skew_ratio;
     (void)transient;
-    return true;
 }
 #endif

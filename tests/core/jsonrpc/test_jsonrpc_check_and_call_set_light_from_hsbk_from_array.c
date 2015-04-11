@@ -5,14 +5,17 @@
 
 static bool set_light_called = false;
 
-bool
-lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
+void
+lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
+                               const struct lgtd_proto_target_list *targets,
                                int hue,
                                int saturation,
                                int brightness,
                                int kelvin,
                                int transition_msecs)
 {
+    assert(client);
+
     if (strcmp(SLIST_FIRST(targets)->target, "*")) {
         errx(
             1, "Invalid target [%s] (expected=[*])",
@@ -51,7 +54,6 @@ lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
         );
     }
     set_light_called = true;
-    return true;
 }
 
 int
@@ -71,27 +73,16 @@ main(void)
     );
 
     bool ok;
-    struct lgtd_client client = { .io = NULL };
     struct lgtd_jsonrpc_request req = TEST_REQUEST_INITIALIZER;
+    struct lgtd_client client = {
+        .io = NULL, .current_request = &req, .json = json
+    };
     ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
     if (!ok) {
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_set_light_from_hsbk(&client, &req, json);
-
-    const char response[] = ("{"
-        "\"jsonrpc\": \"2.0\", "
-        "\"id\": \"42\", "
-        "\"result\": true"
-    "}");
-
-    if (strcmp(client_write_buf, response)) {
-        errx(
-            1, "invalid response: %s (expected: %s)",
-            client_write_buf, response
-        );
-    }
+    lgtd_jsonrpc_check_and_call_set_light_from_hsbk(&client);
 
     if (!set_light_called) {
         errx(1, "lgtd_proto_set_light_from_hsbk wasn't called");

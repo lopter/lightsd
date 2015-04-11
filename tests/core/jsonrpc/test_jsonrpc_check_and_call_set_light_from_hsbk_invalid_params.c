@@ -5,14 +5,16 @@
 
 static bool set_light_called = false;
 
-bool
-lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
+void
+lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
+                               const struct lgtd_proto_target_list *targets,
                                int hue,
                                int saturation,
                                int brightness,
                                int kelvin,
                                int transition_msecs)
 {
+    (void)client;
     (void)targets;
     (void)hue;
     (void)saturation;
@@ -20,7 +22,6 @@ lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
     (void)kelvin;
     (void)transition_msecs;
     set_light_called = true;
-    return true;
 }
 
 static void
@@ -32,18 +33,16 @@ test_request(const char *json)
     );
 
     bool ok;
-    struct lgtd_client client = { .io = NULL };
     struct lgtd_jsonrpc_request req = TEST_REQUEST_INITIALIZER;
+    struct lgtd_client client = {
+        .io = NULL, .current_request = &req, .json = json
+    };
     ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
     if (!ok) {
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_set_light_from_hsbk(&client, &req, json);
-
-    if (!strstr(client_write_buf, "-32602")) {
-        errx(1, "no error returned, client_write_buf=[%s]", client_write_buf);
-    }
+    lgtd_jsonrpc_check_and_call_set_light_from_hsbk(&client);
 
     if (set_light_called) {
         errx(1, "lgtd_proto_power_off was called");

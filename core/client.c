@@ -16,6 +16,7 @@
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <sys/queue.h>
+#include <sys/tree.h>
 #include <assert.h>
 #include <err.h>
 #include <stdbool.h>
@@ -26,9 +27,11 @@
 #include <event2/bufferevent.h>
 #include <event2/event.h>
 
+#include "lifx/wire_proto.h"
 #include "jsmn.h"
-#include "client.h"
 #include "jsonrpc.h"
+#include "client.h"
+#include "proto.h"
 #include "lightsd.h"
 
 struct lgtd_client_list lgtd_clients = LIST_HEAD_INITIALIZER(&lgtd_clients);
@@ -107,7 +110,9 @@ retry_after_pullup:
         bufsz = evbuffer_get_length(input);
         goto retry_after_pullup;
     default:
-        lgtd_jsonrpc_dispatch_request(client, buf, rv);
+        client->json = buf;
+        lgtd_jsonrpc_dispatch_request(client, rv);
+        client->json = NULL;
         evbuffer_drain(input, bufsz);
         jsmn_init(&client->jsmn_ctx);
         break;
@@ -129,6 +134,20 @@ lgtd_client_event_callback(struct bufferevent *bev, short events, void *ctx)
         );
         lgtd_client_close(client);
     }
+}
+
+void
+lgtd_client_send_response(struct lgtd_client *client, const char *msg)
+{
+    lgtd_jsonrpc_send_response(client, msg);
+}
+
+void
+lgtd_client_send_error(struct lgtd_client *client,
+                       enum lgtd_client_error_code error,
+                       const char *msg)
+{
+    lgtd_jsonrpc_send_error(client, (enum lgtd_jsonrpc_error_code)error, msg);
 }
 
 struct lgtd_client *

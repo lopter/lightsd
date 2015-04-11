@@ -17,6 +17,8 @@
 
 #pragma once
 
+struct lgtd_client;
+
 struct lgtd_jsonrpc_request {
     const jsmntok_t *method;
     const jsmntok_t *params;
@@ -59,9 +61,7 @@ struct lgtd_jsonrpc_method {
     const char  *name;
     int         namelen;
     int         params_count;
-    void        (*method)(struct lgtd_client *,
-                          const struct lgtd_jsonrpc_request *,
-                          const char *);
+    void        (*method)(struct lgtd_client *);
 };
 
 #define LGTD_JSONRPC_METHOD(name_, params_count_, method_) {    \
@@ -81,14 +81,10 @@ enum lgtd_jsonrpc_error_code {
     LGTD_JSONRPC_SERVER_ERROR = -32000 // (to -32099)
 };
 
-void lgtd_jsonrpc_dispatch_request(struct lgtd_client *, const char *, int);
+void lgtd_jsonrpc_dispatch_request(struct lgtd_client *, int);
 
 void lgtd_jsonrpc_send_error(struct lgtd_client *,
-                             const struct lgtd_jsonrpc_request *,
-                             const char *,
                              enum lgtd_jsonrpc_error_code,
                              const char *);
 void lgtd_jsonrpc_send_response(struct lgtd_client *,
-                                const struct lgtd_jsonrpc_request *,
-                                const char *,
                                 const char *);

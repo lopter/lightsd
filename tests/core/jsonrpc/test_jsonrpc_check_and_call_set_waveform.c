@@ -5,14 +5,17 @@
 
 static bool set_waveform_called = false;
 
-bool
-lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
+void
+lgtd_proto_set_waveform(struct lgtd_client *client,
+                        const struct lgtd_proto_target_list *targets,
                         enum lgtd_lifx_waveform_type waveform,
                         int hue, int saturation,
                         int brightness, int kelvin,
                         int period, float cycles,
                         int skew_ratio, bool transient)
 {
+    assert(client);
+
     if (strcmp(SLIST_FIRST(targets)->target, "*")) {
         errx(
             1, "Invalid target [%s] (expected=[*])",
@@ -64,7 +67,6 @@ lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
         );
     }
     set_waveform_called = true;
-    return true;
 }
 
 int
@@ -93,27 +95,16 @@ main(void)
     );
 
     bool ok;
-    struct lgtd_client client = { .io = NULL };
     struct lgtd_jsonrpc_request req = TEST_REQUEST_INITIALIZER;
+    struct lgtd_client client = {
+        .io = NULL, .current_request = &req, .json = json
+    };
     ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
     if (!ok) {
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_set_waveform(&client, &req, json);
-
-    const char response[] = ("{"
-        "\"jsonrpc\": \"2.0\", "
-        "\"id\": \"42\", "
-        "\"result\": true"
-    "}");
-
-    if (strcmp(client_write_buf, response)) {
-        errx(
-            1, "invalid response: %s (expected: %s)",
-            client_write_buf, response
-        );
-    }
+    lgtd_jsonrpc_check_and_call_set_waveform(&client);
 
     if (!set_waveform_called) {
         errx(1, "lgtd_proto_set_waveform wasn't called");

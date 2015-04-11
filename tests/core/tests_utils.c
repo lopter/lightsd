@@ -14,6 +14,9 @@
 
 #include "lifx/wire_proto.h"
 #include "core/time_monotonic.h"
+#include "core/jsmn.h"
+#include "core/jsonrpc.h"
+#include "core/client.h"
 #include "core/proto.h"
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"

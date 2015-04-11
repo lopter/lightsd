@@ -5,8 +5,10 @@
 static void
 test_params(const char *json, const char **expected_targets)
 {
-    struct lgtd_client client = { .io = NULL };
     struct lgtd_jsonrpc_request request = { .id = NULL };
+    struct lgtd_client client = {
+        .io = NULL, .json = json, .current_request = &request
+    };
 
     jsmntok_t tokens[32];
     int parsed = parse_json(
@@ -17,9 +19,7 @@ test_params(const char *json, const char **expected_targets)
 
     reset_client_write_buf();
 
-    bool ok = lgtd_jsonrpc_build_target_list(
-        &targets, &client, &request, tokens, parsed, json
-    );
+    bool ok = lgtd_jsonrpc_build_target_list(&targets, &client, tokens, parsed);
 
     if (!expected_targets && !SLIST_EMPTY(&targets)) {
         if (ok) {

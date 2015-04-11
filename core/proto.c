@@ -26,14 +26,24 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <event2/util.h>
+
 #include "lifx/wire_proto.h"
 #include "time_monotonic.h"
 #include "lifx/bulb.h"
+#include "jsmn.h"
+#include "jsonrpc.h"
+#include "client.h"
 #include "proto.h"
 #include "router.h"
 #include "lightsd.h"
 
-void lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
+#define SEND_RESULT(client, ok) do {                                \
+    lgtd_jsonrpc_send_response((client), (ok) ? "true" : "false");  \
+} while(0)
+
+void
+lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
 {
     assert(targets);
 
@@ -44,26 +54,33 @@ void lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
     }
 }
 
-bool
-lgtd_proto_power_on(const struct lgtd_proto_target_list *targets)
+void
+lgtd_proto_power_on(struct lgtd_client *client,
+                    const struct lgtd_proto_target_list *targets)
 {
     assert(targets);
 
     struct lgtd_lifx_packet_power_state pkt = { .power = LGTD_LIFX_POWER_ON };
-    return lgtd_router_send(targets, LGTD_LIFX_SET_POWER_STATE, &pkt);
+    SEND_RESULT(
+        client, lgtd_router_send(targets, LGTD_LIFX_SET_POWER_STATE, &pkt)
+    );
 }
 
-bool
-lgtd_proto_power_off(const struct lgtd_proto_target_list *targets)
+void
+lgtd_proto_power_off(struct lgtd_client *client,
+                     const struct lgtd_proto_target_list *targets)
 {
     assert(targets);
 
     struct lgtd_lifx_packet_power_state pkt = { .power = LGTD_LIFX_POWER_OFF };
-    return lgtd_router_send(targets, LGTD_LIFX_SET_POWER_STATE, &pkt);
+    SEND_RESULT(
+        client, lgtd_router_send(targets, LGTD_LIFX_SET_POWER_STATE, &pkt)
+    );
 }
 
-bool
-lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
+void
+lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
+                               const struct lgtd_proto_target_list *targets,
                                int hue,
                                int saturation,
                                int brightness,
@@ -85,16 +102,21 @@ lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *targets,
         .kelvin = kelvin,
         .transition = transition_msecs
     };
+
     lgtd_lifx_wire_encode_light_color(&pkt);
-    return lgtd_router_send(targets, LGTD_LIFX_SET_LIGHT_COLOR, &pkt);
+    SEND_RESULT(
+        client, lgtd_router_send(targets, LGTD_LIFX_SET_LIGHT_COLOR, &pkt))
+    ;
 }
 
-bool lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
-                             enum lgtd_lifx_waveform_type waveform,
-                             int hue, int saturation,
-                             int brightness, int kelvin,
-                             int period, float cycles,
-                             int skew_ratio, bool transient)
+void
+lgtd_proto_set_waveform(struct lgtd_client *client,
+                        const struct lgtd_proto_target_list *targets,
+                        enum lgtd_lifx_waveform_type waveform,
+                        int hue, int saturation,
+                        int brightness, int kelvin,
+                        int period, float cycles,
+                        int skew_ratio, bool transient)
 {
     assert(targets);
     assert(hue >= 0 && hue <= UINT16_MAX);
@@ -120,5 +142,7 @@ bool lgtd_proto_set_waveform(const struct lgtd_proto_target_list *targets,
     };
 
     lgtd_lifx_wire_encode_waveform(&pkt);
-    return lgtd_router_send(targets, LGTD_LIFX_SET_WAVEFORM, &pkt);
+    SEND_RESULT(
+        client, lgtd_router_send(targets, LGTD_LIFX_SET_WAVEFORM, &pkt)
+    );
 }

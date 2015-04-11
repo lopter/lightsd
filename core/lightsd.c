@@ -42,6 +42,7 @@
 #include "lifx/timer.h"
 #include "version.h"
 #include "jsmn.h"
+#include "jsonrpc.h"
 #include "client.h"
 #include "listen.h"
 #include "lightsd.h"

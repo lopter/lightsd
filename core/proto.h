@@ -24,13 +24,17 @@ struct lgtd_proto_target {
 SLIST_HEAD(lgtd_proto_target_list, lgtd_proto_target);
 
 void lgtd_proto_target_list_clear(struct lgtd_proto_target_list *);
-const struct lgtd_proto_target *lgtd_proto_target_list_add(struct lgtd_proto_target_list *,
+const struct lgtd_proto_target *lgtd_proto_target_list_add(struct lgtd_client *,
+                                                           struct lgtd_proto_target_list *,
                                                            const char *, int);
 
-bool lgtd_proto_set_light_from_hsbk(const struct lgtd_proto_target_list *, int, int, int, int, int);
-bool lgtd_proto_set_waveform(const struct lgtd_proto_target_list *,
+void lgtd_proto_set_light_from_hsbk(struct lgtd_client *,
+                                    const struct lgtd_proto_target_list *,
+                                    int, int, int, int, int);
+void lgtd_proto_set_waveform(struct lgtd_client *,
+                             const struct lgtd_proto_target_list *,
                              enum lgtd_lifx_waveform_type,
                              int, int, int, int,
                              int, float, int, bool);
-bool lgtd_proto_power_on(const struct lgtd_proto_target_list *);
-bool lgtd_proto_power_off(const struct lgtd_proto_target_list *);
+void lgtd_proto_power_on(struct lgtd_client *, const struct lgtd_proto_target_list *);
+void lgtd_proto_power_off(struct lgtd_client *, const struct lgtd_proto_target_list *);

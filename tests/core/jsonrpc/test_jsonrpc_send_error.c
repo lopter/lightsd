@@ -5,11 +5,12 @@
 int
 main(void)
 {
-    struct lgtd_client client = { .io = NULL };
-
     const char *json = "\"42\"";
     jsmntok_t token = { .start = 1, .end = 3, .type = JSMN_STRING };
     struct lgtd_jsonrpc_request req = { .id = &token };
+    struct lgtd_client client = {
+        .io = NULL, .current_request = &req, .json = json
+    };
     const char *expected = (
         "{"
         "\"jsonrpc\": \"2.0\", "
@@ -18,7 +19,7 @@ main(void)
         "}"
     );
     lgtd_jsonrpc_send_error(
-        &client, &req, json, LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
+        &client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
     );
     int diff = memcmp(client_write_buf, expected, strlen(expected));
     if (diff) {
@@ -38,7 +39,7 @@ main(void)
         "}"
     );
     lgtd_jsonrpc_send_error(
-        &client, &req, NULL, LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
+        &client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid Request"
     );
     diff = memcmp(client_write_buf, expected, strlen(expected));
     if (diff) {

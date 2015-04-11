@@ -20,13 +20,25 @@
 enum { LGTD_CLIENT_JSMN_TOKENS_NUM = 48 };
 enum { LGTD_CLIENT_MAX_REQUEST_BUF_SIZE = 2048 };
 
+enum lgtd_client_error_code {
+    LGTD_CLIENT_SUCCESS = LGTD_JSONRPC_SUCCESS,
+    LGTD_CLIENT_PARSE_ERROR = LGTD_JSONRPC_PARSE_ERROR,
+    LGTD_CLIENT_INVALID_REQUEST = LGTD_JSONRPC_INVALID_REQUEST,
+    LGTD_CLIENT_METHOD_NOT_FOUND = LGTD_JSONRPC_METHOD_NOT_FOUND,
+    LGTD_CLIENT_INVALID_PARAMS = LGTD_JSONRPC_INVALID_PARAMS,
+    LGTD_CLIENT_INTERNAL_ERROR = LGTD_JSONRPC_INTERNAL_ERROR,
+    LGTD_CLIENT_SERVER_ERROR = LGTD_JSONRPC_SERVER_ERROR
+};
+
 struct lgtd_client {
-    LIST_ENTRY(lgtd_client)  link;
-    struct bufferevent      *io;
-    char                    ip_addr[INET6_ADDRSTRLEN];
-    uint16_t                port;
-    jsmn_parser             jsmn_ctx;
-    jsmntok_t               jsmn_tokens[LGTD_CLIENT_JSMN_TOKENS_NUM];
+    LIST_ENTRY(lgtd_client)      link;
+    struct bufferevent          *io;
+    char                        ip_addr[INET6_ADDRSTRLEN];
+    uint16_t                    port;
+    jsmn_parser                 jsmn_ctx;
+    jsmntok_t                   jsmn_tokens[LGTD_CLIENT_JSMN_TOKENS_NUM];
+    const char                  *json;
+    struct lgtd_jsonrpc_request *current_request;
 };
 LIST_HEAD(lgtd_client_list, lgtd_client);
 
@@ -36,3 +48,6 @@ LIST_HEAD(lgtd_client_list, lgtd_client);
 
 struct lgtd_client *lgtd_client_open(evutil_socket_t, const struct sockaddr_storage *);
 void lgtd_client_close_all(void);
+
+void lgtd_client_send_response(struct lgtd_client *, const char *);
+void lgtd_client_send_error(struct lgtd_client *, enum lgtd_client_error_code, const char *);

@@ -5,12 +5,13 @@
 
 static bool power_on_called = false;
 
-bool
-lgtd_proto_power_on(const struct lgtd_proto_target_list *targets)
+void
+lgtd_proto_power_on(struct lgtd_client *client,
+                    const struct lgtd_proto_target_list *targets)
 {
+    (void)client;
     (void)targets;
     power_on_called = true;
-    return true;
 }
 
 int
@@ -28,14 +29,16 @@ main(void)
     );
 
     bool ok;
-    struct lgtd_client client = { .io = NULL };
     struct lgtd_jsonrpc_request req = TEST_REQUEST_INITIALIZER;
+    struct lgtd_client client = {
+        .io = NULL, .current_request = &req, .json = json
+    };
     ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
     if (!ok) {
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_power_on(&client, &req, json);
+    lgtd_jsonrpc_check_and_call_power_on(&client);
 
     if (!strstr(client_write_buf, "-32602")) {
         errx(1, "no error returned");

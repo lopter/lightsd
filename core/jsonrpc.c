@@ -431,6 +431,9 @@ lgtd_jsonrpc_send_error(struct lgtd_client *client,
                         enum lgtd_jsonrpc_error_code code,
                         const char *message)
 {
+    assert(client);
+    assert(message);
+
     LGTD_CLIENT_WRITE_STRING(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
     lgtd_jsonrpc_write_id(client);
     LGTD_CLIENT_WRITE_STRING(client, ", \"error\": {\"code\": ");
@@ -446,6 +449,9 @@ void
 lgtd_jsonrpc_send_response(struct lgtd_client *client,
                            const char *result)
 {
+    assert(client);
+    assert(result);
+
     LGTD_CLIENT_WRITE_STRING(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
     lgtd_jsonrpc_write_id(client);
     LGTD_CLIENT_WRITE_STRING(client, ", \"result\": ");

@@ -34,7 +34,11 @@ struct lgtd_lifx_gateway {
     struct sockaddr_storage         peer;
     char                            ip_addr[INET6_ADDRSTRLEN];
     uint16_t                        port;
-    uint8_t                         site[LGTD_LIFX_ADDR_LENGTH];
+    // TODO: just use an integer and rename it to site_id:
+    union {
+        uint8_t                     as_array[LGTD_LIFX_ADDR_LENGTH];
+        uint64_t                    as_integer;
+    }                               site;
     evutil_socket_t                 socket;
     // Those three timers let us measure the latency of the gateway. If we
     // aren't the only client on the network then this won't be accurate since

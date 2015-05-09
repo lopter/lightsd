@@ -41,7 +41,7 @@ main(void)
         lgtd_errx(1, "the packet header doesn't have the right target address");
     }
 
-    if (memcmp(gw_1->site, hdr_queued->site, sizeof(hdr_queued->site))) {
+    if (memcmp(gw_1->site.as_array, hdr_queued->site, sizeof(hdr_queued->site))) {
         lgtd_errx(1, "incorrect site in the headers");
     }
 

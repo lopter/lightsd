@@ -31,7 +31,7 @@ lgtd_tests_insert_mock_gateway(int id)
     struct lgtd_lifx_gateway *gw = calloc(1, sizeof(*gw));
 
     gw->socket = id;
-    gw->site[0] = id;
+    gw->site.as_array[0] = id;
 
     LIST_INSERT_HEAD(&lgtd_lifx_gateways, gw, link);
 

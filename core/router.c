@@ -52,10 +52,16 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
     struct lgtd_lifx_gateway *gw;
     LIST_FOREACH(gw, &lgtd_lifx_gateways, link) {
         pkt_infos = lgtd_lifx_wire_setup_header(
-            &hdr, LGTD_LIFX_TARGET_ALL_DEVICES, target, gw->site, pkt_type
+            &hdr,
+            LGTD_LIFX_TARGET_ALL_DEVICES,
+            target,
+            gw->site.as_array,
+            pkt_type
         );
         assert(pkt_infos);
-        lgtd_lifx_gateway_send_packet(gw, &hdr, pkt, pkt_infos->size);
+        lgtd_lifx_gateway_enqueue_packet(
+            gw, &hdr, pkt_type, pkt, pkt_infos->size
+        );
         struct lgtd_lifx_bulb *bulb;
         lgtd_time_mono_t now = lgtd_time_monotonic_msecs();
         SLIST_FOREACH(bulb, &gw->bulbs, link_by_gw) {
@@ -84,11 +90,17 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
 
     const struct lgtd_lifx_packet_infos *pkt_infos;
     pkt_infos = lgtd_lifx_wire_setup_header(
-        &hdr, LGTD_LIFX_TARGET_DEVICE, target, bulb->gw->site, pkt_type
+        &hdr,
+        LGTD_LIFX_TARGET_DEVICE,
+        target,
+        bulb->gw->site.as_array,
+        pkt_type
     );
     assert(pkt_infos);
 
-    lgtd_lifx_gateway_send_packet(bulb->gw, &hdr, pkt, pkt_infos->size);
+    lgtd_lifx_gateway_enqueue_packet(
+        bulb->gw, &hdr, pkt_type, pkt, pkt_infos->size
+    );
 
     if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
         bulb->dirty_at = lgtd_time_monotonic_msecs();

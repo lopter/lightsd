@@ -38,7 +38,7 @@ main(void)
         if (hdr->target.tags != 0) {
             lgtd_errx(1, "tags should be 0 for broadcast");
         }
-        if (memcmp(gw->site, hdr->site, sizeof(hdr->site))) {
+        if (memcmp(gw->site.as_array, hdr->site, sizeof(hdr->site))) {
             lgtd_errx(1, "sites don't match");
         }
         if (lgtd_tests_gw_pkt_queue[i].pkt != &payload) {

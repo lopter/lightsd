@@ -48,14 +48,10 @@ lgtd_isotime_now(char *strbuf, int bufsz)
     }
     // '2015-01-02T10:13:16.132222+00:00'
     snprintf(
-#if LGTD_SUSECONDS_T_SIZE == 4
-        strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%d%c%02ld:%02ld",
-#else
-        strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%ld%c%02ld:%02ld",
-#endif
+        strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%jd%c%02ld:%02ld",
         1900 + tm_now.tm_year, 1 + tm_now.tm_mon, tm_now.tm_mday,
         tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec,
-        now.tv_usec, tm_now.tm_gmtoff >= 0 ? '+' : '-', // %+02ld doesn't work
+        (intmax_t)now.tv_usec, tm_now.tm_gmtoff >= 0 ? '+' : '-', // %+02ld doesn't work
         LGTD_ABS(tm_now.tm_gmtoff / 60 / 60), tm_now.tm_gmtoff % (60 * 60)
     );
     return;

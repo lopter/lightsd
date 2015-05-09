@@ -199,6 +199,16 @@ struct lgtd_lifx_packet_waveform {
     uint8_t     waveform; // see enum lgtd_lifx_waveform_type
 };
 
+enum { LGTD_LIFX_ALL_TAGS = ~0 };
+struct lgtd_lifx_packet_get_tag_labels {
+    uint64le_t  tags;
+};
+
+struct lgtd_lifx_packet_tag_labels {
+    uint64le_t  tags;
+    char        label[LGTD_LIFX_LABEL_SIZE];
+};
+
 #pragma pack(pop)
 
 struct lgtd_lifx_waveform_string_id {

@@ -38,6 +38,7 @@
 #include "gateway.h"
 #include "broadcast.h"
 #include "timer.h"
+#include "tagging.h"
 #include "core/jsmn.h"
 #include "core/jsonrpc.h"
 #include "core/client.h"
@@ -47,6 +48,26 @@
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
+
+// Kim Walisch (2012)
+// http://chessprogramming.wikispaces.com/BitScan#DeBruijnMultiplation
+static inline int
+lgtd_lifx_bitscan64_forward(uint64_t n)
+{
+    enum { DEBRUIJN_NUMBER = 0x03f79d71b4cb0a89 };
+    static const int DEBRUIJN_SEQUENCE[64] = {
+        0, 47,  1, 56, 48, 27,  2, 60,
+       57, 49, 41, 37, 28, 16,  3, 61,
+       54, 58, 35, 52, 50, 42, 21, 44,
+       38, 32, 29, 23, 17, 11,  4, 62,
+       46, 55, 26, 59, 40, 36, 15, 53,
+       34, 51, 20, 43, 31, 22, 10, 45,
+       25, 39, 14, 33, 19, 30,  9, 24,
+       13, 18,  8, 12,  7,  6,  5, 63
+    };
+
+    return n ? DEBRUIJN_SEQUENCE[((n ^ (n - 1)) * DEBRUIJN_NUMBER) >> 58] : -1;
+}
 
 void
 lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
@@ -62,6 +83,11 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
     event_free(gw->refresh_ev);
     event_free(gw->write_ev);
     evbuffer_free(gw->write_buf);
+    for (int i = 0; i != LGTD_LIFX_GATEWAY_MAX_TAGS; i++) {
+        if (gw->tags[i]) {
+            lgtd_lifx_tagging_decref(gw->tags[i], gw);
+        }
+    }
     struct lgtd_lifx_bulb *bulb, *next_bulb;
     SLIST_FOREACH_SAFE(bulb, &gw->bulbs, link_by_gw, next_bulb) {
         lgtd_lifx_bulb_close(bulb);
@@ -159,6 +185,18 @@ lgtd_lifx_gateway_send_get_all_light_state(struct lgtd_lifx_gateway *gw)
     );
     lgtd_lifx_gateway_enqueue_packet(
         gw, &hdr, LGTD_LIFX_GET_LIGHT_STATE, NULL, 0
+    );
+
+    struct lgtd_lifx_packet_get_tag_labels pkt = { .tags = LGTD_LIFX_ALL_TAGS };
+    lgtd_lifx_wire_setup_header(
+        &hdr,
+        LGTD_LIFX_TARGET_SITE,
+        target,
+        gw->site.as_array,
+        LGTD_LIFX_GET_TAG_LABELS
+    );
+    lgtd_lifx_gateway_enqueue_packet(
+        gw, &hdr, LGTD_LIFX_GET_TAG_LABELS, &pkt, sizeof(pkt)
     );
 
     gw->pending_refresh_req = true;
@@ -457,4 +495,91 @@ lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *gw,
     }
 
     lgtd_lifx_bulb_set_power_state(b, pkt->power);
+}
+
+#if LGTD_SIZEOF_VOID_P == 8
+#   define TAG_ID_TO_VALUE(x) (1UL << (x))
+#elif LGTD_SIZEOF_VOID_P == 4
+#   define TAG_ID_TO_VALUE(x) (1ULL << (x))
+#endif
+
+int
+lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
+                                  int tag_id,
+                                  const char *tag_label)
+{
+    assert(gw);
+    assert(tag_label);
+    // allocating a new tag_id (tag_id == -1) isn't supported yet:
+    assert(tag_id >= 0);
+    assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
+
+    if (!(gw->tag_ids & TAG_ID_TO_VALUE(tag_id))) {
+        struct lgtd_lifx_tag *tag;
+        tag = lgtd_lifx_tagging_incref(tag_label, gw);
+        if (!tag) {
+            lgtd_warn(
+                "couldn't allocate a new reference to tag [%s] (site %s)",
+                tag_label, lgtd_addrtoa(gw->site.as_array)
+            );
+            return -1;
+        }
+        lgtd_debug(
+            "tag_id %d allocated for tag [%s] on gw [%s]:%hu (site %s)",
+            tag_id, tag_label, gw->ip_addr, gw->port,
+            lgtd_addrtoa(gw->site.as_array)
+        );
+        gw->tag_ids |= TAG_ID_TO_VALUE(tag_id);
+        gw->tags[tag_id] = tag;
+    }
+
+    return tag_id;
+}
+
+void
+lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *gw, int tag_id)
+{
+    assert(gw);
+    assert(tag_id >= 0);
+    assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
+
+    if (gw->tag_ids & TAG_ID_TO_VALUE(tag_id)) {
+        lgtd_debug(
+            "tag_id %d deallocated for tag [%s] on gw [%s]:%hu (site %s)",
+            tag_id, gw->tags[tag_id]->label,
+            gw->ip_addr, gw->port,
+            lgtd_addrtoa(gw->site.as_array)
+        );
+        lgtd_lifx_tagging_decref(gw->tags[tag_id], gw);
+        gw->tag_ids &= ~TAG_ID_TO_VALUE(tag_id);
+        gw->tags[tag_id] = NULL;
+    }
+}
+
+void
+lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
+                                    const struct lgtd_lifx_packet_header *hdr,
+                                    const struct lgtd_lifx_packet_tag_labels *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    lgtd_debug(
+        "SET_TAG_LABELS <-- [%s]:%hu - %s label=%s, tags=%jx",
+        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
+        pkt->label, (uintmax_t)pkt->tags
+    );
+
+    uint64_t tags = pkt->tags;
+    while (true) {
+        int tag_id = lgtd_lifx_bitscan64_forward(tags);
+        if (tag_id == -1) {
+            break;
+        }
+        if (pkt->label[0]) {
+            lgtd_lifx_gateway_allocate_tag_id(gw, tag_id, pkt->label);
+        } else if (gw->tags[tag_id]) {
+            lgtd_lifx_gateway_deallocate_tag_id(gw, tag_id);
+        }
+        tags &= ~TAG_ID_TO_VALUE(tag_id);
+    }
 }

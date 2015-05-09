@@ -136,6 +136,21 @@ lgtd_lifx_wire_load_packet_infos_map(void)
             .type = LGTD_LIFX_SET_WAVEFORM,
             .size = sizeof(struct lgtd_lifx_packet_waveform),
             .encode = ENCODER(lgtd_lifx_wire_encode_waveform)
+        },
+        {
+            REQUEST_ONLY,
+            .name = "GET_TAG_LABELS",
+            .type = LGTD_LIFX_GET_TAG_LABELS,
+            .size = sizeof(struct lgtd_lifx_packet_get_tag_labels),
+            .encode = lgtd_lifx_wire_null_packet_encoder_decoder
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "TAG_LABELS",
+            .type = LGTD_LIFX_TAG_LABELS,
+            .size = sizeof(struct lgtd_lifx_packet_tag_labels),
+            .decode = DECODER(lgtd_lifx_wire_decode_tag_labels),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_tag_labels)
         }
     };
 
@@ -319,4 +334,13 @@ lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *pkt)
     pkt->kelvin = htole16(pkt->kelvin);
     pkt->period = htole16(pkt->period);
     pkt->skew_ratio = htole16(pkt->skew_ratio);
+}
+
+void
+lgtd_lifx_wire_decode_tag_labels(struct lgtd_lifx_packet_tag_labels *pkt)
+{
+    assert(pkt);
+
+    pkt->label[sizeof(pkt->label) - 1] = '\0';
+    pkt->tags = le64toh(pkt->tags);
 }

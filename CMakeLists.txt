@@ -32,6 +32,8 @@ INCLUDE(AddTestFromSources)
 
 SET(CMAKE_C_FLAGS "-pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
 
+ADD_DEFINITIONS("-DLGTD_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}")
+
 # Only relevant for the GNU libc:
 ADD_DEFINITIONS(
     "-D_POSIX_C_SOURCE=200809L"

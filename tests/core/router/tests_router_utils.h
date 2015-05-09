@@ -1,3 +1,5 @@
+#pragma once
+
 int lgtd_tests_gw_pkt_queue_size = 0;
 struct {
     struct lgtd_lifx_gateway        *gw;
@@ -13,6 +15,8 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
                                  const void *pkt,
                                  int pkt_size)
 {
+    (void)pkt_type;
+
     lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].gw = gw;
     // headers are created on the stack so we need to dup them:
     lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].hdr = malloc(

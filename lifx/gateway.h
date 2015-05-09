@@ -26,6 +26,8 @@ enum { LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS = 200 };
 // You can't send more than one lifx packet per UDP datagram.
 enum { LGTD_LIFX_GATEWAY_PACKET_RING_SIZE = 16 };
 
+enum { LGTD_LIFX_GATEWAY_MAX_TAGS = 64 };
+
 struct lgtd_lifx_message {
     enum lgtd_lifx_packet_type  type;
     int                         size;
@@ -47,6 +49,8 @@ struct lgtd_lifx_gateway {
         uint8_t                     as_array[LGTD_LIFX_ADDR_LENGTH];
         uint64_t                    as_integer;
     }                               site;
+    uint64_t                        tag_ids;
+    struct lgtd_lifx_tag            *tags[LGTD_LIFX_GATEWAY_MAX_TAGS];
     evutil_socket_t                 socket;
     // Those three timers let us measure the latency of the gateway. If we
     // aren't the only client on the network then this won't be accurate since
@@ -89,6 +93,9 @@ void lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *,
                                       const void *,
                                       int);
 
+int lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *, int, const char *);
+void lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *, int);
+
 void lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *,
                                           const struct lgtd_lifx_packet_header *,
                                           const struct lgtd_lifx_packet_pan_gateway *);
@@ -98,3 +105,6 @@ void lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *,
 void lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *,
                                           const struct lgtd_lifx_packet_header *,
                                           const struct lgtd_lifx_packet_power_state *);
+void lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *,
+                                         const struct lgtd_lifx_packet_header *,
+                                         const struct lgtd_lifx_packet_tag_labels *);

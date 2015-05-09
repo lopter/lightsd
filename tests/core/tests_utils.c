@@ -14,6 +14,7 @@
 
 #include "lifx/wire_proto.h"
 #include "core/time_monotonic.h"
+#include "lifx/tagging.h"
 #include "core/jsmn.h"
 #include "core/jsonrpc.h"
 #include "core/client.h"
@@ -24,6 +25,9 @@
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
+
+struct lgtd_lifx_tag_list lgtd_lifx_tags =
+    LIST_HEAD_INITIALIZER(&lgtd_lifx_tags);
 
 struct lgtd_lifx_gateway *
 lgtd_tests_insert_mock_gateway(int id)
@@ -74,4 +78,14 @@ lgtd_tests_build_target_list(const char *target, ...)
     va_end(ap);
 
     return targets;
+}
+
+struct lgtd_lifx_tag *
+lgtd_tests_insert_mock_tag(const char *tag_label)
+{
+    assert(strlen(tag_label) < LGTD_LIFX_LABEL_SIZE);
+    struct lgtd_lifx_tag *tag = calloc(1, sizeof(*tag));
+    strcpy(tag->label, tag_label);
+    LIST_INSERT_HEAD(&lgtd_lifx_tags, tag, link);
+    return tag;
 }

@@ -25,10 +25,6 @@ FIND_PACKAGE(Event2 REQUIRED COMPONENTS core)
 FIND_PACKAGE(Endian REQUIRED)
 INCLUDE(CompatTimeMonotonic)
 
-INCLUDE(CheckTypeSize)
-CHECK_TYPE_SIZE(suseconds_t SUSECONDS_T_SIZE)
-ADD_DEFINITIONS("-DLGTD_SUSECONDS_T_SIZE=${SUSECONDS_T_SIZE}")
-
 ### Global definitions #########################################################
 
 INCLUDE(AddAllSubdirectories)

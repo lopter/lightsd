@@ -43,7 +43,8 @@ struct lgtd_lifx_packet_header {
         //! LIFX internal use should be 0.
         uint16le_t  origin:2;
     }               protocol;
-    //! This seems to be for LIFX internal use only.
+    //! Here is what LIFXKit says about it, maybe it's related to zigbee:
+    //! Message source identifier from NAT table (Internal LIFX use)
     uint32le_t      source;
     union {
         //! All targeted tags ORed together.

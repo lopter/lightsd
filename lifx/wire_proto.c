@@ -226,18 +226,18 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
 
     switch (target_type) {
     case LGTD_LIFX_TARGET_SITE:
+    case LGTD_LIFX_TARGET_ALL_DEVICES:
         hdr->protocol.tagged = true;
+        hdr->protocol.addressable = true;
         break;
     case LGTD_LIFX_TARGET_TAGS:
         hdr->protocol.tagged = true;
+        hdr->protocol.addressable = true;
         hdr->target.tags = target.tags;
         break;
     case LGTD_LIFX_TARGET_DEVICE:
         hdr->protocol.addressable = true;
         memcpy(hdr->target.device_addr, target.addr, LGTD_LIFX_ADDR_LENGTH);
-        break;
-    case LGTD_LIFX_TARGET_ALL_DEVICES:
-        hdr->protocol.tagged = true;
         break;
     }
 

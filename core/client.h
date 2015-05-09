@@ -31,7 +31,7 @@ enum lgtd_client_error_code {
 };
 
 struct lgtd_client {
-    LIST_ENTRY(lgtd_client)      link;
+    LIST_ENTRY(lgtd_client)     link;
     struct bufferevent          *io;
     char                        ip_addr[INET6_ADDRSTRLEN];
     uint16_t                    port;
@@ -50,4 +50,6 @@ struct lgtd_client *lgtd_client_open(evutil_socket_t, const struct sockaddr_stor
 void lgtd_client_close_all(void);
 
 void lgtd_client_send_response(struct lgtd_client *, const char *);
+void lgtd_client_start_send_response(struct lgtd_client *);
+void lgtd_client_end_send_response(struct lgtd_client *);
 void lgtd_client_send_error(struct lgtd_client *, enum lgtd_client_error_code, const char *);

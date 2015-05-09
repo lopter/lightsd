@@ -1,5 +1,7 @@
 #include "jsonrpc.c"
 
+#include "mock_client_buf.h"
+
 #define LGTD_TESTING_SET_LIGHT_FROM_HSBK
 #include "test_jsonrpc_utils.h"
 

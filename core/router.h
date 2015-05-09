@@ -17,6 +17,12 @@
 
 #pragma once
 
+// TODO: return that from the functions in there and handle it:
+enum lgtd_router_error {
+    LGTD_ROUTER_INVALID_TARGET_ERROR,
+    LGTD_ROUTER_CANNOT_ENQUEUE_PACKET_ERROR
+};
+
 bool lgtd_router_send(const struct lgtd_proto_target_list *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_send_to_device(struct lgtd_lifx_bulb *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_broadcast(enum lgtd_lifx_packet_type, void *);

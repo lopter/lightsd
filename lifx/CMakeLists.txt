@@ -10,6 +10,7 @@ ADD_LIBRARY(
     broadcast.c
     bulb.c
     gateway.c
+    tagging.c
     timer.c
     wire_proto.c
 )

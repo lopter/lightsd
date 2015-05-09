@@ -38,3 +38,4 @@ void lgtd_proto_set_waveform(struct lgtd_client *,
                              int, float, int, bool);
 void lgtd_proto_power_on(struct lgtd_client *, const struct lgtd_proto_target_list *);
 void lgtd_proto_power_off(struct lgtd_client *, const struct lgtd_proto_target_list *);
+void lgtd_proto_list_tags(struct lgtd_client *);

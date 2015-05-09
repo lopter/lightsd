@@ -23,6 +23,14 @@
 // still draw about 2W in ZigBee and about 3W in WiFi).
 enum { LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS = 200 };
 
+// You can't send more than one lifx packet per UDP datagram.
+enum { LGTD_LIFX_GATEWAY_PACKET_RING_SIZE = 16 };
+
+struct lgtd_lifx_message {
+    enum lgtd_lifx_packet_type  type;
+    int                         size;
+};
+
 struct lgtd_lifx_gateway {
     LIST_ENTRY(lgtd_lifx_gateway)   link;
     struct lgtd_lifx_bulb_list      bulbs;
@@ -47,6 +55,14 @@ struct lgtd_lifx_gateway {
     lgtd_time_mono_t                last_req_at;
     lgtd_time_mono_t                next_req_at;
     lgtd_time_mono_t                last_pkt_at;
+    struct lgtd_lifx_message        pkt_ring[LGTD_LIFX_GATEWAY_PACKET_RING_SIZE];
+#define LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(idx)  do { \
+    (idx) += 1;                                             \
+    (idx) %= LGTD_LIFX_GATEWAY_PACKET_RING_SIZE;            \
+} while(0)
+    int                             pkt_ring_head;
+    int                             pkt_ring_tail;
+    bool                            pkt_ring_full;
     struct event                    *write_ev;
     struct evbuffer                 *write_buf;
     bool                            pending_refresh_req;
@@ -67,10 +83,11 @@ void lgtd_lifx_gateway_close_all(void);
 
 void lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *);
 
-void lgtd_lifx_gateway_send_packet(struct lgtd_lifx_gateway *,
-                                   const struct lgtd_lifx_packet_header *,
-                                   const void *,
-                                   int);
+void lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *,
+                                      const struct lgtd_lifx_packet_header *,
+                                      enum lgtd_lifx_packet_type,
+                                      const void *,
+                                      int);
 
 void lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *,
                                           const struct lgtd_lifx_packet_header *,

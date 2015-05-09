@@ -143,6 +143,18 @@ lgtd_client_send_response(struct lgtd_client *client, const char *msg)
 }
 
 void
+lgtd_client_start_send_response(struct lgtd_client *client)
+{
+    lgtd_jsonrpc_start_send_response(client);
+}
+
+void
+lgtd_client_end_send_response(struct lgtd_client *client)
+{
+    lgtd_jsonrpc_end_send_response(client);
+}
+
+void
 lgtd_client_send_error(struct lgtd_client *client,
                        enum lgtd_client_error_code error,
                        const char *msg)

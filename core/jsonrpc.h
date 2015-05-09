@@ -88,3 +88,5 @@ void lgtd_jsonrpc_send_error(struct lgtd_client *,
                              const char *);
 void lgtd_jsonrpc_send_response(struct lgtd_client *,
                                 const char *);
+void lgtd_jsonrpc_start_send_response(struct lgtd_client *);
+void lgtd_jsonrpc_end_send_response(struct lgtd_client *);

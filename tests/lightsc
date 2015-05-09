@@ -62,6 +62,10 @@ def power_on(socket, id, target):
 def power_off(socket, id, target):
     jsonrpc_call(socket, id, "power_off", {"target": target})
 
+
+def list_tags(socket, id):
+    jsonrpc_call(socket, id, "list_tags", [])
+
 if __name__ == "__main__":
     s = socket.create_connection(("localhost", 1234))
     h = 0

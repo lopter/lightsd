@@ -459,6 +459,22 @@ lgtd_jsonrpc_send_response(struct lgtd_client *client,
     LGTD_CLIENT_WRITE_STRING(client, "}");
 }
 
+void
+lgtd_jsonrpc_start_send_response(struct lgtd_client *client)
+{
+    assert(client);
+
+    LGTD_CLIENT_WRITE_STRING(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
+    lgtd_jsonrpc_write_id(client);
+    LGTD_CLIENT_WRITE_STRING(client, ", \"result\": ");
+}
+
+void
+lgtd_jsonrpc_end_send_response(struct lgtd_client *client)
+{
+    LGTD_CLIENT_WRITE_STRING(client, "}");
+}
+
 static bool
 lgtd_jsonrpc_check_and_extract_request(struct lgtd_jsonrpc_request *request,
                                        const jsmntok_t *tokens,
@@ -856,7 +872,6 @@ lgtd_jsonrpc_extract_target_list(struct lgtd_proto_target_list *targets,
 static void
 lgtd_jsonrpc_check_and_call_power_on(struct lgtd_client *client)
 {
-
     struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
     bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);
     if (!ok) {
@@ -870,7 +885,6 @@ lgtd_jsonrpc_check_and_call_power_on(struct lgtd_client *client)
 static void
 lgtd_jsonrpc_check_and_call_power_off(struct lgtd_client *client)
 {
-
     struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
     bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);
     if (!ok) {
@@ -902,6 +916,7 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
             "set_waveform", 10,
             lgtd_jsonrpc_check_and_call_set_waveform
         ),
+        LGTD_JSONRPC_METHOD("list_tags", 0, lgtd_proto_list_tags),
     };
 
     assert(client);

@@ -10,30 +10,16 @@ parse_json(jsmntok_t *tokens, size_t capacity, const char *json , size_t len)
     return jsmn_parse(&ctx, json, len, tokens, capacity);
 }
 
-static char client_write_buf[4096] = { 0 };
-static int client_write_buf_idx = 0;
-
-static inline void
-reset_client_write_buf(void)
-{
-    memset(client_write_buf, 0, sizeof(client_write_buf));
-    client_write_buf_idx = 0;
-}
-
-int
-bufferevent_write(struct bufferevent *bev, const void *data, size_t nbytes)
-{
-    (void)bev;
-    int to_write = LGTD_MIN(nbytes, sizeof(client_write_buf));
-    memcpy(&client_write_buf[client_write_buf_idx], data, to_write);
-    client_write_buf_idx += to_write;
-    return 0;
-}
-
 void
 lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
 {
     assert(targets);
+}
+
+void
+lgtd_proto_list_tags(struct lgtd_client *client)
+{
+    assert(client);
 }
 
 #ifndef LGTD_TESTING_SET_LIGHT_FROM_HSBK

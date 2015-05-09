@@ -1,6 +1,11 @@
 #include "proto.c"
 
+#include "mock_client_buf.h"
 #include "tests_utils.h"
+
+#define MOCKED_CLIENT_SEND_RESPONSE
+#define MOCKED_ROUTER_SEND
+#include "tests_proto_utils.h"
 
 bool
 lgtd_router_send(const struct lgtd_proto_target_list *targets,
@@ -30,7 +35,7 @@ lgtd_router_send(const struct lgtd_proto_target_list *targets,
 }
 
 void
-lgtd_jsonrpc_send_response(struct lgtd_client *client, const char *msg)
+lgtd_client_send_response(struct lgtd_client *client, const char *msg)
 {
     if (!client) {
         errx(1, "client shouldn't ne NULL");

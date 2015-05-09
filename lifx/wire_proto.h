@@ -267,4 +267,6 @@ void lgtd_lifx_wire_encode_light_status(struct lgtd_lifx_packet_light_status *);
 void lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *);
 
 void lgtd_lifx_wire_encode_light_color(struct lgtd_lifx_packet_light_color *);
-void lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *pkt);
+void lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *);
+
+void lgtd_lifx_wire_decode_tag_labels(struct lgtd_lifx_packet_tag_labels *);

@@ -26,11 +26,13 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <event2/bufferevent.h>
 #include <event2/util.h>
 
 #include "lifx/wire_proto.h"
 #include "time_monotonic.h"
 #include "lifx/bulb.h"
+#include "lifx/tagging.h"
 #include "jsmn.h"
 #include "jsonrpc.h"
 #include "client.h"
@@ -39,7 +41,7 @@
 #include "lightsd.h"
 
 #define SEND_RESULT(client, ok) do {                                \
-    lgtd_jsonrpc_send_response((client), (ok) ? "true" : "false");  \
+    lgtd_client_send_response((client), (ok) ? "true" : "false");   \
 } while(0)
 
 void
@@ -105,8 +107,8 @@ lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
 
     lgtd_lifx_wire_encode_light_color(&pkt);
     SEND_RESULT(
-        client, lgtd_router_send(targets, LGTD_LIFX_SET_LIGHT_COLOR, &pkt))
-    ;
+        client, lgtd_router_send(targets, LGTD_LIFX_SET_LIGHT_COLOR, &pkt)
+    );
 }
 
 void
@@ -145,4 +147,21 @@ lgtd_proto_set_waveform(struct lgtd_client *client,
     SEND_RESULT(
         client, lgtd_router_send(targets, LGTD_LIFX_SET_WAVEFORM, &pkt)
     );
+}
+
+void
+lgtd_proto_list_tags(struct lgtd_client *client)
+{
+    lgtd_client_start_send_response(client);
+
+    LGTD_CLIENT_WRITE_STRING(client, "[");
+    struct lgtd_lifx_tag *tag;
+    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
+        LGTD_CLIENT_WRITE_STRING(client, "\"");
+        LGTD_CLIENT_WRITE_STRING(client, tag->label);
+        LGTD_CLIENT_WRITE_STRING(client, LIST_NEXT(tag, link) ? "\", " : "\"");
+    }
+    LGTD_CLIENT_WRITE_STRING(client, "]");
+
+    lgtd_client_end_send_response(client);
 }

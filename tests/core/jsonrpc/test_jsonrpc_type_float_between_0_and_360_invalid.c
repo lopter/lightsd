@@ -1,5 +1,6 @@
 #include "jsonrpc.c"
 
+#include "mock_client_buf.h"
 #include "test_jsonrpc_utils.h"
 
 static void

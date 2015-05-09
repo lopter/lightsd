@@ -68,7 +68,8 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
     }
 
     lgtd_info(
-        "connection with gateway bulb [%s]:%hu closed", gw->ip_addr, gw->port
+        "connection with gateway bulb [%s]:%hu (site %s) closed",
+        gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
     );
     free(gw);
 }
@@ -124,9 +125,14 @@ lgtd_lifx_gateway_send_get_all_light_state(struct lgtd_lifx_gateway *gw)
     assert(gw);
 
     struct lgtd_lifx_packet_header hdr;
-    union lgtd_lifx_target target = { .addr = gw->site };
+    union lgtd_lifx_target target = { .addr = gw->site.as_array };
+
     lgtd_lifx_wire_setup_header(
-        &hdr, LGTD_LIFX_TARGET_SITE, target, gw->site, LGTD_LIFX_GET_LIGHT_STATE
+        &hdr,
+        LGTD_LIFX_TARGET_SITE,
+        target,
+        gw->site.as_array,
+        LGTD_LIFX_GET_LIGHT_STATE
     );
     lgtd_debug("GET_LIGHT_STATE --> [%s]:%hu", gw->ip_addr, gw->port);
     lgtd_lifx_gateway_send_packet(gw, &hdr, NULL, 0);
@@ -210,7 +216,7 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
     memcpy(&gw->peer, peer, sizeof(gw->peer));
     lgtd_sockaddrtoa(peer, gw->ip_addr, sizeof(gw->ip_addr));
     gw->port = lgtd_sockaddrport(peer);
-    memcpy(gw->site, site, sizeof(gw->site));
+    memcpy(gw->site.as_array, site, sizeof(gw->site.as_array));
     gw->last_req_at = received_at;
     gw->next_req_at = received_at;
     gw->last_pkt_at = received_at;
@@ -227,7 +233,7 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
 
     lgtd_info(
         "gateway for site %s at [%s]:%hu",
-        lgtd_addrtoa(gw->site), gw->ip_addr, gw->port
+        lgtd_addrtoa(gw->site.as_array), gw->ip_addr, gw->port
     );
     LIST_INSERT_HEAD(&lgtd_lifx_gateways, gw, link);
 
@@ -288,7 +294,7 @@ lgtd_lifx_gateway_send_packet(struct lgtd_lifx_gateway *gw,
     assert(gw);
     assert(hdr);
     assert(pkt_size >= 0 && pkt_size < LGTD_LIFX_MAX_PACKET_SIZE);
-    assert(!memcmp(hdr->site, gw->site, LGTD_LIFX_ADDR_LENGTH));
+    assert(!memcmp(hdr->site, gw->site.as_array, LGTD_LIFX_ADDR_LENGTH));
 
     evbuffer_add(gw->write_buf, hdr, sizeof(*hdr));
     if (pkt) {

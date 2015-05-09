@@ -83,6 +83,7 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
     assert(ctx);
 
     struct lgtd_lifx_gateway *gw = (struct lgtd_lifx_gateway *)ctx;
+
     if (events & EV_TIMEOUT) {  // Not sure how that could happen in UDP but eh.
         lgtd_warn(
             "lost connection with gateway bulb [%s]:%hu", gw->ip_addr, gw->port
@@ -93,8 +94,13 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
         }
         return;
     }
+
     if (events & EV_WRITE) {
-        int nbytes = evbuffer_write(gw->write_buf, gw->socket);
+        assert(gw->pkt_ring_tail >= 0);
+        assert(gw->pkt_ring_tail < (int)LGTD_ARRAY_SIZE(gw->pkt_ring));
+
+        int to_write = gw->pkt_ring[gw->pkt_ring_tail].size;
+        int nbytes = evbuffer_write_atmost(gw->write_buf, gw->socket, to_write);
         if (nbytes == -1 && errno != EAGAIN) {
             lgtd_warn("can't write to [%s]:%hu", gw->ip_addr, gw->port);
             lgtd_lifx_gateway_close(gw);
@@ -103,16 +109,33 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
             }
             return;
         }
+
         // Callbacks are called in any order, so we keep two timers to make
         // sure we can get the latency right, otherwise we could be compute the
         // latency with last_pkt_at < last_req_at, which isn't true since the
         // pkt will be for an answer to the previous write:
         gw->last_req_at = gw->next_req_at;
         gw->next_req_at = lgtd_time_monotonic_msecs();
-        // XXX this isn't perfect because we don't know what we just sent, I
-        // just assume that everything pending will alway be transmitted in a
-        // single call:
-        gw->pending_refresh_req = false;
+
+        gw->pkt_ring[gw->pkt_ring_tail].size -= nbytes;
+        if (gw->pkt_ring[gw->pkt_ring_tail].size == 0) {
+            enum lgtd_lifx_packet_type type;
+            type = gw->pkt_ring[gw->pkt_ring_tail].type;
+            if (type == LGTD_LIFX_GET_TAG_LABELS) {
+                gw->pending_refresh_req = false;
+            }
+            if (lgtd_opts.verbosity <= LGTD_DEBUG) {
+                const struct lgtd_lifx_packet_infos *pkt_infos =
+                    lgtd_lifx_wire_get_packet_infos(type);
+                lgtd_debug(
+                    "%s --> [%s]:%hu", pkt_infos->name, gw->ip_addr, gw->port
+                );
+            }
+            gw->pkt_ring[gw->pkt_ring_tail].type = 0;
+            LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(gw->pkt_ring_tail);
+            gw->pkt_ring_full = false;
+        }
+
         if (!evbuffer_get_length(gw->write_buf)) {
             event_del(gw->write_ev);
         }
@@ -134,8 +157,10 @@ lgtd_lifx_gateway_send_get_all_light_state(struct lgtd_lifx_gateway *gw)
         gw->site.as_array,
         LGTD_LIFX_GET_LIGHT_STATE
     );
-    lgtd_debug("GET_LIGHT_STATE --> [%s]:%hu", gw->ip_addr, gw->port);
-    lgtd_lifx_gateway_send_packet(gw, &hdr, NULL, 0);
+    lgtd_lifx_gateway_enqueue_packet(
+        gw, &hdr, LGTD_LIFX_GET_LIGHT_STATE, NULL, 0
+    );
+
     gw->pending_refresh_req = true;
 }
 
@@ -286,20 +311,38 @@ lgtd_lifx_gateway_close_all(void)
 }
 
 void
-lgtd_lifx_gateway_send_packet(struct lgtd_lifx_gateway *gw,
-                              const struct lgtd_lifx_packet_header *hdr,
-                              const void *pkt,
-                              int pkt_size)
+lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
+                                 const struct lgtd_lifx_packet_header *hdr,
+                                 enum lgtd_lifx_packet_type pkt_type,
+                                 const void *pkt,
+                                 int pkt_size)
 {
     assert(gw);
     assert(hdr);
     assert(pkt_size >= 0 && pkt_size < LGTD_LIFX_MAX_PACKET_SIZE);
     assert(!memcmp(hdr->site, gw->site.as_array, LGTD_LIFX_ADDR_LENGTH));
+    assert(gw->pkt_ring_head >= 0);
+    assert(gw->pkt_ring_head < (int)LGTD_ARRAY_SIZE(gw->pkt_ring));
+
+    if (gw->pkt_ring_full) {
+        lgtd_warnx(
+            "dropping packet type %s: packet queue on [%s]:%hu is full",
+            lgtd_lifx_wire_get_packet_infos(pkt_type)->name,
+            gw->ip_addr, gw->port
+        );
+        return;
+    }
 
     evbuffer_add(gw->write_buf, hdr, sizeof(*hdr));
     if (pkt) {
         assert((unsigned)pkt_size == le16toh(hdr->size) - sizeof(*hdr));
         evbuffer_add(gw->write_buf, pkt, pkt_size);
+    }
+    gw->pkt_ring[gw->pkt_ring_head].size = sizeof(*hdr) + pkt_size;
+    gw->pkt_ring[gw->pkt_ring_head].type = pkt_type;
+    LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(gw->pkt_ring_head);
+    if (gw->pkt_ring_head == gw->pkt_ring_tail) {
+        gw->pkt_ring_full = true;
     }
     event_add(gw->write_ev, NULL);
 }
@@ -352,10 +395,10 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         && b->last_light_state_at > b->dirty_at
         && b->gw->last_pkt_at - b->dirty_at > 400) {
         if (b->expected_power_on == b->state.power) {
-            lgtd_warnx("clearing dirty_at on %s", b->state.label);
+            lgtd_debug("clearing dirty_at on %s", b->state.label);
             b->dirty_at = 0;
         } else {
-            lgtd_warnx(
+            lgtd_info(
                 "retransmiting power %s to %s",
                 b->expected_power_on ? "on" : "off", b->state.label
             );

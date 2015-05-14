@@ -21,8 +21,26 @@ but has some advantages:
 Current features
 ----------------
 
-lightsd doesn't do much yet, it just discovers your LIFX bulbs and stay in sync
-with them.
+lightsd discovers your LIFX bulbs, stays in sync with them and support the
+following commands through a JSON-RPC_ interface:
+
+- power_off;
+- power_on;
+- set_light_from_hsbk;
+- set_waveform (change the light according to a function like SAW or SINE);
+- get_light_status (coming up).
+
+lightsd can target single or multiple bulbs at once:
+
+- by device address;
+- by device label (coming up, labels are already discovered);
+- by tag (coming up, tags are already discovered);
+- broadcast;
+- composite (list of targets);
+
+lightsd works and is developed against LIFX firmwares 1.1, 1.5 and 2.0.
+
+.. _JSON-RPC: http://www.jsonrpc.org/specification
 
 Developpers
 -----------
@@ -40,5 +58,7 @@ dependencies:
 
 - CMake ≥ 2.8;
 - libevent ≥ 2.0.19.
+
+lightsd is actively developed and tested from Arch Linux and Mac OS X.
 
 .. vim: set tw=80 spelllang=en spell:

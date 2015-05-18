@@ -66,9 +66,12 @@ lgtd_lifx_tagging_find_tag(const char *tag_label)
 }
 
 struct lgtd_lifx_tag *
-lgtd_lifx_tagging_incref(const char *tag_label, struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_incref(const char *tag_label,
+                         struct lgtd_lifx_gateway *gw,
+                         int tag_id)
 {
     assert(strlen(tag_label) < LGTD_LIFX_LABEL_SIZE);
+    assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
     assert(gw);
 
     bool dealloc_tag = false;
@@ -102,8 +105,10 @@ lgtd_lifx_tagging_incref(const char *tag_label, struct lgtd_lifx_gateway *gw)
             tag_label, gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
         );
         site->gw = gw;
+        site->tag_id = tag_id;
         LIST_INSERT_HEAD(&tag->sites, site, link);
     }
+    assert(site->tag_id == tag_id);
 
     return tag;
 }

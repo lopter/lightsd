@@ -510,7 +510,7 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
 
     if (!(gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))) {
         struct lgtd_lifx_tag *tag;
-        tag = lgtd_lifx_tagging_incref(tag_label, gw);
+        tag = lgtd_lifx_tagging_incref(tag_label, gw, tag_id);
         if (!tag) {
             lgtd_warn(
                 "couldn't allocate a new reference to tag [%s] (site %s)",

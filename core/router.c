@@ -119,28 +119,26 @@ lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
 {
     const struct lgtd_lifx_packet_infos *pkt_infos = NULL;
 
-    struct lgtd_lifx_site *site = NULL;
+    struct lgtd_lifx_site *site;
     LIST_FOREACH(site, &tag->sites, link) {
         struct lgtd_lifx_gateway *gw = site->gw;
-        for (int tag_id = 0; tag_id != LGTD_ARRAY_SIZE(gw->tags); tag_id++) {
-            if (tag == gw->tags[tag_id]) {
-                struct lgtd_lifx_packet_header hdr;
-                union lgtd_lifx_target target;
-                target.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
-                pkt_infos = lgtd_lifx_wire_setup_header(
-                    &hdr,
-                    LGTD_LIFX_TARGET_TAGS,
-                    target,
-                    gw->site.as_array,
-                    pkt_type
-                );
-                assert(pkt_infos);
+        int tag_id = site->tag_id;
+        struct lgtd_lifx_packet_header hdr;
+        union lgtd_lifx_target target;
+        assert(tag == gw->tags[tag_id]);
+        target.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
+        pkt_infos = lgtd_lifx_wire_setup_header(
+            &hdr,
+            LGTD_LIFX_TARGET_TAGS,
+            target,
+            gw->site.as_array,
+            pkt_type
+        );
+        assert(pkt_infos);
 
-                lgtd_lifx_gateway_enqueue_packet(
-                    gw, &hdr, pkt_type, pkt, pkt_infos->size
-                );
-            }
-        }
+        lgtd_lifx_gateway_enqueue_packet(
+            gw, &hdr, pkt_type, pkt, pkt_infos->size
+        );
     }
 
     if (pkt_infos) {

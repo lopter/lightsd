@@ -97,6 +97,7 @@ lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *tag,
 {
     struct lgtd_lifx_site *site = calloc(1, sizeof(*site));
     site->gw = gw;
+    site->tag_id = tag_id;
     gw->tags[tag_id] = tag;
     LIST_INSERT_HEAD(&tag->sites, site, link);
     return site;

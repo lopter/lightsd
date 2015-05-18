@@ -89,3 +89,15 @@ lgtd_tests_insert_mock_tag(const char *tag_label)
     LIST_INSERT_HEAD(&lgtd_lifx_tags, tag, link);
     return tag;
 }
+
+struct lgtd_lifx_site *
+lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *tag,
+                         struct lgtd_lifx_gateway *gw,
+                         int tag_id)
+{
+    struct lgtd_lifx_site *site = calloc(1, sizeof(*site));
+    site->gw = gw;
+    gw->tags[tag_id] = tag;
+    LIST_INSERT_HEAD(&tag->sites, site, link);
+    return site;
+}

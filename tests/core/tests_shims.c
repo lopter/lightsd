@@ -14,6 +14,7 @@
 #include "core/time_monotonic.h"
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"
+#include "lifx/tagging.h"
 #include "lightsd.h"
 
 struct lgtd_opts lgtd_opts = {
@@ -64,4 +65,16 @@ void lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
     (void)gw;
     (void)hdr;
     (void)pkt;
+}
+
+struct lgtd_lifx_tag *
+lgtd_lifx_tagging_find_tag(const char *tag_label)
+{
+    struct lgtd_lifx_tag *tag = NULL;
+    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
+        if (!strcmp(tag->label, tag_label)) {
+            break;
+        }
+    }
+    return tag;
 }

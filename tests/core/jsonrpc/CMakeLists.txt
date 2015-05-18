@@ -8,8 +8,10 @@ ADD_LIBRARY(
     ${LIGHTSD_SOURCE_DIR}/core/jsmn.c
     ${LIGHTSD_SOURCE_DIR}/core/log.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
+    ${TIME_MONOTONIC_IMPL}
 )
 
 FUNCTION(ADD_JSONRPC_TEST TEST_SOURCE)

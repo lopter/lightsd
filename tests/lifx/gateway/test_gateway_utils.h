@@ -48,7 +48,7 @@ evbuffer_write_atmost(struct evbuffer *buf,
 
 #ifndef MOCKED_LIFX_TAGGING_INCREF
 struct lgtd_lifx_tag *
-lgtd_lifx_tagging_incref(const char *label, const struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_incref(const char *label, struct lgtd_lifx_gateway *gw)
 {
     struct lgtd_lifx_tag *tag = calloc(1, sizeof(*tag));
     strcpy(tag->label, label);
@@ -63,7 +63,7 @@ lgtd_lifx_tagging_incref(const char *label, const struct lgtd_lifx_gateway *gw)
 #ifndef MOCKED_LIFX_TAGGING_DECREF
 void
 lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *tag,
-                         const struct lgtd_lifx_gateway *gw)
+                         struct lgtd_lifx_gateway *gw)
 {
     (void)tag;
     (void)gw;
@@ -82,6 +82,17 @@ evbuffer_free(struct evbuffer *buf)
     (void)buf;
 }
 
+struct lgtd_lifx_tag *
+lgtd_lifx_tagging_find_tag(const char *tag_label)
+{
+    struct lgtd_lifx_tag *tag = NULL;
+    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
+        if (!strcmp(tag->label, tag_label)) {
+            break;
+        }
+    }
+    return tag;
+}
 
 static struct event *last_event_passed_to_event_add = NULL;
 

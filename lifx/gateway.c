@@ -497,12 +497,6 @@ lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *gw,
     lgtd_lifx_bulb_set_power_state(b, pkt->power);
 }
 
-#if LGTD_SIZEOF_VOID_P == 8
-#   define TAG_ID_TO_VALUE(x) (1UL << (x))
-#elif LGTD_SIZEOF_VOID_P == 4
-#   define TAG_ID_TO_VALUE(x) (1ULL << (x))
-#endif
-
 int
 lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
                                   int tag_id,
@@ -514,7 +508,7 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
     assert(tag_id >= 0);
     assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
 
-    if (!(gw->tag_ids & TAG_ID_TO_VALUE(tag_id))) {
+    if (!(gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))) {
         struct lgtd_lifx_tag *tag;
         tag = lgtd_lifx_tagging_incref(tag_label, gw);
         if (!tag) {
@@ -529,7 +523,7 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
             tag_id, tag_label, gw->ip_addr, gw->port,
             lgtd_addrtoa(gw->site.as_array)
         );
-        gw->tag_ids |= TAG_ID_TO_VALUE(tag_id);
+        gw->tag_ids |= LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
         gw->tags[tag_id] = tag;
     }
 
@@ -543,7 +537,7 @@ lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *gw, int tag_id)
     assert(tag_id >= 0);
     assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
 
-    if (gw->tag_ids & TAG_ID_TO_VALUE(tag_id)) {
+    if (gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id)) {
         lgtd_debug(
             "tag_id %d deallocated for tag [%s] on gw [%s]:%hu (site %s)",
             tag_id, gw->tags[tag_id]->label,
@@ -551,7 +545,7 @@ lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *gw, int tag_id)
             lgtd_addrtoa(gw->site.as_array)
         );
         lgtd_lifx_tagging_decref(gw->tags[tag_id], gw);
-        gw->tag_ids &= ~TAG_ID_TO_VALUE(tag_id);
+        gw->tag_ids &= ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
         gw->tags[tag_id] = NULL;
     }
 }
@@ -580,6 +574,6 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
         } else if (gw->tags[tag_id]) {
             lgtd_lifx_gateway_deallocate_tag_id(gw, tag_id);
         }
-        tags &= ~TAG_ID_TO_VALUE(tag_id);
+        tags &= ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
     }
 }

@@ -20,8 +20,8 @@
 extern struct lgtd_lifx_tag_list lgtd_lifx_tags;
 
 struct lgtd_lifx_site {
-    LIST_ENTRY(lgtd_lifx_site)      link;
-    const struct lgtd_lifx_gateway  *gw;
+    LIST_ENTRY(lgtd_lifx_site)  link;
+    struct lgtd_lifx_gateway    *gw;
 };
 LIST_HEAD(lgtd_lifx_site_list, lgtd_lifx_site);
 
@@ -33,5 +33,7 @@ struct lgtd_lifx_tag {
 LIST_HEAD(lgtd_lifx_tag_list, lgtd_lifx_tag);
 
 struct lgtd_lifx_tag *lgtd_lifx_tagging_incref(const char *,
-                                               const struct lgtd_lifx_gateway *);
-void lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *, const struct lgtd_lifx_gateway *);
+                                               struct lgtd_lifx_gateway *);
+void lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *, struct lgtd_lifx_gateway *);
+
+struct lgtd_lifx_tag *lgtd_lifx_tagging_find_tag(const char *);

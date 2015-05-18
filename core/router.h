@@ -25,4 +25,6 @@ enum lgtd_router_error {
 
 bool lgtd_router_send(const struct lgtd_proto_target_list *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_send_to_device(struct lgtd_lifx_bulb *, enum lgtd_lifx_packet_type, void *);
+void lgtd_router_send_to_tag(const struct lgtd_lifx_tag *, enum lgtd_lifx_packet_type, void *);
+void lgtd_router_send_to_label(const char *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_broadcast(enum lgtd_lifx_packet_type, void *);

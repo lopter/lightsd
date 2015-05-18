@@ -8,7 +8,7 @@
 static bool tagging_decref_called = false;
 
 void
-lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *tag, const struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *tag, struct lgtd_lifx_gateway *gw)
 {
     if (!tag) {
         errx(1, "missing tag");
@@ -37,16 +37,17 @@ main(void)
     };
 
     gw.tags[0] = &tag;
-    gw.tag_ids = TAG_ID_TO_VALUE(0) | TAG_ID_TO_VALUE(42);
+    gw.tag_ids = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(0)
+                | LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42);
 
     lgtd_lifx_gateway_deallocate_tag_id(&gw, 0);
     if (gw.tags[0]) {
         errx(1, "gw.tags[0] should have been set to NULL");
     }
-    if (gw.tag_ids != TAG_ID_TO_VALUE(42)) {
+    if (gw.tag_ids != LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42)) {
         errx(
             1, "unexpected gw.tag_ids value = %jx (expected %jx)",
-            gw.tag_ids, TAG_ID_TO_VALUE(42)
+            (uintmax_t)gw.tag_ids, (uintmax_t)LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42)
         );
     }
     if (!tagging_decref_called) {
@@ -58,10 +59,10 @@ main(void)
     if (gw.tags[0]) {
         errx(1, "gw.tags[0] should be NULL");
     }
-    if (gw.tag_ids != TAG_ID_TO_VALUE(42)) {
+    if (gw.tag_ids != LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42)) {
         errx(
             1, "unexpected gw.tag_ids value = %jx (expected %jx)",
-            gw.tag_ids, TAG_ID_TO_VALUE(42)
+            (uintmax_t)gw.tag_ids, (uintmax_t)LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42)
         );
     }
     if (tagging_decref_called) {

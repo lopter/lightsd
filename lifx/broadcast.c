@@ -161,7 +161,8 @@ lgtd_lifx_broadcast_handle_write(void)
     struct sockaddr_in lifx_addr = {
         .sin_family = AF_INET,
         .sin_addr = { INADDR_BROADCAST },
-        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT)
+        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT),
+        .sin_zero = { 0 }
     };
     struct lgtd_lifx_packet_header get_pan_gateway;
     lgtd_lifx_wire_setup_header(
@@ -289,7 +290,8 @@ lgtd_lifx_broadcast_setup(void)
     struct sockaddr_in lifx_addr = {
         .sin_family = AF_INET,
         .sin_addr = { INADDR_ANY },
-        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT)
+        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT),
+        .sin_zero = { 0 }
     };
 
     err = bind(

@@ -33,8 +33,8 @@ following commands through a JSON-RPC_ interface:
 lightsd can target single or multiple bulbs at once:
 
 - by device address;
-- by device label (coming up, labels are already discovered);
-- by tag (coming up, tags are already discovered);
+- by device label;
+- by tag;
 - broadcast;
 - composite (list of targets);
 
@@ -60,5 +60,23 @@ dependencies:
 - libevent ≥ 2.0.19.
 
 lightsd is actively developed and tested from Arch Linux and Mac OS X.
+
+Build instructions
+------------------
+
+Clone this repository and then:
+
+::
+
+   .../lightsd$ mkdir build && cd build
+   .../lightsd/build$ cmake ..
+   .../lightsd/build$ make -j5
+
+Finally, to start lightsd with the jsonrpc interface listening on localhost
+port 1234:
+
+::
+
+   .../lightsd/build$ core/lightsd -v info -l ::1:1234
 
 .. vim: set tw=80 spelllang=en spell:

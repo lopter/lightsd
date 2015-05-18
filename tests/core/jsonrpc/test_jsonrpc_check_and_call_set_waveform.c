@@ -16,7 +16,9 @@ lgtd_proto_set_waveform(struct lgtd_client *client,
                         int period, float cycles,
                         int skew_ratio, bool transient)
 {
-    assert(client);
+    if (!client) {
+        errx(1, "missing client");
+    }
 
     if (strcmp(SLIST_FIRST(targets)->target, "*")) {
         errx(

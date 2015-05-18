@@ -308,6 +308,8 @@ lgtd_lifx_wire_decode_light_status(struct lgtd_lifx_packet_light_status *pkt)
 void
 lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *pkt)
 {
+    (void)pkt;
+
     assert(pkt);
 }
 

@@ -11,7 +11,9 @@ void
 lgtd_proto_power_off(struct lgtd_client *client,
                      const struct lgtd_proto_target_list *targets)
 {
-    assert(client);
+    if (!client) {
+        errx(1, "missing client!");
+    }
 
     if (strcmp(SLIST_FIRST(targets)->target, "*")) {
         errx(

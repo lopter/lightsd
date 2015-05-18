@@ -16,7 +16,9 @@ lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
                                int kelvin,
                                int transition_msecs)
 {
-    assert(client);
+    if (!client) {
+        errx(1, "missing client!");
+    }
 
     if (strcmp(SLIST_FIRST(targets)->target, "*")) {
         errx(

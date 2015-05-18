@@ -13,13 +13,13 @@ parse_json(jsmntok_t *tokens, size_t capacity, const char *json , size_t len)
 void
 lgtd_proto_target_list_clear(struct lgtd_proto_target_list *targets)
 {
-    assert(targets);
+    (void)targets;
 }
 
 void
 lgtd_proto_list_tags(struct lgtd_client *client)
 {
-    assert(client);
+    (void)client;
 }
 
 #ifndef LGTD_TESTING_SET_LIGHT_FROM_HSBK

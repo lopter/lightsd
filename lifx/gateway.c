@@ -390,6 +390,8 @@ lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *gw,
                                      const struct lgtd_lifx_packet_header *hdr,
                                      const struct lgtd_lifx_packet_pan_gateway *pkt)
 {
+    (void)pkt;
+
     assert(gw && hdr && pkt);
 
     lgtd_debug(

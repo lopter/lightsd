@@ -37,7 +37,7 @@ main(void)
     const char *awww = "awww";
 
     for (int i = 0; i != 2; i++) {
-        lgtd_lifx_tagging_incref(rawr, &gw1);
+        lgtd_lifx_tagging_incref(rawr, &gw1, 1);
         if (count_tag(rawr) != 1) {
             errx(1, "%s wasn't found once the list of tags", rawr);
         }
@@ -46,19 +46,28 @@ main(void)
         }
     }
 
-    lgtd_lifx_tagging_incref(rawr, &gw2);
+    lgtd_lifx_tagging_incref(rawr, &gw2, 1);
     struct lgtd_lifx_tag *tag = lgtd_lifx_tagging_find_tag(rawr);
     if (count_site(&tag->sites, &gw2) != 1) {
         errx(1, "gw2 wasn't found once in the sites of tag %s", tag->label);
     }
 
-    lgtd_lifx_tagging_incref(awww, &gw1);
+    lgtd_lifx_tagging_incref(awww, &gw1, 1);
     if (count_tag(awww) != 1) {
         errx(1, "%s wasn't found once in the list of tags", awww);
     }
     tag = lgtd_lifx_tagging_find_tag(awww);
     if (count_site(&tag->sites, &gw1) != 1) {
         errx(1, "gw1 wasn't found once in the sites of tag %s", awww);
+    }
+
+    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
+        struct lgtd_lifx_site *site;
+        LIST_FOREACH(site, &tag->sites, link) {
+            if (site->tag_id != 1) {
+                lgtd_errx(1, "site->tag_id = %d (expected 1)", site->tag_id);
+            }
+        }
     }
 
     return 0;

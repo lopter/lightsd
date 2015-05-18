@@ -48,13 +48,16 @@ evbuffer_write_atmost(struct evbuffer *buf,
 
 #ifndef MOCKED_LIFX_TAGGING_INCREF
 struct lgtd_lifx_tag *
-lgtd_lifx_tagging_incref(const char *label, struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_incref(const char *label,
+                         struct lgtd_lifx_gateway *gw,
+                         int tag_id)
 {
     struct lgtd_lifx_tag *tag = calloc(1, sizeof(*tag));
     strcpy(tag->label, label);
     LIST_INSERT_HEAD(&lgtd_lifx_tags, tag, link);
     struct lgtd_lifx_site *site = calloc(1, sizeof(*site));
     site->gw = gw;
+    site->tag_id = tag_id;
     LIST_INSERT_HEAD(&tag->sites, site, link);
     return tag;
 }

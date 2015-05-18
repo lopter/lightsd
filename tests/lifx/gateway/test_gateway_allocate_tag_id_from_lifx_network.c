@@ -8,13 +8,18 @@
 static bool tagging_incref_called = false;
 
 struct lgtd_lifx_tag *
-lgtd_lifx_tagging_incref(const char *label, struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_incref(const char *label,
+                         struct lgtd_lifx_gateway *gw,
+                         int tag_id)
 {
     if (!label) {
         errx(1, "missing tag label");
     }
     if (!gw) {
         errx(1, "missing gateway");
+    }
+    if (tag_id != 4 && tag_id != 63) {
+        errx(1, "got tag_id %d but expected 4 or 63", tag_id);
     }
 
     static struct lgtd_lifx_tag *tag = NULL;
@@ -24,6 +29,7 @@ lgtd_lifx_tagging_incref(const char *label, struct lgtd_lifx_gateway *gw)
         strcpy(tag->label, label);
         struct lgtd_lifx_site *site = calloc(1, sizeof(*site));
         site->gw = gw;
+        site->tag_id = tag_id;
         LIST_INSERT_HEAD(&tag->sites, site, link);
     }
 

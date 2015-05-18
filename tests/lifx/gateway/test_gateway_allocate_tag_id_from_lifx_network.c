@@ -8,7 +8,7 @@
 static bool tagging_incref_called = false;
 
 struct lgtd_lifx_tag *
-lgtd_lifx_tagging_incref(const char *label, const struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_incref(const char *label, struct lgtd_lifx_gateway *gw)
 {
     if (!label) {
         errx(1, "missing tag label");
@@ -53,10 +53,10 @@ main(void)
             (int)sizeof(gw.tags[0]->label), gw.tags[4]->label
         );
     }
-    if (gw.tag_ids != TAG_ID_TO_VALUE(4)) {
+    if (gw.tag_ids != LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(4)) {
         errx(
             1, "tag_ids = %jx (expected %jx)",
-            (uintmax_t)gw.tag_ids, (uintmax_t)TAG_ID_TO_VALUE(4)
+            (uintmax_t)gw.tag_ids, (uintmax_t)LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(4)
         );
     }
 
@@ -79,11 +79,12 @@ main(void)
             (int)sizeof(gw.tags[0]->label), gw.tags[4]->label
         );
     }
-    if (gw.tag_ids != (TAG_ID_TO_VALUE(4) | TAG_ID_TO_VALUE(63))) {
+    uint64_t expected_tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(4)
+                             | LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(63);
+    if (gw.tag_ids != expected_tags) {
         errx(
             1, "tag_ids = %jx (expected %jx)",
-            (uintmax_t)gw.tag_ids,
-            (uintmax_t)(TAG_ID_TO_VALUE(4) | TAG_ID_TO_VALUE(63))
+            (uintmax_t)gw.tag_ids, (uintmax_t)expected_tags
         );
     }
 
@@ -107,11 +108,10 @@ main(void)
             (int)sizeof(gw.tags[0]->label), gw.tags[4]->label
         );
     }
-    if (gw.tag_ids != (TAG_ID_TO_VALUE(4) | TAG_ID_TO_VALUE(63))) {
+    if (gw.tag_ids != expected_tags) {
         errx(
             1, "tag_ids = %jx (expected %jx)",
-            (uintmax_t)gw.tag_ids,
-            (uintmax_t)(TAG_ID_TO_VALUE(4) | TAG_ID_TO_VALUE(63))
+            (uintmax_t)gw.tag_ids, (uintmax_t)expected_tags
         );
     }
     if (tagging_incref_called) {

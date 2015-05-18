@@ -38,8 +38,9 @@
 #include "jsonrpc.h"
 #include "client.h"
 #include "proto.h"
-#include "router.h"
 #include "lifx/gateway.h"
+#include "lifx/tagging.h"
+#include "router.h"
 #include "lightsd.h"
 
 void
@@ -111,6 +112,74 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
     lgtd_info("sending %s to %s", pkt_infos->name, lgtd_addrtoa(bulb->addr));
 }
 
+void
+lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
+                        enum lgtd_lifx_packet_type pkt_type,
+                        void *pkt)
+{
+    const struct lgtd_lifx_packet_infos *pkt_infos = NULL;
+
+    struct lgtd_lifx_site *site = NULL;
+    LIST_FOREACH(site, &tag->sites, link) {
+        struct lgtd_lifx_gateway *gw = site->gw;
+        for (int tag_id = 0; tag_id != LGTD_ARRAY_SIZE(gw->tags); tag_id++) {
+            if (tag == gw->tags[tag_id]) {
+                struct lgtd_lifx_packet_header hdr;
+                union lgtd_lifx_target target;
+                target.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
+                pkt_infos = lgtd_lifx_wire_setup_header(
+                    &hdr,
+                    LGTD_LIFX_TARGET_TAGS,
+                    target,
+                    gw->site.as_array,
+                    pkt_type
+                );
+                assert(pkt_infos);
+
+                lgtd_lifx_gateway_enqueue_packet(
+                    gw, &hdr, pkt_type, pkt, pkt_infos->size
+                );
+            }
+        }
+    }
+
+    if (pkt_infos) {
+        lgtd_info("sending %s to #%s", pkt_infos->name, tag->label);
+    }
+}
+
+void
+lgtd_router_send_to_label(const char *label,
+                          enum lgtd_lifx_packet_type pkt_type,
+                          void *pkt)
+{
+    const struct lgtd_lifx_packet_infos *pkt_infos = NULL;
+
+    struct lgtd_lifx_bulb *bulb;
+    RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
+        if (!strcmp(bulb->state.label, label)) {
+            struct lgtd_lifx_packet_header hdr;
+            union lgtd_lifx_target target = { .addr = bulb->addr };
+            pkt_infos = lgtd_lifx_wire_setup_header(
+                &hdr,
+                LGTD_LIFX_TARGET_DEVICE,
+                target,
+                bulb->gw->site.as_array,
+                pkt_type
+            );
+            assert(pkt_infos);
+
+            lgtd_lifx_gateway_enqueue_packet(
+                bulb->gw, &hdr, pkt_type, pkt, pkt_infos->size
+            );
+        }
+    }
+
+    if (pkt_infos) {
+        lgtd_info("sending %s to #%s", pkt_infos->name, label);
+    }
+}
+
 bool
 lgtd_router_send(const struct lgtd_proto_target_list *targets,
                  enum lgtd_lifx_packet_type pkt_type,
@@ -125,23 +194,41 @@ lgtd_router_send(const struct lgtd_proto_target_list *targets,
         if (!strcmp(target->target, "*")) {
             lgtd_router_broadcast(pkt_type, pkt);
             continue;
-        } else if (isxdigit(target->target[0])) {
-            const char *endptr = NULL;
-            errno = 0;
-            long long device = strtoll(target->target, (char **)&endptr, 16);
-            if (*endptr || errno == ERANGE) {
-                lgtd_debug("invalid target device %s", target->target);
-                rv = false;
-            }
-            device = htobe64(device);
-            struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(
-                (uint8_t *)&device + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
-            );
-            if (bulb) {
-                lgtd_router_send_to_device(bulb, pkt_type, pkt);
+        } else if (target->target[0] == '#') {
+            const struct lgtd_lifx_tag *tag;
+            tag = lgtd_lifx_tagging_find_tag(&target->target[1]);
+            if (tag) {
+                lgtd_router_send_to_tag(tag, pkt_type, pkt);
                 continue;
             }
-            lgtd_debug("target device %#llx not found", device);
+            lgtd_debug("invalid target tag %s", target->target);
+        } else if (target->target[0]) {
+            // NOTE: labels and hardware addresses are ambiguous target types,
+            // we can't really solve this since json doesn't have hexadecimal.
+            if (isxdigit(target->target[0])) {
+                errno = 0;
+                uint64_t device;
+                const char *endptr = NULL;
+                device = strtoull(target->target, (char **)&endptr, 16);
+                if (!*endptr && errno != ERANGE) {
+                    device = htobe64(device);
+                    struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(
+                        (uint8_t *)&device
+                        + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
+                    );
+                    if (bulb) {
+                        lgtd_router_send_to_device(bulb, pkt_type, pkt);
+                        continue;
+                    }
+                }
+                lgtd_debug(
+                    "%s looked like a device address but didn't "
+                    "yield any device, trying as a label", target->target
+                );
+            }
+            // Fallback as label:
+            lgtd_router_send_to_label(target->target, pkt_type, pkt);
+            continue;
         }
         rv = false;
     }

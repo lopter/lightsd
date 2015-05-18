@@ -247,6 +247,12 @@ union lgtd_lifx_target {
 
 extern union lgtd_lifx_target LGTD_LIFX_UNSPEC_TARGET;
 
+#if LGTD_SIZEOF_VOID_P == 8
+#   define LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(x) (1UL << (x))
+#elif LGTD_SIZEOF_VOID_P == 4
+#   define LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(x) (1ULL << (x))
+#endif
+
 enum lgtd_lifx_waveform_type lgtd_lifx_wire_waveform_string_id_to_type(const char *, int);
 
 const struct lgtd_lifx_packet_infos *lgtd_lifx_wire_get_packet_infos(enum lgtd_lifx_packet_type);

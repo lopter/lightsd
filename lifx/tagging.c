@@ -40,21 +40,9 @@
 struct lgtd_lifx_tag_list lgtd_lifx_tags =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_tags);
 
-static struct lgtd_lifx_tag *
-lgtd_lifx_tagging_find_tag(const char *tag_label)
-{
-    struct lgtd_lifx_tag *tag = NULL;
-    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
-        if (!strcmp(tag->label, tag_label)) {
-            break;
-        }
-    }
-    return tag;
-}
-
 static struct lgtd_lifx_site *
 lgtd_lifx_tagging_find_site(struct lgtd_lifx_site_list *sites,
-                            const struct lgtd_lifx_gateway *gw)
+                            struct lgtd_lifx_gateway *gw)
 {
     struct lgtd_lifx_site *site = NULL;
     LIST_FOREACH(site, sites, link) {
@@ -66,8 +54,19 @@ lgtd_lifx_tagging_find_site(struct lgtd_lifx_site_list *sites,
 }
 
 struct lgtd_lifx_tag *
-lgtd_lifx_tagging_incref(const char *tag_label,
-                         const struct lgtd_lifx_gateway *gw)
+lgtd_lifx_tagging_find_tag(const char *tag_label)
+{
+    struct lgtd_lifx_tag *tag = NULL;
+    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
+        if (!strcmp(tag->label, tag_label)) {
+            break;
+        }
+    }
+    return tag;
+}
+
+struct lgtd_lifx_tag *
+lgtd_lifx_tagging_incref(const char *tag_label, struct lgtd_lifx_gateway *gw)
 {
     assert(strlen(tag_label) < LGTD_LIFX_LABEL_SIZE);
     assert(gw);
@@ -111,7 +110,7 @@ lgtd_lifx_tagging_incref(const char *tag_label,
 
 void
 lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *tag,
-                         const struct lgtd_lifx_gateway *gw)
+                         struct lgtd_lifx_gateway *gw)
 {
     assert(tag);
     assert(gw);

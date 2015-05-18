@@ -31,3 +31,10 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
     lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].pkt_size = pkt_size;
     lgtd_tests_gw_pkt_queue_size++;
 }
+
+void
+lgtd_tests_router_reset_pkt_queue(void)
+{
+    memset(lgtd_tests_gw_pkt_queue, 0, sizeof(lgtd_tests_gw_pkt_queue));
+    lgtd_tests_gw_pkt_queue_size = 0;
+}

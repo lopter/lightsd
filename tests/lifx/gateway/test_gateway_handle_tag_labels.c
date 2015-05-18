@@ -24,12 +24,12 @@ main(void)
         errx(1, "expected gw.tags == 0 but got %jx", (uintmax_t)gw.tags);
     }
 
-    pkt.tags = TAG_ID_TO_VALUE(42);
+    pkt.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42);
     lgtd_lifx_gateway_handle_tag_labels(&gw, &hdr, &pkt);
-    if (gw.tag_ids != TAG_ID_TO_VALUE(42)) {
+    if (gw.tag_ids != LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42)) {
         errx(
             1, "expected gw.tags == %jx but got %jx",
-            TAG_ID_TO_VALUE(42), (uintmax_t)gw.tags
+            LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42), (uintmax_t)gw.tags
         );
     }
     if (!gw.tags[42]) {
@@ -43,16 +43,18 @@ main(void)
     }
 
     strcpy(pkt.label, "toto");
-    pkt.tags = TAG_ID_TO_VALUE(2) | TAG_ID_TO_VALUE(4);
+    pkt.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(2)
+               | LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(4);
     lgtd_lifx_gateway_handle_tag_labels(&gw, &hdr, &pkt);
     memset(&pkt, 0, sizeof(pkt));
     lgtd_lifx_gateway_handle_tag_labels(&gw, &hdr, &pkt);
-    uint64_t expected;
-    expected = TAG_ID_TO_VALUE(42) | TAG_ID_TO_VALUE(2) | TAG_ID_TO_VALUE(4);
+    uint64_t expected = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42)
+                        | LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(2)
+                        | LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(4);
     if (gw.tag_ids != expected) {
         errx(
             1, "expected gw.tags == %jx but got %jx",
-            TAG_ID_TO_VALUE(42), (uintmax_t)gw.tags
+            LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(42), (uintmax_t)gw.tags
         );
     }
     if (strcmp(gw.tags[2]->label, "toto")) {

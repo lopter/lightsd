@@ -174,7 +174,7 @@ lgtd_router_send_to_label(const char *label,
     }
 
     if (pkt_infos) {
-        lgtd_info("sending %s to #%s", pkt_infos->name, label);
+        lgtd_info("sending %s to %s", pkt_infos->name, label);
     }
 }
 

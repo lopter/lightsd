@@ -60,13 +60,15 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
             pkt_type
         );
         assert(pkt_infos);
+
         lgtd_lifx_gateway_enqueue_packet(
             gw, &hdr, pkt_type, pkt, pkt_infos->size
         );
-        struct lgtd_lifx_bulb *bulb;
-        lgtd_time_mono_t now = lgtd_time_monotonic_msecs();
-        SLIST_FOREACH(bulb, &gw->bulbs, link_by_gw) {
-            if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
+
+        if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
+            struct lgtd_lifx_bulb *bulb;
+            lgtd_time_mono_t now = lgtd_time_monotonic_msecs();
+            SLIST_FOREACH(bulb, &gw->bulbs, link_by_gw) {
                 bulb->dirty_at = now;
                 struct lgtd_lifx_packet_power_state *payload = pkt;
                 bulb->expected_power_on = payload->power;
@@ -123,6 +125,7 @@ lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
     LIST_FOREACH(site, &tag->sites, link) {
         struct lgtd_lifx_gateway *gw = site->gw;
         int tag_id = site->tag_id;
+
         struct lgtd_lifx_packet_header hdr;
         union lgtd_lifx_target target;
         assert(tag == gw->tags[tag_id]);
@@ -139,6 +142,18 @@ lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
         lgtd_lifx_gateway_enqueue_packet(
             gw, &hdr, pkt_type, pkt, pkt_infos->size
         );
+
+        if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
+            struct lgtd_lifx_bulb *bulb;
+            lgtd_time_mono_t now = lgtd_time_monotonic_msecs();
+            SLIST_FOREACH(bulb, &gw->bulbs, link_by_gw) {
+                if (bulb->state.tags & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id)) {
+                    bulb->dirty_at = now;
+                    struct lgtd_lifx_packet_power_state *payload = pkt;
+                    bulb->expected_power_on = payload->power;
+                }
+            }
+        }
     }
 
     if (pkt_infos) {
@@ -170,6 +185,12 @@ lgtd_router_send_to_label(const char *label,
             lgtd_lifx_gateway_enqueue_packet(
                 bulb->gw, &hdr, pkt_type, pkt, pkt_infos->size
             );
+
+            if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
+                bulb->dirty_at = lgtd_time_monotonic_msecs();
+                struct lgtd_lifx_packet_power_state *payload = pkt;
+                bulb->expected_power_on = payload->power;
+            }
         }
     }
 

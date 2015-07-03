@@ -10,7 +10,7 @@ IF (NOT ENDIAN_H_PATH)
     UNSET(CMAKE_REQUIRED_QUIET)
 
     IF (HAVE_ENDIAN_H)
-        MESSAGE(STATUS "Looking for endan.h - found")
+        MESSAGE(STATUS "Looking for endian.h - found")
         SET(ENDIAN_H_PATH "using native headers" CACHE INTERNAL "endian.h path")
     ELSEIF (EXISTS "${COMPAT_ENDIAN_H}")
         MESSAGE(STATUS "Looking for endian.h - not found, using built-in compatibility file")

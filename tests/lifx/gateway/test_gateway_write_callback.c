@@ -32,8 +32,8 @@ evbuffer_write_atmost(struct evbuffer *buf,
     expected += sizeof(struct lgtd_lifx_packet_power_state);
     if (howmuch != expected) {
         errx(
-            1, "evbuffer_write_atmost expected %d but got %ld",
-            expected, howmuch
+            1, "evbuffer_write_atmost expected %d but got %jd",
+            expected, (intmax_t)howmuch
         );
     }
 

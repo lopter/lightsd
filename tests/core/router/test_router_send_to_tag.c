@@ -52,8 +52,8 @@ main(void)
 
     if (pkt_size != sizeof(payload)) {
         lgtd_errx(
-            1, "unexpected pkt size %d (expected %ld)",
-            pkt_size, sizeof(payload)
+            1, "unexpected pkt size %d (expected %ju)",
+            pkt_size, (uintmax_t)sizeof(payload)
         );
     }
 
@@ -94,8 +94,8 @@ main(void)
 
         if (pkt_size != sizeof(payload)) {
             lgtd_errx(
-                1, "unexpected pkt size %d (expected %ld)",
-                pkt_size, sizeof(payload)
+                1, "unexpected pkt size %d (expected %ju)",
+                pkt_size, (uintmax_t)sizeof(payload)
             );
         }
 

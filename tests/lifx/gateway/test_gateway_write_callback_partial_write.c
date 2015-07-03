@@ -34,8 +34,8 @@ evbuffer_write_atmost(struct evbuffer *buf,
     );
     if (howmuch != expected) {
         errx(
-            1, "evbuffer_write_atmost expected %d but got %ld",
-            expected, howmuch
+            1, "evbuffer_write_atmost expected %d but got %jd",
+            expected, (intmax_t)howmuch
         );
     }
 

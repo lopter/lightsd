@@ -60,9 +60,15 @@ Available methods
                           end of the waveform, otherwise it will revert back to
                           its original state.
 
-.. function:: list_tags()
+.. function:: get_light_state(target)
 
-    Return a dictionnary with tags as keys and arrays of devices addresses or
-    labels as values.
+    Return a list of dictionnaries, each dict representing the state of one
+    targeted bulb, the list is not in any specific order. Each dict has the
+    following fields:
+
+    - hsbk: tuple (h, s, b, k) see function:`set_light_from_hsbk`;
+    - label: bulb label (utf-8 encoded string);
+    - power: boolean, true when the bulb is powered on false otherwise;
+    - tags: list of tags applied to the bulb (utf-8 encoded strings).
 
 .. vim: set tw=80 spelllang=en spell:

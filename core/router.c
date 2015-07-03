@@ -199,6 +199,22 @@ lgtd_router_send_to_label(const char *label,
     }
 }
 
+static struct lgtd_lifx_bulb *
+lgtd_router_device_addr_to_device(const char *device_addr)
+{
+    errno = 0;
+    uint64_t device;
+    const char *endptr = NULL;
+    device = strtoull(device_addr, (char **)&endptr, 16);
+    if (!*endptr && errno != ERANGE) {
+        device = htobe64(device);
+        return lgtd_lifx_bulb_get(
+            (uint8_t *)&device + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
+        );
+    }
+    return NULL;
+}
+
 bool
 lgtd_router_send(const struct lgtd_proto_target_list *targets,
                  enum lgtd_lifx_packet_type pkt_type,
@@ -225,20 +241,11 @@ lgtd_router_send(const struct lgtd_proto_target_list *targets,
             // NOTE: labels and hardware addresses are ambiguous target types,
             // we can't really solve this since json doesn't have hexadecimal.
             if (isxdigit(target->target[0])) {
-                errno = 0;
-                uint64_t device;
-                const char *endptr = NULL;
-                device = strtoull(target->target, (char **)&endptr, 16);
-                if (!*endptr && errno != ERANGE) {
-                    device = htobe64(device);
-                    struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_get(
-                        (uint8_t *)&device
-                        + sizeof(device) - LGTD_LIFX_ADDR_LENGTH
-                    );
-                    if (bulb) {
-                        lgtd_router_send_to_device(bulb, pkt_type, pkt);
-                        continue;
-                    }
+                struct lgtd_lifx_bulb *bulb =
+                    lgtd_router_device_addr_to_device(target->target);
+                if (bulb) {
+                    lgtd_router_send_to_device(bulb, pkt_type, pkt);
+                    continue;
                 }
                 lgtd_debug(
                     "%s looked like a device address but didn't "
@@ -253,4 +260,120 @@ lgtd_router_send(const struct lgtd_proto_target_list *targets,
     }
 
     return rv;
+}
+
+static void
+lgtd_router_clear_device_list(struct lgtd_router_device_list *devices)
+{
+    assert(devices);
+
+    while (!SLIST_EMPTY(devices)) {
+        struct lgtd_router_device *device = SLIST_FIRST(devices);
+        SLIST_REMOVE_HEAD(devices, link);
+        free(device);
+    }
+}
+
+static struct lgtd_router_device *
+lgtd_router_insert_device_if_not_in_list(struct lgtd_router_device_list *devices,
+                                         struct lgtd_lifx_bulb *device)
+{
+    struct lgtd_router_device *it;
+    SLIST_FOREACH(it, devices, link) {
+        if (it->device == device) {
+            return it;
+        }
+    }
+
+    struct lgtd_router_device *new = calloc(1, sizeof(*new));
+    if (new) {
+        new->device = device;
+        SLIST_INSERT_HEAD(devices, new, link);
+    }
+
+    return new;
+}
+
+struct lgtd_router_device_list *
+lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
+{
+    assert(targets);
+
+    struct lgtd_router_device_list *devices = calloc(1, sizeof(*devices));
+    if (!devices) {
+        return NULL;
+    }
+
+    SLIST_INIT(devices);
+
+    struct lgtd_proto_target *target;
+    SLIST_FOREACH(target, targets, link) {
+        if (!strcmp(target->target, "*")) {
+            lgtd_router_clear_device_list(devices);
+            struct lgtd_lifx_bulb *bulb;
+            RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
+                struct lgtd_router_device *device = calloc(1, sizeof(*device));
+                if (!device) {
+                    goto device_alloc_error;
+                }
+                device->device = bulb;
+                SLIST_INSERT_HEAD(devices, device, link);
+            }
+            return devices;
+        } else if (target->target[0] == '#') {
+            const struct lgtd_lifx_tag *tag;
+            tag = lgtd_lifx_tagging_find_tag(&target->target[1]);
+            if (tag) {
+                struct lgtd_lifx_site *site;
+                LIST_FOREACH(site, &tag->sites, link) {
+                    struct lgtd_lifx_bulb *bulb;
+                    uint64_t tag = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(site->tag_id);
+                    SLIST_FOREACH(bulb, &site->gw->bulbs, link_by_gw) {
+                        if (bulb->state.tags & tag) {
+                            struct lgtd_router_device *device;
+                            device = lgtd_router_insert_device_if_not_in_list(
+                                devices, bulb
+                            );
+                            if (!device) {
+                                goto device_alloc_error;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (target->target[0]) {
+            struct lgtd_lifx_bulb *bulb = NULL;
+            if (isxdigit(target->target[0])) {
+                bulb = lgtd_router_device_addr_to_device(target->target);
+            }
+            if (!bulb) {
+                RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
+                    if (!strcmp(bulb->state.label, target->target)) {
+                        break;
+                    }
+                }
+            }
+            if (!bulb) {
+                continue;
+            }
+            if (!lgtd_router_insert_device_if_not_in_list(devices, bulb)) {
+                goto device_alloc_error;
+            }
+        }
+    }
+
+    return devices;
+
+device_alloc_error:
+    lgtd_router_device_list_free(devices);
+    return NULL;
+}
+
+void
+lgtd_router_device_list_free(struct lgtd_router_device_list *devices)
+{
+    assert(devices);
+
+    lgtd_router_clear_device_list(devices);
+    free(devices);
 }

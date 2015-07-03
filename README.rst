@@ -28,7 +28,7 @@ following commands through a JSON-RPC_ interface:
 - power_on;
 - set_light_from_hsbk;
 - set_waveform (change the light according to a function like SAW or SINE);
-- get_light_status (coming up).
+- get_light_status.
 
 lightsd can target single or multiple bulbs at once:
 

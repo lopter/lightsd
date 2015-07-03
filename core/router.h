@@ -23,8 +23,16 @@ enum lgtd_router_error {
     LGTD_ROUTER_CANNOT_ENQUEUE_PACKET_ERROR
 };
 
+struct lgtd_router_device {
+    SLIST_ENTRY(lgtd_router_device) link;
+    struct lgtd_lifx_bulb           *device;
+};
+SLIST_HEAD(lgtd_router_device_list, lgtd_router_device);
+
 bool lgtd_router_send(const struct lgtd_proto_target_list *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_send_to_device(struct lgtd_lifx_bulb *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_send_to_tag(const struct lgtd_lifx_tag *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_send_to_label(const char *, enum lgtd_lifx_packet_type, void *);
 void lgtd_router_broadcast(enum lgtd_lifx_packet_type, void *);
+struct lgtd_router_device_list *lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *);
+void lgtd_router_device_list_free(struct lgtd_router_device_list *);

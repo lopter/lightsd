@@ -19,6 +19,8 @@
 
 struct lgtd_client;
 
+enum { LGTD_JSONRPC_FLOAT_PREC = (int)10E5 };
+
 struct lgtd_jsonrpc_request {
     const jsmntok_t *method;
     const jsmntok_t *params;
@@ -90,3 +92,4 @@ void lgtd_jsonrpc_send_response(struct lgtd_client *,
                                 const char *);
 void lgtd_jsonrpc_start_send_response(struct lgtd_client *);
 void lgtd_jsonrpc_end_send_response(struct lgtd_client *);
+void lgtd_jsonrpc_uint16_range_to_float_string(uint16_t, int, int, char *, int);

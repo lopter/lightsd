@@ -51,8 +51,11 @@ lgtd_tests_insert_mock_bulb(struct lgtd_lifx_gateway *gw, uint64_t addr)
         uint8_t     as_array[LGTD_LIFX_ADDR_LENGTH];
         uint64_t    as_scalar;
     } bulb_addr = { .as_scalar = htobe64(addr) >> 16 };
+    struct lgtd_lifx_bulb *bulb = lgtd_lifx_bulb_open(gw, bulb_addr.as_array);
 
-    return lgtd_lifx_bulb_open(gw, bulb_addr.as_array);
+    SLIST_INSERT_HEAD(&gw->bulbs, bulb, link_by_gw);
+
+    return bulb;
 }
 
 struct lgtd_proto_target_list *
@@ -61,21 +64,25 @@ lgtd_tests_build_target_list(const char *target, ...)
     struct lgtd_proto_target_list *targets = malloc(sizeof(*targets));
     SLIST_INIT(targets);
 
-    struct lgtd_proto_target *tail = malloc(
-        sizeof(*tail) + strlen(target) + 1
-    );
-    strcpy(tail->target, target);
-    SLIST_INSERT_HEAD(targets, tail, link);
+    if (target) {
+        struct lgtd_proto_target *tail = malloc(
+            sizeof(*tail) + strlen(target) + 1
+        );
+        strcpy(tail->target, target);
+        SLIST_INSERT_HEAD(targets, tail, link);
 
-    va_list ap;
-    va_start(ap, target);
-    while ((target = va_arg(ap, const char *))) {
-        struct lgtd_proto_target *t = malloc(sizeof(*t) + strlen(target) + 1);
-        strcpy(t->target, target);
-        SLIST_INSERT_AFTER(tail, t, link);
-        tail = t;
+        va_list ap;
+        va_start(ap, target);
+        while ((target = va_arg(ap, const char *))) {
+            struct lgtd_proto_target *t = malloc(
+                sizeof(*t) + strlen(target) + 1
+            );
+            strcpy(t->target, target);
+            SLIST_INSERT_AFTER(tail, t, link);
+            tail = t;
+        }
+        va_end(ap);
     }
-    va_end(ap);
 
     return targets;
 }

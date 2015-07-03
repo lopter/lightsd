@@ -245,13 +245,44 @@ union lgtd_lifx_target {
     const uint8_t   *addr; //! site or device address
 };
 
-extern union lgtd_lifx_target LGTD_LIFX_UNSPEC_TARGET;
+extern const union lgtd_lifx_target LGTD_LIFX_UNSPEC_TARGET;
 
 #if LGTD_SIZEOF_VOID_P == 8
 #   define LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(x) (1UL << (x))
 #elif LGTD_SIZEOF_VOID_P == 4
 #   define LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(x) (1ULL << (x))
 #endif
+
+// Kim Walisch (2012)
+// http://chessprogramming.wikispaces.com/BitScan#DeBruijnMultiplation
+
+enum { LGTD_LIFX_DEBRUIJN_NUMBER = 0x03f79d71b4cb0a89 };
+extern const int LGTD_LIFX_DEBRUIJN_SEQUENCE[64];
+
+static inline int
+lgtd_lifx_wire_bitscan64_forward(uint64_t n)
+{
+    return n ? LGTD_LIFX_DEBRUIJN_SEQUENCE[
+        ((n ^ (n - 1)) * LGTD_LIFX_DEBRUIJN_NUMBER) >> 58
+    ] : -1;
+}
+
+static inline int
+lgtd_lifx_wire_next_tag_id(int current_tag_id, uint64_t tags)
+{
+    // A bitshift >= than the width of the type is undefined behavior in C:
+    if (current_tag_id < 63) {
+        tags &= ~0ULL << (current_tag_id + 1);
+        return lgtd_lifx_wire_bitscan64_forward(tags);
+    }
+    return -1;
+}
+
+#define LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id_varname, tags)                         \
+    for ((tag_id_varname) = lgtd_lifx_wire_next_tag_id(-1, (tags));                 \
+         (tag_id_varname) != -1;                                                    \
+         (tag_id_varname) = lgtd_lifx_wire_next_tag_id((tag_id_varname), (tags)))
+
 
 enum lgtd_lifx_waveform_type lgtd_lifx_wire_waveform_string_id_to_type(const char *, int);
 

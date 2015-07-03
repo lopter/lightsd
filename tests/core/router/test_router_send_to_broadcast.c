@@ -46,8 +46,8 @@ main(void)
         }
         if (lgtd_tests_gw_pkt_queue[i].pkt_size != sizeof(payload)) {
             lgtd_errx(
-                1, "unexpected pkt size %d (expected %ld)",
-                lgtd_tests_gw_pkt_queue[i].pkt_size, sizeof(payload)
+                1, "unexpected pkt size %d (expected %ju)",
+                lgtd_tests_gw_pkt_queue[i].pkt_size, (uintmax_t)sizeof(payload)
             );
         }
     }

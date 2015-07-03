@@ -22,7 +22,11 @@ ADD_EXECUTABLE(
     log.c
     proto.c
     router.c
-    ${TIME_MONOTONIC_IMPL}
 )
 
-TARGET_LINK_LIBRARIES(lightsd lifx ${EVENT2_CORE_LIBRARY})
+TARGET_LINK_LIBRARIES(
+    lightsd
+    lifx
+    ${EVENT2_CORE_LIBRARY}
+    ${TIME_MONOTONIC_LIBRARY}
+)

@@ -36,6 +36,7 @@
 #include "jsmn.h"
 #include "jsonrpc.h"
 #include "client.h"
+#include "lifx/gateway.h"
 #include "proto.h"
 #include "router.h"
 #include "lightsd.h"
@@ -159,9 +160,83 @@ lgtd_proto_list_tags(struct lgtd_client *client)
     LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
         LGTD_CLIENT_WRITE_STRING(client, "\"");
         LGTD_CLIENT_WRITE_STRING(client, tag->label);
-        LGTD_CLIENT_WRITE_STRING(client, LIST_NEXT(tag, link) ? "\", " : "\"");
+        LGTD_CLIENT_WRITE_STRING(client, LIST_NEXT(tag, link) ? "\"," : "\"");
     }
     LGTD_CLIENT_WRITE_STRING(client, "]");
 
     lgtd_client_end_send_response(client);
+}
+
+void
+lgtd_proto_get_light_state(struct lgtd_client *client,
+                           const struct lgtd_proto_target_list *targets)
+{
+    assert(targets);
+
+    struct lgtd_router_device_list *devices;
+    devices = lgtd_router_targets_to_devices(targets);
+    if (!devices) {
+        lgtd_client_send_error(
+            client, LGTD_CLIENT_INTERNAL_ERROR, "couldn't allocate device list"
+        );
+        return;
+    }
+
+    static const char *state_fmt = ("{"
+        "\"hsbk\":[%s,%s,%s,%hu],"
+        "\"power\":%s,"
+        "\"label\":\"%s\","
+        "\"tags\":[");
+
+#define PRINT_COMPONENT(src, dst, start, stop)          \
+    lgtd_jsonrpc_uint16_range_to_float_string(          \
+        (src), (start), (stop), (dst), sizeof((dst))    \
+    )
+
+    lgtd_client_start_send_response(client);
+    LGTD_CLIENT_WRITE_STRING(client, "[");
+    struct lgtd_router_device *device;
+    SLIST_FOREACH(device, devices, link) {
+        struct lgtd_lifx_bulb *bulb = device->device;
+
+        char h[16], s[16], b[16];
+        PRINT_COMPONENT(bulb->state.hue, h, 0, 360);
+        PRINT_COMPONENT(bulb->state.saturation, s, 0, 1);
+        PRINT_COMPONENT(bulb->state.brightness, b, 0, 1);
+
+        char buf[3072];
+        int written = snprintf(
+            buf, sizeof(buf), state_fmt,
+            h, s, b, bulb->state.kelvin,
+            bulb->state.power == LGTD_LIFX_POWER_ON ? "true" : "false",
+            bulb->state.label
+        );
+        if (written == sizeof(buf)) {
+            lgtd_warnx(
+                "can't send state of bulb %s (%s) to client "
+                "[%s]:%hu: output buffer to small",
+                bulb->state.label, lgtd_addrtoa(bulb->addr),
+                client->ip_addr, client->port
+            );
+            continue;
+        }
+        LGTD_CLIENT_WRITE_STRING(client, buf);
+
+        bool comma = false;
+        int tag_id;
+        LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, bulb->state.tags) {
+            LGTD_CLIENT_WRITE_STRING(client, comma ? ",\"" : "\"");
+            LGTD_CLIENT_WRITE_STRING(client, bulb->gw->tags[tag_id]->label);
+            LGTD_CLIENT_WRITE_STRING(client, "\"");
+            comma = true;
+        }
+
+        LGTD_CLIENT_WRITE_STRING(
+            client, SLIST_NEXT(device, link) ?  "]}," : "]}"
+        );
+    }
+    LGTD_CLIENT_WRITE_STRING(client, "]");
+    lgtd_client_end_send_response(client);
+
+    lgtd_router_device_list_free(devices);
 }

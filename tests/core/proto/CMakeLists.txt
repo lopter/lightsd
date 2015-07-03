@@ -6,6 +6,7 @@ INCLUDE_DIRECTORIES(
 ADD_LIBRARY(
     test_core_proto STATIC
     ${LIGHTSD_SOURCE_DIR}/core/log.c
+    ${LIGHTSD_SOURCE_DIR}/core/jsonrpc.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${LIGHTSD_SOURCE_DIR}/lifx/timer.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c

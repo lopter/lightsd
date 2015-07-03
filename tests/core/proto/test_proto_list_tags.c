@@ -30,9 +30,9 @@ main(void)
     reset_client_write_buf();
     lgtd_tests_insert_mock_tag("@_@");
     lgtd_proto_list_tags(&client);
-    if (strcmp(client_write_buf, "[\"@_@\", \"test\"]")) {
+    if (strcmp(client_write_buf, "[\"@_@\",\"test\"]")) {
         errx(
-            1, "expected [\"@_@\", \"test\"] but got %s instead",
+            1, "expected [\"@_@\",\"test\"] but got %s instead",
             client_write_buf
         );
     }

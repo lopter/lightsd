@@ -49,26 +49,6 @@
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
 
-// Kim Walisch (2012)
-// http://chessprogramming.wikispaces.com/BitScan#DeBruijnMultiplation
-static inline int
-lgtd_lifx_bitscan64_forward(uint64_t n)
-{
-    enum { DEBRUIJN_NUMBER = 0x03f79d71b4cb0a89 };
-    static const int DEBRUIJN_SEQUENCE[64] = {
-        0, 47,  1, 56, 48, 27,  2, 60,
-       57, 49, 41, 37, 28, 16,  3, 61,
-       54, 58, 35, 52, 50, 42, 21, 44,
-       38, 32, 29, 23, 17, 11,  4, 62,
-       46, 55, 26, 59, 40, 36, 15, 53,
-       34, 51, 20, 43, 31, 22, 10, 45,
-       25, 39, 14, 33, 19, 30,  9, 24,
-       13, 18,  8, 12,  7,  6,  5, 63
-    };
-
-    return n ? DEBRUIJN_SEQUENCE[((n ^ (n - 1)) * DEBRUIJN_NUMBER) >> 58] : -1;
-}
-
 void
 lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
 {
@@ -565,17 +545,12 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
         pkt->label, (uintmax_t)pkt->tags
     );
 
-    uint64_t tags = pkt->tags;
-    while (true) {
-        int tag_id = lgtd_lifx_bitscan64_forward(tags);
-        if (tag_id == -1) {
-            break;
-        }
+    int tag_id;
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, pkt->tags) {
         if (pkt->label[0]) {
             lgtd_lifx_gateway_allocate_tag_id(gw, tag_id, pkt->label);
         } else if (gw->tags[tag_id]) {
             lgtd_lifx_gateway_deallocate_tag_id(gw, tag_id);
         }
-        tags &= ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
     }
 }

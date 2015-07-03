@@ -1,43 +1,49 @@
 #!/usr/bin/env python
 
 import json
+import pprint
 import socket
 import sys
 import time
+import uuid
 
 from IPython.terminal.embed import InteractiveShellEmbed
 
 
-def jsonrpc_call(socket, id, method, params):
+def jsonrpc_call(socket, method, params):
     payload = {
         "method": method,
         "params": params,
         "jsonrpc": "2.0",
-        "id": id,
+        "id": str(uuid.uuid4()),
     }
-    socket.send(json.dumps(payload).encode("ascii"))
-    response = socket.recv(2048)
-    response = json.loads(response.decode("ascii"))
-    print(response)
+    socket.send(json.dumps(payload).encode("utf-8"))
+    response = socket.recv(2048).decode("utf-8")
+    try:
+        response = json.loads(response)
+    except ValueError:
+        print("received invalid json: {}".format(response))
+        return None
+    return response
 
 
-def set_light_from_hsbk(socket, id, target, h, s, b, k, t):
-    jsonrpc_call(socket, id, "set_light_from_hsbk", [
+def set_light_from_hsbk(socket, target, h, s, b, k, t):
+    return jsonrpc_call(socket, "set_light_from_hsbk", [
         target, h, s, b, k, t
     ])
 
 
-def set_waveform(socket, id, target, waveform,
+def set_waveform(socket, target, waveform,
                  h, s, b, k,
                  period, cycles, skew_ratio, transient):
-    jsonrpc_call(socket, id, "set_waveform", [
+    return jsonrpc_call(socket, "set_waveform", [
         target, waveform, h, s, b, k, period, cycles, skew_ratio, transient
     ])
 
 
-def saw(socket, id, target, h, s, b, k, period, cycles, transient=True):
-    set_waveform(
-        socket, id, target, "SAW", h, s, b, k,
+def saw(socket, target, h, s, b, k, period, cycles, transient=True):
+    return set_waveform(
+        socket, target, "SAW", h, s, b, k,
         cycles=cycles,
         period=period,
         skew_ratio=0.5,
@@ -45,9 +51,9 @@ def saw(socket, id, target, h, s, b, k, period, cycles, transient=True):
     )
 
 
-def sine(socket, id, target, h, s, b, k, period, cycles, peak=0.5, transient=True):
-    set_waveform(
-        socket, id, target, "SINE", h, s, b, k,
+def sine(socket, target, h, s, b, k, period, cycles, peak=0.5, transient=True):
+    return set_waveform(
+        socket, target, "SINE", h, s, b, k,
         cycles=cycles,
         period=period,
         skew_ratio=peak,
@@ -55,16 +61,16 @@ def sine(socket, id, target, h, s, b, k, period, cycles, peak=0.5, transient=Tru
     )
 
 
-def power_on(socket, id, target):
-    jsonrpc_call(socket, id, "power_on", {"target": target})
+def power_on(socket, target):
+    return jsonrpc_call(socket, "power_on", {"target": target})
 
 
-def power_off(socket, id, target):
-    jsonrpc_call(socket, id, "power_off", {"target": target})
+def power_off(socket, target):
+    return jsonrpc_call(socket, "power_off", {"target": target})
 
 
-def list_tags(socket, id):
-    jsonrpc_call(socket, id, "list_tags", [])
+def get_light_state(socket, target):
+    return jsonrpc_call(socket, "get_light_state", [target])
 
 if __name__ == "__main__":
     s = socket.create_connection(("localhost", 1234))
@@ -80,12 +86,12 @@ if __name__ == "__main__":
             ipshell = InteractiveShellEmbed()
             ipshell()
             sys.exit(0)
-        power_on(s, id, target)
+        power_on(s, target)
         while True:
             h = (h + 5) % 360
             id += 1
-            set_light_from_hsbk(s, id, target, h, 0.8, 0.1, 2500, 450)
+            set_light_from_hsbk(s, target, h, 0.8, 0.1, 2500, 450)
             time.sleep(0.5)
-        power_off(s, id, target)
+        power_off(s, target)
     finally:
         s.close()

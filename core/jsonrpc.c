@@ -206,18 +206,58 @@ lgtd_jsonrpc_float_range_to_uint16(const char *s, int len, int start, int stop)
     assert(len > 0);
     assert(start < stop);
 
-    int range = stop * 10E5 - start * 10E5;
+    int range;
+    range = stop * LGTD_JSONRPC_FLOAT_PREC - start * LGTD_JSONRPC_FLOAT_PREC;
     const char *dot = NULL;
     long fracpart = 0;
-    long intpart = strtol(s, (char **)&dot, 10) * 10E5;
+    long intpart = strtol(s, (char **)&dot, 10) * LGTD_JSONRPC_FLOAT_PREC;
     if (dot - s != len && *dot == '.') {
-        for (int i = dot - s + 1, multiplier = 10E4;
+        for (int i = dot - s + 1, multiplier = LGTD_JSONRPC_FLOAT_PREC / 10;
              i != len && multiplier != 0;
              i++, multiplier /= 10) {
             fracpart += (s[i] - '0') * multiplier;
         }
     }
     return ((intpart + fracpart) * UINT16_MAX) / range;
+}
+
+void
+lgtd_jsonrpc_uint16_range_to_float_string(uint16_t encoded, int start, int stop,
+                                          char *out, int size)
+{
+    assert(out);
+    assert(size > 1);
+    assert(start < stop);
+
+    int range;
+    range = stop * LGTD_JSONRPC_FLOAT_PREC - start * LGTD_JSONRPC_FLOAT_PREC;
+    int value = (uint64_t)encoded * (uint64_t)range / UINT16_MAX;
+
+    int multiplier = 1;
+    while (value / (multiplier * 10)) {
+        multiplier *= 10;
+    }
+
+    int i = 0;
+    do {
+        if (multiplier == LGTD_JSONRPC_FLOAT_PREC / 10) {
+            if (i == 0) {
+                out[i++] = '0';
+            }
+            if (i != size) {
+                out[i++] = '.';
+            }
+        }
+        if (i != size) {
+            out[i++] = '0' + value / multiplier;
+        }
+        value -= value / multiplier * multiplier;
+        multiplier /= 10;
+    } while ((value || multiplier >= LGTD_JSONRPC_FLOAT_PREC)
+              && multiplier && i != size);
+    out[LGTD_MIN(i, size - 1)] = '\0';
+
+    assert(i <= size);
 }
 
 static int
@@ -895,6 +935,19 @@ lgtd_jsonrpc_check_and_call_power_off(struct lgtd_client *client)
     lgtd_proto_target_list_clear(&targets);
 }
 
+static void
+lgtd_jsonrpc_check_and_call_get_light_state(struct lgtd_client *client)
+{
+    struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
+    bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);
+    if (!ok) {
+        return;
+    }
+
+    lgtd_proto_get_light_state(client, &targets);
+    lgtd_proto_target_list_clear(&targets);
+}
+
 void
 lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
 {
@@ -915,6 +968,10 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
             // t, waveform, h, s, b, k, period, cycles, skew_ratio, transient
             "set_waveform", 10,
             lgtd_jsonrpc_check_and_call_set_waveform
+        ),
+        LGTD_JSONRPC_METHOD(
+            "get_light_state", 1, // t
+            lgtd_jsonrpc_check_and_call_get_light_state
         ),
         LGTD_JSONRPC_METHOD("list_tags", 0, lgtd_proto_list_tags),
     };

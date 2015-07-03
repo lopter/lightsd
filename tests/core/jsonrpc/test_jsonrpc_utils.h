@@ -85,3 +85,13 @@ lgtd_proto_set_waveform(struct lgtd_client *client,
     (void)transient;
 }
 #endif
+
+#ifndef MOCKED_LGTD_GET_LIGHT_STATE
+void
+lgtd_proto_get_light_state(struct lgtd_client *client,
+                           const struct lgtd_proto_target_list *targets)
+{
+    (void)client;
+    (void)targets;
+}
+#endif

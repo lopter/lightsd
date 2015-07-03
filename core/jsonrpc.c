@@ -218,7 +218,7 @@ lgtd_jsonrpc_float_range_to_uint16(const char *s, int len, int start, int stop)
             fracpart += (s[i] - '0') * multiplier;
         }
     }
-    return ((intpart + fracpart) * UINT16_MAX) / range;
+    return ((int64_t)intpart + (int64_t)fracpart) * UINT16_MAX / (int64_t)range;
 }
 
 void

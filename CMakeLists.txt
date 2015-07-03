@@ -22,7 +22,10 @@ ENABLE_TESTING()
 # TODO: we need at least 2.0.19-stable because of the logging defines
 FIND_PACKAGE(Event2 REQUIRED COMPONENTS core)
 FIND_PACKAGE(Endian REQUIRED)
+INCLUDE(TestBigEndian)
 INCLUDE(CompatTimeMonotonic)
+
+TEST_BIG_ENDIAN(LGTD_BIG_ENDIAN_SYSTEM)
 
 ### Global definitions #########################################################
 
@@ -32,6 +35,7 @@ INCLUDE(AddTestFromSources)
 SET(CMAKE_C_FLAGS "-pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
 
 ADD_DEFINITIONS("-DLGTD_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}")
+ADD_DEFINITIONS("-DLGTD_BIG_ENDIAN_SYSTEM=${LGTD_BIG_ENDIAN_SYSTEM}")
 
 # Only relevant for the GNU libc:
 ADD_DEFINITIONS(

@@ -34,7 +34,7 @@ lgtd_router_send(const struct lgtd_proto_target_list *targets,
     int saturation = le16toh(waveform->saturation);
     int brightness = le16toh(waveform->brightness);
     int kelvin = le16toh(waveform->kelvin);
-    int period = le16toh(waveform->period);
+    int period = le32toh(waveform->period);
     float cycles = waveform->cycles;
     int skew_ratio = le16toh(waveform->skew_ratio);
 

@@ -350,7 +350,7 @@ lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *pkt)
     pkt->saturation = htole16(pkt->saturation);
     pkt->brightness = htole16(pkt->brightness);
     pkt->kelvin = htole16(pkt->kelvin);
-    pkt->period = htole16(pkt->period);
+    pkt->period = htole32(pkt->period);
     pkt->skew_ratio = htole16(pkt->skew_ratio);
 }
 

@@ -973,8 +973,7 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
         LGTD_JSONRPC_METHOD(
             "get_light_state", 1, // t
             lgtd_jsonrpc_check_and_call_get_light_state
-        ),
-        LGTD_JSONRPC_METHOD("list_tags", 0, lgtd_proto_list_tags),
+        )
     };
 
     assert(client);

@@ -209,6 +209,30 @@ lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
     return LGTD_LIFX_WAVEFORM_INVALID;
 }
 
+static void
+lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr, int flags)
+{
+    assert(hdr);
+
+    hdr->size = htole16(hdr->size);
+    hdr->protocol = htole16(LGTD_LIFX_PROTOCOL_V1);
+    if (flags & LGTD_LIFX_ADDRESSABLE) {
+        hdr->protocol |= LGTD_LIFX_PROTOCOL_ADDRESSABLE;
+    }
+    if (flags & LGTD_LIFX_TAGGED) {
+        hdr->protocol |= LGTD_LIFX_PROTOCOL_TAGGED;
+        htole64(hdr->target.tags);
+    }
+    if (flags & LGTD_LIFX_ACK_REQUIRED) {
+        hdr->flags |= LGTD_LIFX_FLAG_ACK_REQUIRED;
+    }
+    if (flags & LGTD_LIFX_RES_REQUIRED) {
+        hdr->flags |= LGTD_LIFX_FLAG_RES_REQUIRED;
+    }
+    hdr->at_time = htole64(hdr->at_time);
+    hdr->packet_type = htole16(hdr->packet_type);
+}
+
 // Convert all the fields in the header to the host endianness.
 //
 // \return The payload size or -1 if the header is invalid.
@@ -218,10 +242,8 @@ lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *hdr)
     assert(hdr);
 
     hdr->size = le16toh(hdr->size);
-    hdr->protocol.version = le16toh(hdr->protocol.version);
-    if (hdr->protocol.tagged) {
-        le64toh(hdr->target.tags);
-    }
+    hdr->protocol = le16toh(hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK)
+        | (hdr->protocol & LGTD_LIFX_PROTOCOL_FLAGS_MASK);
     hdr->at_time = le64toh(hdr->at_time);
     hdr->packet_type = le16toh(hdr->packet_type);
 }
@@ -242,7 +264,6 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
 
     memset(hdr, 0, sizeof(*hdr));
     hdr->size = pkt_infos->size + sizeof(*hdr);
-    hdr->protocol.version = LGTD_LIFX_PROTOCOL_V1;
     hdr->packet_type = packet_type;
     if (site) {
         memcpy(hdr->site, site, sizeof(hdr->site));
@@ -250,40 +271,24 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
         assert(target_type == LGTD_LIFX_TARGET_ALL_DEVICES);
     }
 
+    int flags = LGTD_LIFX_ADDRESSABLE;
     switch (target_type) {
     case LGTD_LIFX_TARGET_SITE:
     case LGTD_LIFX_TARGET_ALL_DEVICES:
-        hdr->protocol.tagged = true;
-        hdr->protocol.addressable = true;
+        flags |= LGTD_LIFX_TAGGED;
         break;
     case LGTD_LIFX_TARGET_TAGS:
-        hdr->protocol.tagged = true;
-        hdr->protocol.addressable = true;
+        flags |= LGTD_LIFX_TAGGED;
         hdr->target.tags = target.tags;
         break;
     case LGTD_LIFX_TARGET_DEVICE:
-        hdr->protocol.addressable = true;
         memcpy(hdr->target.device_addr, target.addr, LGTD_LIFX_ADDR_LENGTH);
         break;
     }
 
-    lgtd_lifx_wire_encode_header(hdr);
+    lgtd_lifx_wire_encode_header(hdr, flags);
 
     return pkt_infos;
-}
-
-void
-lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr)
-{
-    assert(hdr);
-
-    hdr->size = htole16(hdr->size);
-    hdr->protocol.version = htole16(hdr->protocol.version);
-    if (hdr->protocol.tagged) {
-        le64toh(hdr->target.tags);
-    }
-    hdr->at_time = htole64(hdr->at_time);
-    hdr->packet_type = htole16(hdr->packet_type);
 }
 
 void

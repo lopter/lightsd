@@ -33,16 +33,16 @@ enum { LGTD_LIFX_ADDR_LENGTH = 6 };
 struct lgtd_lifx_packet_header {
     //! Packet size including the headers (i.e: this structure).
     uint16le_t      size;
-    struct {
-        //! Protocol version should be LGTD_LIFX_LIFX_PROTOCOL_V1.
-        uint16le_t  version:12;
-        //! True when the target field holds a device address.
-        uint16le_t  addressable:1;
-        //! True when the target field holds tags.
-        uint16le_t  tagged:1;
-        //! LIFX internal use should be 0.
-        uint16le_t  origin:2;
-    }               protocol;
+    //! 15 (MSB)          13           12                11             0
+    //! +-----------------+------------+-----------------+--------------+
+    //! | origin (2 bits) | tagged (1) | addressable (1) | version (12) |
+    //! +-----------------+------------+-----------------+--------------+
+    //!
+    //! - version: protocol version should be LGTD_LIFX_PROTOCOL_V1;
+    //! - addressable: true when the target field holds a device address;
+    //! - tagged: true when the target field holds tags;
+    //! - origin: LIFX internal use, should be 0.
+    uint16le_t      protocol;
     //! Here is what LIFXKit says about it, maybe it's related to zigbee:
     //! Message source identifier from NAT table (Internal LIFX use)
     uint32le_t      source;
@@ -53,13 +53,15 @@ struct lgtd_lifx_packet_header {
         uint8_t     device_addr[LGTD_LIFX_ADDR_LENGTH];
     }               target;
     uint8_t         site[LGTD_LIFX_ADDR_LENGTH];
-    struct {
-        //! True when a response is required, called acknowledge in lifx-gem...
-        uint8_t     response_required:1;
-        //! True when an acknowledgement is required, no idea what it means.
-        uint8_t     ack_required:1;
-        uint8_t     reserved:6;
-    }               flags;
+    //! 7                   2                  1                  0
+    //! +-------------------+------------------+------------------+
+    //! | reserved (6 bits) | ack required (1) | res required (1) |
+    //! +-------------------+------------------+------------------+
+    //!
+    //! - ack required: true when an acknowledge packet is required;
+    //! - res required: true when a response is required (the response type
+    //!   depends on the request type).
+    uint8_t         flags;
     //! Wrap-around sequence number, LIFX internal use.
     uint8_t         seqn;
     //! Apparently this is a unix epoch timestamp in milliseconds at which the
@@ -71,7 +73,25 @@ struct lgtd_lifx_packet_header {
 
 enum { LGTD_LIFX_PACKET_HEADER_SIZE = sizeof(struct lgtd_lifx_packet_header) };
 
-enum { LGTD_LIFX_PROTOCOL_V1 = 1024 };
+enum lgtd_lifx_protocol {
+    LGTD_LIFX_PROTOCOL_V1 = 0x400,
+#if LGTD_BIG_ENDIAN_SYSTEM
+    LGTD_LIFX_PROTOCOL_VERSION_MASK = 0xff0f,
+    LGTD_LIFX_PROTOCOL_FLAGS_MASK = 0x00f0,
+    LGTD_LIFX_PROTOCOL_ADDRESSABLE = 0x0010,
+    LGTD_LIFX_PROTOCOL_TAGGED = 0x0020
+#else
+    LGTD_LIFX_PROTOCOL_VERSION_MASK = 0x0fff,
+    LGTD_LIFX_PROTOCOL_FLAGS_MASK = 0xf000,
+    LGTD_LIFX_PROTOCOL_ADDRESSABLE = 0x1000,
+    LGTD_LIFX_PROTOCOL_TAGGED = 0x2000
+#endif
+};
+
+enum lgtd_lifx_flags {
+    LGTD_LIFX_FLAG_ACK_REQUIRED = 1 << 1,
+    LGTD_LIFX_FLAG_RES_REQUIRED = 1
+};
 
 // Let's define a maximum packet size just in case somebody sends us weird
 // headers:
@@ -114,6 +134,9 @@ enum lgtd_lifx_packet_type {
     LGTD_LIFX_REBOOT = 0x26,
     LGTD_LIFX_SET_FACTORY_TEST_MODE = 0x27,
     LGTD_LIFX_DISABLE_FACTORY_TEST_MODE = 0x28,
+    LGTD_LIFX_ACK = 0x2d,
+    LGTD_LIFX_ECHO_REQUEST = 0x3a,
+    LGTD_LIFX_ECHO_RESPONSE = 0x3b,
     LGTD_LIFX_GET_LIGHT_STATE = 0x65,
     LGTD_LIFX_SET_LIGHT_COLOR = 0x66,
     LGTD_LIFX_SET_WAVEFORM = 0x67,
@@ -211,6 +234,13 @@ struct lgtd_lifx_packet_tag_labels {
 
 #pragma pack(pop)
 
+enum lgtd_lifx_header_flags {
+    LGTD_LIFX_ADDRESSABLE = 1,
+    LGTD_LIFX_TAGGED = 1 << 1,
+    LGTD_LIFX_ACK_REQUIRED = 1 << 2,
+    LGTD_LIFX_RES_REQUIRED = 1 << 3
+};
+
 struct lgtd_lifx_waveform_string_id {
     const char  *str;
     int         len;
@@ -295,7 +325,6 @@ const struct lgtd_lifx_packet_infos *lgtd_lifx_wire_setup_header(struct lgtd_lif
                                                                  const uint8_t *,
                                                                  enum lgtd_lifx_packet_type);
 void lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *);
-void lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *);
 
 void lgtd_lifx_wire_decode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *);
 void lgtd_lifx_wire_encode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *);

@@ -105,10 +105,11 @@ lgtd_lifx_broadcast_handle_read(void)
             );
             return false;
         }
-        if (read.hdr.protocol.version != LGTD_LIFX_PROTOCOL_V1) {
+        int proto_version = read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
+        if (proto_version != LGTD_LIFX_PROTOCOL_V1) {
             lgtd_warnx(
                 "unsupported protocol %d from [%s]:%hu",
-                read.hdr.protocol.version, peer_addr, peer_port
+                read.hdr.protocol & 0x0fff, peer_addr, peer_port
             );
         }
         if (read.hdr.packet_type == LGTD_LIFX_GET_PAN_GATEWAY) {
@@ -121,10 +122,10 @@ lgtd_lifx_broadcast_handle_read(void)
             lgtd_warnx(
                 "received unknown packet %#x from [%s]:%hu",
                 read.hdr.packet_type, peer_addr, peer_port
-            )
+            );
             continue;
         }
-        if (read.hdr.protocol.tagged || !read.hdr.protocol.addressable) {
+        if (!(read.hdr.protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE)) {
             lgtd_warnx(
                 "received non-addressable packet %s from [%s]:%hu",
                 pkt_infos->name, peer_addr, peer_port

@@ -32,7 +32,8 @@ main(void)
         }
         const struct lgtd_lifx_packet_header *hdr;
         hdr = lgtd_tests_gw_pkt_queue[i].hdr;
-        if (!hdr->protocol.tagged || !hdr->protocol.addressable) {
+        int expected_flags = LGTD_LIFX_ADDRESSABLE|LGTD_LIFX_TAGGED;
+        if (!lgtd_tests_lifx_header_has_flags(hdr, expected_flags)) {
             lgtd_errx(1, "packet header doesn't have the right bits set");
         }
         if (hdr->target.tags != 0) {

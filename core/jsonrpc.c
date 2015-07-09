@@ -1,3 +1,4 @@
+// Copyright (c) 2014, 2015, Louis Opter <kalessin@kalessin.fr>
 //
 // This file is part of lighstd.
 //

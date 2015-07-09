@@ -34,7 +34,8 @@ main(void)
         lgtd_errx(1, "the packet has been sent to the wrong gateway");
     }
 
-    if (!hdr_queued->protocol.addressable || !hdr_queued->protocol.tagged) {
+    int expected_flags = LGTD_LIFX_ADDRESSABLE|LGTD_LIFX_TAGGED;
+    if (!lgtd_tests_lifx_header_has_flags(hdr_queued, expected_flags)) {
         lgtd_errx(1, "the packet header doesn't have the right protocol flags");
     }
 
@@ -80,7 +81,7 @@ main(void)
         pkt_queued = lgtd_tests_gw_pkt_queue[i].pkt;
         pkt_size = lgtd_tests_gw_pkt_queue[i].pkt_size;
 
-        if (!hdr_queued->protocol.addressable || !hdr_queued->protocol.tagged) {
+        if (!lgtd_tests_lifx_header_has_flags(hdr_queued, expected_flags)) {
             lgtd_errx(1, "the packet header doesn't have the right protocol flags");
         }
 

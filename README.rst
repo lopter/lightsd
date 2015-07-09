@@ -52,14 +52,15 @@ Requirements
 ------------
 
 lightsd aims to be highly portable on any slightly POSIX system (win32 support
-should be quite easy, but isn't really the goal) and on any kind of hardware
+should be quite easy, but isn't really the focus) and on any kind of hardware
 including embedded devices. Hence why lightsd is written in C with reasonable
 dependencies:
 
 - CMake ≥ 2.8;
 - libevent ≥ 2.0.19.
 
-lightsd is actively developed and tested from Arch Linux and Mac OS X.
+lightsd is actively developed and tested from Arch Linux, Debian and Mac OS X;
+both for 32/64 bits and little/big endian architectures.
 
 Build instructions
 ------------------

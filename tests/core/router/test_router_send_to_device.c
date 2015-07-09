@@ -33,7 +33,7 @@ main(void)
         lgtd_errx(1, "the packet has been sent to the wrong gateway");
     }
 
-    if (!hdr_queued->protocol.addressable || hdr_queued->protocol.tagged) {
+    if (!lgtd_tests_lifx_header_has_flags(hdr_queued, LGTD_LIFX_ADDRESSABLE)) {
         lgtd_errx(1, "the packet header doesn't have the right protocol flags");
     }
 

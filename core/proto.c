@@ -151,23 +151,6 @@ lgtd_proto_set_waveform(struct lgtd_client *client,
 }
 
 void
-lgtd_proto_list_tags(struct lgtd_client *client)
-{
-    lgtd_client_start_send_response(client);
-
-    LGTD_CLIENT_WRITE_STRING(client, "[");
-    struct lgtd_lifx_tag *tag;
-    LIST_FOREACH(tag, &lgtd_lifx_tags, link) {
-        LGTD_CLIENT_WRITE_STRING(client, "\"");
-        LGTD_CLIENT_WRITE_STRING(client, tag->label);
-        LGTD_CLIENT_WRITE_STRING(client, LIST_NEXT(tag, link) ? "\"," : "\"");
-    }
-    LGTD_CLIENT_WRITE_STRING(client, "]");
-
-    lgtd_client_end_send_response(client);
-}
-
-void
 lgtd_proto_get_light_state(struct lgtd_client *client,
                            const struct lgtd_proto_target_list *targets)
 {

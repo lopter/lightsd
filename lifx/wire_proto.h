@@ -23,6 +23,21 @@ typedef uint32_t uint32le_t;
 typedef uint32_t uint32be_t;
 typedef uint64_t uint64le_t;
 typedef uint64_t uint64be_t;
+typedef float    floatle_t;
+
+static inline floatle_t
+lifx_wire_htolefloat(float f)
+{
+    *(uint32_t *)&f = htole32(*(uint32_t *)&f);
+    return f;
+}
+
+static inline floatle_t
+lifx_wire_lefloattoh(float f)
+{
+    *(uint32_t *)&f = le32toh(*(uint32_t *)&f);
+    return f;
+}
 
 enum { LGTD_LIFX_PROTOCOL_PORT = 56700 };
 
@@ -217,7 +232,7 @@ struct lgtd_lifx_packet_waveform {
     uint16le_t  brightness;
     uint16le_t  kelvin;
     uint32le_t  period; // milliseconds
-    float       cycles; // yes, this value is really encoded as a float.
+    floatle_t   cycles; // yes, this value is really encoded as a float.
     uint16le_t  skew_ratio;
     uint8_t     waveform; // see enum lgtd_lifx_waveform_type
 };

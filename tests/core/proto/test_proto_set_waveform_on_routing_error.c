@@ -35,7 +35,7 @@ lgtd_router_send(const struct lgtd_proto_target_list *targets,
     int brightness = le16toh(waveform->brightness);
     int kelvin = le16toh(waveform->kelvin);
     int period = le32toh(waveform->period);
-    float cycles = waveform->cycles;
+    float cycles = lifx_wire_lefloattoh(waveform->cycles);
     int skew_ratio = le16toh(waveform->skew_ratio);
 
     if (waveform_type != LGTD_LIFX_WAVEFORM_SAW) {

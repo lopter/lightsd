@@ -18,6 +18,7 @@
 #include <sys/queue.h>
 #include <sys/tree.h>
 #include <assert.h>
+#include <endian.h>
 #include <err.h>
 #include <stdarg.h>
 #include <stdbool.h>

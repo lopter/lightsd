@@ -19,6 +19,7 @@
 #include <sys/tree.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#include <endian.h>
 #include <err.h>
 #include <stdbool.h>
 #include <stdio.h>

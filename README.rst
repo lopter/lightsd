@@ -28,7 +28,13 @@ following commands through a JSON-RPC_ interface:
 - power_on;
 - set_light_from_hsbk;
 - set_waveform (change the light according to a function like SAW or SINE);
-- get_light_status.
+- get_light_state;
+- tag/untag (group/ungroup bulbs together, coming up: need unit & regression
+  tests);
+- toggle (power on if off and vice-versa, coming up).
+
+The JSON-RPC interface works on top on IPv4/v6, over a command (named) pipe
+(coming up) and Unix sockets (coming up).
 
 lightsd can target single or multiple bulbs at once:
 

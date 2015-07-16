@@ -230,9 +230,22 @@ lgtd_jsonrpc_uint16_range_to_float_string(uint16_t encoded, int start, int stop,
     assert(size > 1);
     assert(start < stop);
 
+    if (size < 2) {
+        if (size) {
+            *out = '\0';
+        }
+        return;
+    }
+
     int range;
     range = stop * LGTD_JSONRPC_FLOAT_PREC - start * LGTD_JSONRPC_FLOAT_PREC;
     int value = (uint64_t)encoded * (uint64_t)range / UINT16_MAX;
+
+    if (!value) {
+        out[0] = '0';
+        out[1] = '\0';
+        return;
+    }
 
     int multiplier = 1;
     while (value / (multiplier * 10)) {
@@ -240,6 +253,19 @@ lgtd_jsonrpc_uint16_range_to_float_string(uint16_t encoded, int start, int stop,
     }
 
     int i = 0;
+
+    if (LGTD_JSONRPC_FLOAT_PREC / 10 > multiplier) {
+        out[i++] = '0';
+        if (i != size) {
+            out[i++] = '.';
+        }
+        for (int divider = 10;
+             LGTD_JSONRPC_FLOAT_PREC / divider > multiplier && i != size;
+             divider *= 10) {
+            out[i++] = '0';
+        }
+    }
+
     do {
         if (multiplier == LGTD_JSONRPC_FLOAT_PREC / 10) {
             if (i == 0) {
@@ -256,6 +282,7 @@ lgtd_jsonrpc_uint16_range_to_float_string(uint16_t encoded, int start, int stop,
         multiplier /= 10;
     } while ((value || multiplier >= LGTD_JSONRPC_FLOAT_PREC)
               && multiplier && i != size);
+
     out[LGTD_MIN(i, size - 1)] = '\0';
 
     assert(i <= size);

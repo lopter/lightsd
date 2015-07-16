@@ -1,6 +1,7 @@
 #include <sys/queue.h>
 #include <sys/tree.h>
 #include <sys/socket.h>
+#include <endian.h>
 #include <netinet/in.h>
 #include <stdbool.h>
 #include <stdlib.h>

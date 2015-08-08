@@ -26,14 +26,14 @@ typedef uint64_t uint64be_t;
 typedef float    floatle_t;
 
 static inline floatle_t
-lifx_wire_htolefloat(float f)
+lgtd_lifx_wire_htolefloat(float f)
 {
     *(uint32_t *)&f = htole32(*(uint32_t *)&f);
     return f;
 }
 
 static inline floatle_t
-lifx_wire_lefloattoh(float f)
+lgtd_lifx_wire_lefloattoh(float f)
 {
     *(uint32_t *)&f = le32toh(*(uint32_t *)&f);
     return f;

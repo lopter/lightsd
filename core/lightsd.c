@@ -139,6 +139,7 @@ lgtd_usage(const char *progname)
         "  [-v,--verbosity debug|info|warning|error]\n",
         progname
     );
+    lgtd_cleanup();
     exit(0);
 }
 
@@ -161,6 +162,10 @@ main(int argc, char *argv[], char *envp[])
         {NULL,              0,                 NULL, 0}
     };
     const char short_opts[] = "l:c:fthv:V";
+
+    if (argc == 1) {
+        lgtd_usage(argv[0]);
+    }
 
     for (int rv = getopt_long(argc, argv, short_opts, long_opts, NULL);
          rv != -1;
@@ -205,7 +210,7 @@ main(int argc, char *argv[], char *envp[])
             }
             break;
         case 'V':
-            printf("%s v%s\n", argv[0], LGTD_VERSION);
+            printf("lightsd v%s\n", LGTD_VERSION);
             return 0;
         default:
             lgtd_usage(argv[0]);

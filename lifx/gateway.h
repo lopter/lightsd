@@ -21,7 +21,7 @@
 // according to my own tests, aggressively polling a bulb doesn't raise its
 // consumption at all (and it's interesting to note that a turned off bulb
 // still draw about 2W in ZigBee and about 3W in WiFi).
-enum { LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS = 200 };
+enum { LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS = 800 };
 
 // You can't send more than one lifx packet per UDP datagram.
 enum { LGTD_LIFX_GATEWAY_PACKET_RING_SIZE = 16 };

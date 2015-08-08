@@ -1,5 +1,7 @@
 #pragma once
 
+#include "mock_gateway.h"
+
 int lgtd_tests_gw_pkt_queue_size = 0;
 struct {
     struct lgtd_lifx_gateway        *gw;

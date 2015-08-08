@@ -30,6 +30,9 @@ lgtd_tests_lifx_header_has_flags(const struct lgtd_lifx_packet_header *hdr,
     return true;
 }
 
+char *lgtd_tests_make_temp_dir(void);
+void lgtd_tests_remove_temp_dir(char *);
+
 struct lgtd_lifx_gateway *lgtd_tests_insert_mock_gateway(int);
 struct lgtd_lifx_bulb *lgtd_tests_insert_mock_bulb(struct lgtd_lifx_gateway *, uint64_t);
 struct lgtd_proto_target_list *lgtd_tests_build_target_list(const char *, ...);

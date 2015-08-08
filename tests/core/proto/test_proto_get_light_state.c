@@ -29,6 +29,9 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
     static struct lgtd_router_device_list devices =
         SLIST_HEAD_INITIALIZER(&devices);
 
+    static struct lgtd_lifx_gateway gw_bulb_1 = {
+        .bulbs = LIST_HEAD_INITIALIZER(&gw_bulb_1.bulbs)
+    };
     static struct lgtd_lifx_bulb bulb_1 = {
         .addr = { 1, 2, 3, 4, 5 },
         .state = {
@@ -39,7 +42,8 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
             .label = "wave",
             .power = LGTD_LIFX_POWER_ON,
             .tags = 0
-        }
+        },
+        .gw = &gw_bulb_1
     };
     static struct lgtd_router_device device_1 = { .device = &bulb_1 };
     SLIST_INSERT_HEAD(&devices, &device_1, link);
@@ -76,7 +80,7 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
 int
 main(void)
 {
-    struct lgtd_client client;
+    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
     lgtd_proto_get_light_state(&client, targets);
@@ -103,7 +107,7 @@ main(void)
             1,
             "%d bytes written, expected %lu "
             "(got %.*s instead of %s)",
-            client_write_buf_idx, sizeof(expected) - 1,
+            client_write_buf_idx, sizeof(expected) - 1UL,
             client_write_buf_idx, client_write_buf, expected
         );
     }

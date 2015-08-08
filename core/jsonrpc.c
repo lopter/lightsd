@@ -480,7 +480,7 @@ static void
 lgtd_jsonrpc_write_id(struct lgtd_client *client)
 {
     if (!client->current_request->id) {
-        LGTD_CLIENT_WRITE_STRING(client, "null");
+        lgtd_client_write_string(client, "null");
         return;
     }
 
@@ -492,7 +492,7 @@ lgtd_jsonrpc_write_id(struct lgtd_client *client)
         start = client->current_request->id->start;
         stop = client->current_request->id->end;
     }
-    bufferevent_write(client->io, &client->json[start], stop - start);
+    lgtd_client_write_buf(client, &client->json[start], stop - start);
 }
 
 void
@@ -503,15 +503,15 @@ lgtd_jsonrpc_send_error(struct lgtd_client *client,
     assert(client);
     assert(message);
 
-    LGTD_CLIENT_WRITE_STRING(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
+    lgtd_client_write_string(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
     lgtd_jsonrpc_write_id(client);
-    LGTD_CLIENT_WRITE_STRING(client, ", \"error\": {\"code\": ");
+    lgtd_client_write_string(client, ", \"error\": {\"code\": ");
     char str_code[8] = { 0 };
     snprintf(str_code, sizeof(str_code), "%d", code);
-    LGTD_CLIENT_WRITE_STRING(client, str_code);
-    LGTD_CLIENT_WRITE_STRING(client, ", \"message\": \"");
-    LGTD_CLIENT_WRITE_STRING(client, message);
-    LGTD_CLIENT_WRITE_STRING(client, "\"}}");
+    lgtd_client_write_string(client, str_code);
+    lgtd_client_write_string(client, ", \"message\": \"");
+    lgtd_client_write_string(client, message);
+    lgtd_client_write_string(client, "\"}}");
 }
 
 void
@@ -521,11 +521,11 @@ lgtd_jsonrpc_send_response(struct lgtd_client *client,
     assert(client);
     assert(result);
 
-    LGTD_CLIENT_WRITE_STRING(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
+    lgtd_client_write_string(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
     lgtd_jsonrpc_write_id(client);
-    LGTD_CLIENT_WRITE_STRING(client, ", \"result\": ");
-    LGTD_CLIENT_WRITE_STRING(client, result);
-    LGTD_CLIENT_WRITE_STRING(client, "}");
+    lgtd_client_write_string(client, ", \"result\": ");
+    lgtd_client_write_string(client, result);
+    lgtd_client_write_string(client, "}");
 }
 
 void
@@ -533,15 +533,15 @@ lgtd_jsonrpc_start_send_response(struct lgtd_client *client)
 {
     assert(client);
 
-    LGTD_CLIENT_WRITE_STRING(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
+    lgtd_client_write_string(client, "{\"jsonrpc\": \"2.0\", \"id\": ");
     lgtd_jsonrpc_write_id(client);
-    LGTD_CLIENT_WRITE_STRING(client, ", \"result\": ");
+    lgtd_client_write_string(client, ", \"result\": ");
 }
 
 void
 lgtd_jsonrpc_end_send_response(struct lgtd_client *client)
 {
-    LGTD_CLIENT_WRITE_STRING(client, "}");
+    lgtd_client_write_string(client, "}");
 }
 
 static bool

@@ -42,13 +42,12 @@ struct lgtd_client {
 };
 LIST_HEAD(lgtd_client_list, lgtd_client);
 
-#define LGTD_CLIENT_WRITE_STRING(client, s) do {        \
-    bufferevent_write((client)->io, s, strlen((s)));    \
-} while(0)
-
 struct lgtd_client *lgtd_client_open(evutil_socket_t, const struct sockaddr_storage *);
+void lgtd_client_open_from_pipe(struct lgtd_client *);
 void lgtd_client_close_all(void);
 
+void lgtd_client_write_string(struct lgtd_client *, const char *);
+void lgtd_client_write_buf(struct lgtd_client *, const char *, int);
 void lgtd_client_send_response(struct lgtd_client *, const char *);
 void lgtd_client_start_send_response(struct lgtd_client *);
 void lgtd_client_end_send_response(struct lgtd_client *);

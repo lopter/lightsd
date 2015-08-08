@@ -2,13 +2,18 @@
 #include <sys/tree.h>
 #include <sys/socket.h>
 #include <assert.h>
+#include <dirent.h>
 #include <endian.h>
+#include <err.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <event2/util.h>
 
@@ -25,9 +30,6 @@
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
-
-struct lgtd_lifx_tag_list lgtd_lifx_tags =
-    LIST_HEAD_INITIALIZER(&lgtd_lifx_tags);
 
 struct lgtd_lifx_gateway *
 lgtd_tests_insert_mock_gateway(int id)
@@ -111,4 +113,43 @@ lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *tag,
     gw->tags[tag_id] = tag;
     LIST_INSERT_HEAD(&tag->sites, site, link);
     return site;
+}
+
+char *
+lgtd_tests_make_temp_dir(void)
+{
+    char buf[PATH_MAX] = { 0 };
+    int n = snprintf(buf, sizeof(buf), "%s/lightsd.test.XXXXXXXX", P_tmpdir);
+    if (n >= (int)sizeof(buf)) {
+        errx(1, "cannot allocate temporary directory");
+    }
+    return strdup(mkdtemp(buf));
+}
+
+void
+lgtd_tests_remove_temp_dir(char *path)
+{
+    DIR *tmpdir = opendir(path);
+    if (!tmpdir) {
+        return;
+    }
+
+    struct dirent db;
+    struct dirent *entry = &db;
+    while (!readdir_r(tmpdir, entry, &entry) && entry) {
+        if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) {
+            continue;
+        }
+        char buf[PATH_MAX] = { 0 };
+        snprintf(buf, sizeof(buf), "%s/%s", path, entry->d_name);
+        unlink(buf);
+    }
+
+    closedir(tmpdir);
+
+    if (rmdir(path)) {
+        warn("couldn't remove tempdir %s", path);
+    }
+
+    free(path);
 }

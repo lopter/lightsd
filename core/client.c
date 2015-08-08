@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
@@ -138,6 +139,29 @@ lgtd_client_event_callback(struct bufferevent *bev, short events, void *ctx)
 }
 
 void
+lgtd_client_write_string(struct lgtd_client *client, const char *msg)
+{
+    assert(client);
+    assert(msg);
+
+    if (client->io) {
+        bufferevent_write(client->io, msg, strlen(msg));
+    }
+}
+
+void
+lgtd_client_write_buf(struct lgtd_client *client, const char *buf, int bufsz)
+{
+    assert(client);
+    assert(buf);
+    assert(bufsz >= 0);
+
+    if (bufsz > 0 && client->io) {
+        bufferevent_write(client->io, buf, bufsz);
+    }
+}
+
+void
 lgtd_client_send_response(struct lgtd_client *client, const char *msg)
 {
     lgtd_jsonrpc_send_response(client, msg);
@@ -194,4 +218,14 @@ lgtd_client_open(evutil_socket_t peer, const struct sockaddr_storage *peer_addr)
     LIST_INSERT_HEAD(&lgtd_clients, client, link);
 
     return client;
+}
+
+void
+lgtd_client_open_from_pipe(struct lgtd_client *pipe_client)
+{
+    assert(pipe_client);
+
+    memset(pipe_client, 0, sizeof(*pipe_client));
+
+    jsmn_init(&pipe_client->jsmn_ctx);
 }

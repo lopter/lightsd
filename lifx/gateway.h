@@ -51,6 +51,7 @@ struct lgtd_lifx_gateway {
     }                               site;
     uint64_t                        tag_ids;
     struct lgtd_lifx_tag            *tags[LGTD_LIFX_GATEWAY_MAX_TAGS];
+    uint8_t                         tag_refcounts[LGTD_LIFX_GATEWAY_MAX_TAGS];
     evutil_socket_t                 socket;
     // Those three timers let us measure the latency of the gateway. If we
     // aren't the only client on the network then this won't be accurate since
@@ -84,6 +85,7 @@ struct lgtd_lifx_gateway *lgtd_lifx_gateway_open(const struct sockaddr_storage *
 
 void lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *);
 void lgtd_lifx_gateway_close_all(void);
+void lgtd_lifx_gateway_remove_and_close_bulb(struct lgtd_lifx_gateway *, struct lgtd_lifx_bulb *);
 
 void lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *);
 
@@ -92,7 +94,14 @@ void lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *,
                                       enum lgtd_lifx_packet_type,
                                       const void *,
                                       int);
+// This could be on router but it's LIFX specific so I'd rather keep it here:
+bool lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *,
+                                    enum lgtd_lifx_packet_type,
+                                    const void *);
 
+void lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *, uint64_t, uint64_t);
+
+int lgtd_lifx_gateway_get_tag_id(const struct lgtd_lifx_gateway *, const struct lgtd_lifx_tag *);
 int lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *, int, const char *);
 void lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *, int);
 
@@ -108,3 +117,6 @@ void lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *,
 void lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *,
                                          const struct lgtd_lifx_packet_header *,
                                          const struct lgtd_lifx_packet_tag_labels *);
+void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *,
+                                   const struct lgtd_lifx_packet_header *,
+                                   const struct lgtd_lifx_packet_tags *);

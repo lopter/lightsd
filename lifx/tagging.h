@@ -39,3 +39,6 @@ struct lgtd_lifx_tag *lgtd_lifx_tagging_incref(const char *,
 void lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *, struct lgtd_lifx_gateway *);
 
 struct lgtd_lifx_tag *lgtd_lifx_tagging_find_tag(const char *);
+struct lgtd_lifx_tag *lgtd_lifx_tagging_allocate_tag(const char *);
+
+void lgtd_lifx_tagging_deallocate_tag(struct lgtd_lifx_tag *);

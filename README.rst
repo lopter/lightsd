@@ -29,8 +29,7 @@ following commands through a JSON-RPC_ interface:
 - set_light_from_hsbk;
 - set_waveform (change the light according to a function like SAW or SINE);
 - get_light_state;
-- tag/untag (group/ungroup bulbs together, coming up: need unit & regression
-  tests);
+- tag/untag (group/ungroup bulbs together);
 - toggle (power on if off and vice-versa, coming up).
 
 The JSON-RPC interface works on top of TCP/IPv4/v6, Unix sockets (coming up) or

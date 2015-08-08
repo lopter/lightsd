@@ -95,7 +95,7 @@ lgtd_lifx_timer_watchdog_timeout_event_callback(evutil_socket_t socket,
                 "closing bulb \"%.*s\" that hasn't been updated for %dms",
                 LGTD_LIFX_LABEL_SIZE, bulb->state.label, light_state_lag
             );
-            lgtd_lifx_bulb_close(bulb);
+            lgtd_lifx_gateway_remove_and_close_bulb(bulb->gw, bulb);
             start_discovery = true;
             continue;
         }

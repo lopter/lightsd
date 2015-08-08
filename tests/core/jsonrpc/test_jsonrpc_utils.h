@@ -97,3 +97,27 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
     (void)targets;
 }
 #endif
+
+#ifndef MOCKED_LGTD_TAG
+void
+lgtd_proto_tag(struct lgtd_client *client,
+               const struct lgtd_proto_target_list *targets,
+               const char *tag_label)
+{
+    (void)client;
+    (void)targets;
+    (void)tag_label;
+}
+#endif
+
+#ifndef MOCKED_LGTD_UNTAG
+void
+lgtd_proto_untag(struct lgtd_client *client,
+                 const struct lgtd_proto_target_list *targets,
+                 const char *tag_label)
+{
+    (void)client;
+    (void)targets;
+    (void)tag_label;
+}
+#endif

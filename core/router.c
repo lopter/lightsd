@@ -372,8 +372,8 @@ device_alloc_error:
 void
 lgtd_router_device_list_free(struct lgtd_router_device_list *devices)
 {
-    assert(devices);
-
-    lgtd_router_clear_device_list(devices);
-    free(devices);
+    if (devices) {
+        lgtd_router_clear_device_list(devices);
+        free(devices);
+    }
 }

@@ -36,6 +36,18 @@ lgtd_client_send_error(struct lgtd_client *client,
 }
 #endif
 
+#ifndef MOCKED_ROUTER_SEND_TO_DEVICE
+void
+lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
+                           enum lgtd_lifx_packet_type pkt_type,
+                           void *pkt)
+{
+    (void)bulb;
+    (void)pkt_type;
+    (void)pkt;
+}
+#endif
+
 #ifndef MOCKED_ROUTER_SEND
 bool
 lgtd_router_send(const struct lgtd_proto_target_list *targets,

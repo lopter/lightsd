@@ -68,3 +68,4 @@ void lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *,
                                     const struct lgtd_lifx_light_state *,
                                     lgtd_time_mono_t);
 void lgtd_lifx_bulb_set_power_state(struct lgtd_lifx_bulb *, uint16_t);
+void lgtd_lifx_bulb_set_tags(struct lgtd_lifx_bulb *, uint64_t);

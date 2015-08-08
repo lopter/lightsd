@@ -77,12 +77,29 @@ lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *bulb)
     assert(bulb);
     assert(bulb->gw);
 
+#ifndef NDEBUG
+    // FIXME: Yeah, so an unit test lgtd_lifx_gateway_remove_and_close_bulb
+    // would be better because it can be automated, but this looks so much
+    // easier to do and this code path is often exercised:
+    int tag_id;
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, bulb->state.tags) {
+        int n = 0;
+        struct lgtd_lifx_bulb *gw_bulb;
+        SLIST_FOREACH(gw_bulb, &bulb->gw->bulbs, link_by_gw) {
+            assert(gw_bulb != bulb);
+            if (LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id) & gw_bulb->state.tags) {
+                n++;
+            }
+        }
+        assert(bulb->gw->tag_refcounts[tag_id] == n);
+    }
+#endif
+
     LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(bulbs, -1);
     if (bulb->state.power == LGTD_LIFX_POWER_ON) {
         LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(bulbs_powered_on, -1);
     }
     RB_REMOVE(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
-    SLIST_REMOVE(&bulb->gw->bulbs, bulb, lgtd_lifx_bulb, link_by_gw);
     lgtd_info(
         "closed bulb \"%.*s\" (%s) on [%s]:%hu",
         LGTD_LIFX_LABEL_SIZE,
@@ -108,6 +125,8 @@ lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *bulb,
         );
     }
 
+    lgtd_lifx_gateway_update_tag_refcounts(bulb->gw, bulb->state.tags, state->tags);
+
     bulb->last_light_state_at = received_at;
     memcpy(&bulb->state, state, sizeof(bulb->state));
 }
@@ -124,4 +143,14 @@ lgtd_lifx_bulb_set_power_state(struct lgtd_lifx_bulb *bulb, uint16_t power)
     }
 
     bulb->state.power = power;
+}
+
+void
+lgtd_lifx_bulb_set_tags(struct lgtd_lifx_bulb *bulb, uint64_t tags)
+{
+    assert(bulb);
+
+    lgtd_lifx_gateway_update_tag_refcounts(bulb->gw, bulb->state.tags, tags);
+
+    bulb->state.tags = tags;
 }

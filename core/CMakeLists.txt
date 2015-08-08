@@ -20,6 +20,7 @@ ADD_EXECUTABLE(
     listen.c
     lightsd.c
     log.c
+    pipe.c
     proto.c
     router.c
 )

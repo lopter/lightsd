@@ -33,8 +33,8 @@ following commands through a JSON-RPC_ interface:
   tests);
 - toggle (power on if off and vice-versa, coming up).
 
-The JSON-RPC interface works on top on IPv4/v6, over a command (named) pipe
-(coming up) and Unix sockets (coming up).
+The JSON-RPC interface works on top of TCP/IPv4/v6, Unix sockets (coming up) or
+over a command pipe (named pipe, see mkfifo(1)).
 
 lightsd can target single or multiple bulbs at once:
 

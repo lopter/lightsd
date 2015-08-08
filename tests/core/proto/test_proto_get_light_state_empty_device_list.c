@@ -35,7 +35,7 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
 int
 main(void)
 {
-    struct lgtd_client client;
+    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
     lgtd_proto_get_light_state(&client, targets);
@@ -45,7 +45,7 @@ main(void)
     if (client_write_buf_idx != sizeof(expected) - 1) {
         lgtd_errx(
             1, "%d bytes written, expected %lu",
-            client_write_buf_idx, sizeof(expected) - 1
+            client_write_buf_idx, sizeof(expected) - 1UL
         );
     }
 

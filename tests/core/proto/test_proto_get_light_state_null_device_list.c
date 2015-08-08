@@ -45,7 +45,7 @@ lgtd_client_send_error(struct lgtd_client *client,
 int
 main(void)
 {
-    struct lgtd_client client;
+    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
     lgtd_proto_get_light_state(&client, targets);

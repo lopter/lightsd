@@ -1,5 +1,7 @@
 #pragma once
 
+#include "mock_gateway.h"
+
 #define TEST_REQUEST_INITIALIZER { NULL, NULL, 0, NULL }
 
 static inline int

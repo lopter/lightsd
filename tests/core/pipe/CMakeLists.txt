@@ -4,23 +4,23 @@ INCLUDE_DIRECTORIES(
 )
 
 ADD_LIBRARY(
-    test_core_proto STATIC
+    test_core_pipe STATIC
+    ${LIGHTSD_SOURCE_DIR}/core/jsmn.c
     ${LIGHTSD_SOURCE_DIR}/core/log.c
-    ${LIGHTSD_SOURCE_DIR}/core/jsonrpc.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${LIGHTSD_SOURCE_DIR}/lifx/tagging.c
-    ${LIGHTSD_SOURCE_DIR}/lifx/timer.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
 )
-TARGET_LINK_LIBRARIES(test_core_proto ${TIME_MONOTONIC_LIBRARY})
 
-FUNCTION(ADD_PROTO_TEST TEST_SOURCE)
-    ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_core_proto)
+TARGET_LINK_LIBRARIES(test_core_pipe ${TIME_MONOTONIC_LIBRARY})
+
+FUNCTION(ADD_PIPE_TEST TEST_SOURCE)
+    ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_core_pipe)
 ENDFUNCTION()
 
 FILE(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test_*.c")
 FOREACH(TEST ${TESTS})
-    ADD_PROTO_TEST(${TEST})
+    ADD_PIPE_TEST(${TEST})
 ENDFOREACH()

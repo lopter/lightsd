@@ -21,3 +21,15 @@ bufferevent_write(struct bufferevent *bev, const void *data, size_t nbytes)
     client_write_buf_idx += to_write;
     return 0;
 }
+
+void
+lgtd_client_write_string(struct lgtd_client *client, const char *msg)
+{
+    bufferevent_write(client->io, msg, strlen(msg));
+}
+
+void
+lgtd_client_write_buf(struct lgtd_client *client, const char *buf, int bufsz)
+{
+    bufferevent_write(client->io, buf, bufsz);
+}

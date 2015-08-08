@@ -45,6 +45,7 @@
 #include "jsmn.h"
 #include "jsonrpc.h"
 #include "client.h"
+#include "pipe.h"
 #include "listen.h"
 #include "lightsd.h"
 
@@ -60,6 +61,7 @@ void
 lgtd_cleanup(void)
 {
     lgtd_listen_close_all();
+    lgtd_command_pipe_close_all();
     lgtd_client_close_all();
     lgtd_lifx_timer_close();
     lgtd_lifx_broadcast_close();
@@ -126,8 +128,14 @@ static void
 lgtd_usage(const char *progname)
 {
     printf(
-        "Usage: %s -l addr:port [-l ...] [-f] [-t] [-h] [-V] "
-        "[-v debug|info|warning|error]\n",
+        "Usage: %s ...\n\n"
+        "  [-l,--listen addr:port [+]]\n"
+        "  [-c,--comand-pipe /command/fifo [+]]\n"
+        "  [-f,--foreground]\n"
+        "  [-t,--no-timestamps]\n"
+        "  [-h,--help]\n"
+        "  [-V,--version]\n"
+        "  [-v,--verbosity debug|info|warning|error]\n",
         progname
     );
     exit(0);
@@ -141,6 +149,7 @@ main(int argc, char *argv[])
 
     static const struct option long_opts[] = {
         {"listen",          required_argument, NULL, 'l'},
+        {"command-pipe",    required_argument, NULL, 'c'},
         {"foreground",      no_argument,       NULL, 'f'},
         {"no-timestamps",   no_argument,       NULL, 't'},
         {"help",            no_argument,       NULL, 'h'},
@@ -148,7 +157,7 @@ main(int argc, char *argv[])
         {"version",         no_argument,       NULL, 'V'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "l:fthv:V";
+    const char short_opts[] = "l:c:fthv:V";
 
     for (int rv = getopt_long(argc, argv, short_opts, long_opts, NULL);
          rv != -1;
@@ -164,6 +173,12 @@ main(int argc, char *argv[])
             if (!lgtd_listen_open(optarg, sep + 1)) {
                 exit(1);
             }
+            break;
+        case 'c':
+            if (!lgtd_command_pipe_open(optarg)) {
+                exit(1);
+            }
+            break;
         case 'f':
             lgtd_opts.foreground = true;
             break;

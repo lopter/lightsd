@@ -52,7 +52,7 @@ main(void)
     struct lgtd_proto_target_list *targets;
     targets = lgtd_tests_build_target_list("*", NULL);
 
-    struct lgtd_client client;
+    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
 
     lgtd_proto_power_on(&client, targets);
 

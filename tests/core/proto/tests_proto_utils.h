@@ -1,5 +1,9 @@
 #pragma once
 
+#include "mock_gateway.h"
+
+#define FAKE_BUFFEREVENT (void *)0xfeed
+
 void
 lgtd_client_start_send_response(struct lgtd_client *client)
 {
@@ -16,7 +20,7 @@ lgtd_client_end_send_response(struct lgtd_client *client)
 void
 lgtd_client_send_response(struct lgtd_client *client, const char *msg)
 {
-    LGTD_CLIENT_WRITE_STRING(client, msg);
+    lgtd_client_write_string(client, msg);
 }
 #endif
 

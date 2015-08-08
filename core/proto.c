@@ -178,7 +178,7 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
     )
 
     lgtd_client_start_send_response(client);
-    LGTD_CLIENT_WRITE_STRING(client, "[");
+    lgtd_client_write_string(client, "[");
     struct lgtd_router_device *device;
     SLIST_FOREACH(device, devices, link) {
         struct lgtd_lifx_bulb *bulb = device->device;
@@ -204,22 +204,22 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
             );
             continue;
         }
-        LGTD_CLIENT_WRITE_STRING(client, buf);
+        lgtd_client_write_string(client, buf);
 
         bool comma = false;
         int tag_id;
         LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, bulb->state.tags) {
-            LGTD_CLIENT_WRITE_STRING(client, comma ? ",\"" : "\"");
-            LGTD_CLIENT_WRITE_STRING(client, bulb->gw->tags[tag_id]->label);
-            LGTD_CLIENT_WRITE_STRING(client, "\"");
+            lgtd_client_write_string(client, comma ? ",\"" : "\"");
+            lgtd_client_write_string(client, bulb->gw->tags[tag_id]->label);
+            lgtd_client_write_string(client, "\"");
             comma = true;
         }
 
-        LGTD_CLIENT_WRITE_STRING(
+        lgtd_client_write_string(
             client, SLIST_NEXT(device, link) ?  "]}," : "]}"
         );
     }
-    LGTD_CLIENT_WRITE_STRING(client, "]");
+    lgtd_client_write_string(client, "]");
     lgtd_client_end_send_response(client);
 
     lgtd_router_device_list_free(devices);

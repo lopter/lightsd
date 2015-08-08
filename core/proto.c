@@ -209,10 +209,20 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
         bool comma = false;
         int tag_id;
         LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, bulb->state.tags) {
-            lgtd_client_write_string(client, comma ? ",\"" : "\"");
-            lgtd_client_write_string(client, bulb->gw->tags[tag_id]->label);
-            lgtd_client_write_string(client, "\"");
-            comma = true;
+            if (LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id) & bulb->gw->tag_ids) {
+                lgtd_client_write_string(client, comma ? ",\"" : "\"");
+                lgtd_client_write_string(client, bulb->gw->tags[tag_id]->label);
+                lgtd_client_write_string(client, "\"");
+                comma = true;
+            } else {
+                lgtd_warnx(
+                    "tag_id %d on bulb %.*s (%s) doesn't "
+                    "exist on gw [%s]:%hu (site %s)",
+                    tag_id, (int)sizeof(bulb->state.label), bulb->state.label,
+                    lgtd_addrtoa(bulb->addr), bulb->gw->ip_addr, bulb->gw->port,
+                    lgtd_addrtoa(bulb->gw->site.as_array)
+                );
+            }
         }
 
         lgtd_client_write_string(

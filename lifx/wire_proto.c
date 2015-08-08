@@ -342,16 +342,22 @@ lgtd_lifx_wire_decode_light_status(struct lgtd_lifx_packet_light_status *pkt)
     pkt->brightness = le16toh(pkt->brightness);
     pkt->kelvin = le16toh(pkt->kelvin);
     pkt->dim = le16toh(pkt->dim);
-    pkt->power = le16toh(pkt->power);
+    // The bulbs actually return power values between 0 and 0xffff, not sure
+    // what the intermediate values mean, let's pull them down to 0:
+    if (pkt->power != LGTD_LIFX_POWER_ON) {
+        pkt->power = LGTD_LIFX_POWER_OFF;
+    }
     pkt->tags = le64toh(pkt->tags);
 }
 
 void
 lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *pkt)
 {
-    (void)pkt;
-
     assert(pkt);
+
+    if (pkt->power != LGTD_LIFX_POWER_ON) {
+        pkt->power = LGTD_LIFX_POWER_OFF;
+    }
 }
 
 void

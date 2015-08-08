@@ -246,7 +246,7 @@ lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr, int flags)
     }
     if (flags & LGTD_LIFX_TAGGED) {
         hdr->protocol |= LGTD_LIFX_PROTOCOL_TAGGED;
-        htole64(hdr->target.tags);
+        hdr->target.tags = htole64(hdr->target.tags);
     }
     if (flags & LGTD_LIFX_ACK_REQUIRED) {
         hdr->flags |= LGTD_LIFX_FLAG_ACK_REQUIRED;
@@ -267,8 +267,13 @@ lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *hdr)
     assert(hdr);
 
     hdr->size = le16toh(hdr->size);
-    hdr->protocol = le16toh(hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK)
-        | (hdr->protocol & LGTD_LIFX_PROTOCOL_FLAGS_MASK);
+    hdr->protocol = (
+        le16toh(hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK)
+        | (hdr->protocol & LGTD_LIFX_PROTOCOL_FLAGS_MASK)
+    );
+    if (hdr->protocol & LGTD_LIFX_PROTOCOL_TAGGED) {
+        hdr->target.tags = le64toh(hdr->target.tags);
+    }
     hdr->at_time = le64toh(hdr->at_time);
     hdr->packet_type = le16toh(hdr->packet_type);
 }

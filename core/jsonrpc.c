@@ -1118,7 +1118,6 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
     }
 
     assert(request.method);
-    assert(request.id);
 
     for (int i = 0; i != LGTD_ARRAY_SIZE(methods); i++) {
         int parsed_method_namelen = LGTD_JSONRPC_TOKEN_LEN(request.method);

@@ -8,7 +8,7 @@
 int
 main(void)
 {
-    lgtd_lifx_wire_load_packet_infos_map();
+    lgtd_lifx_wire_load_packet_info_map();
 
     lgtd_tests_insert_mock_gateway(2);
     lgtd_tests_insert_mock_gateway(1);

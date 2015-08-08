@@ -265,8 +265,8 @@ extern const struct lgtd_lifx_waveform_string_id lgtd_lifx_waveform_table[];
 
 struct lgtd_lifx_gateway;
 
-struct lgtd_lifx_packet_infos {
-    RB_ENTRY(lgtd_lifx_packet_infos)    link;
+struct lgtd_lifx_packet_info {
+    RB_ENTRY(lgtd_lifx_packet_info)     link;
     const char                          *name;
     enum lgtd_lifx_packet_type          type;
     unsigned                            size;
@@ -276,11 +276,11 @@ struct lgtd_lifx_packet_infos {
                                                   const struct lgtd_lifx_packet_header *,
                                                   const void *);
 };
-RB_HEAD(lgtd_lifx_packet_infos_map, lgtd_lifx_packet_infos);
+RB_HEAD(lgtd_lifx_packet_info_map, lgtd_lifx_packet_info);
 
 static inline int
-lgtd_lifx_packet_infos_cmp(struct lgtd_lifx_packet_infos *a,
-                           struct lgtd_lifx_packet_infos *b)
+lgtd_lifx_packet_info_cmp(struct lgtd_lifx_packet_info *a,
+                           struct lgtd_lifx_packet_info *b)
 {
     return a->type - b->type;
 }
@@ -331,10 +331,10 @@ lgtd_lifx_wire_next_tag_id(int current_tag_id, uint64_t tags)
 
 enum lgtd_lifx_waveform_type lgtd_lifx_wire_waveform_string_id_to_type(const char *, int);
 
-const struct lgtd_lifx_packet_infos *lgtd_lifx_wire_get_packet_infos(enum lgtd_lifx_packet_type);
-void lgtd_lifx_wire_load_packet_infos_map(void);
+const struct lgtd_lifx_packet_info *lgtd_lifx_wire_get_packet_info(enum lgtd_lifx_packet_type);
+void lgtd_lifx_wire_load_packet_info_map(void);
 
-const struct lgtd_lifx_packet_infos *lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *,
+const struct lgtd_lifx_packet_info *lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *,
                                                                  enum lgtd_lifx_target_type,
                                                                  union lgtd_lifx_target,
                                                                  const uint8_t *,

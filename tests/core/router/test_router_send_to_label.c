@@ -7,7 +7,7 @@
 int
 main(void)
 {
-    lgtd_lifx_wire_load_packet_infos_map();
+    lgtd_lifx_wire_load_packet_info_map();
 
     struct lgtd_lifx_gateway *gw_1 = lgtd_tests_insert_mock_gateway(1);
     struct lgtd_lifx_bulb *bulb_1 = lgtd_tests_insert_mock_bulb(gw_1, 1);

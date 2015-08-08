@@ -91,13 +91,12 @@ void lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *);
 
 void lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *,
                                       const struct lgtd_lifx_packet_header *,
-                                      enum lgtd_lifx_packet_type,
-                                      const void *,
-                                      int);
+                                      const struct lgtd_lifx_packet_info *,
+                                      void *);
 // This could be on router but it's LIFX specific so I'd rather keep it here:
 bool lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *,
                                     enum lgtd_lifx_packet_type,
-                                    const void *);
+                                    void *);
 
 void lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *, uint64_t, uint64_t);
 

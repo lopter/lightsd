@@ -5,7 +5,7 @@
 int
 main(void)
 {
-    lgtd_lifx_wire_load_packet_infos_map();
+    lgtd_lifx_wire_load_packet_info_map();
 
     struct lgtd_lifx_gateway gw;
     memset(&gw, 0, sizeof(gw));
@@ -17,7 +17,7 @@ main(void)
     union lgtd_lifx_target target = { .tags = 0 };
 
     struct lgtd_lifx_packet_header hdr;
-    lgtd_lifx_wire_setup_header(
+    const struct lgtd_lifx_packet_info *pkt_info = lgtd_lifx_wire_setup_header(
         &hdr,
         LGTD_LIFX_TARGET_ALL_DEVICES,
         target,
@@ -25,9 +25,7 @@ main(void)
         LGTD_LIFX_SET_POWER_STATE
     );
 
-    lgtd_lifx_gateway_enqueue_packet(
-        &gw, &hdr, LGTD_LIFX_SET_POWER_STATE, &pkt, sizeof(pkt)
-    );
+    lgtd_lifx_gateway_enqueue_packet(&gw, &hdr, pkt_info, &pkt);
 
     if (memcmp(gw_write_buf, &hdr, sizeof(hdr))) {
         errx(1, "header incorrectly buffered");

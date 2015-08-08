@@ -48,14 +48,14 @@ const int LGTD_LIFX_DEBRUIJN_SEQUENCE[64] = {
    13, 18,  8, 12,  7,  6,  5, 63
 };
 
-static struct lgtd_lifx_packet_infos_map lgtd_lifx_packet_infos =
+static struct lgtd_lifx_packet_info_map lgtd_lifx_packet_info =
     RB_INITIALIZER(&lgtd_lifx_packets_infos);
 
 RB_GENERATE_STATIC(
-    lgtd_lifx_packet_infos_map,
-    lgtd_lifx_packet_infos,
+    lgtd_lifx_packet_info_map,
+    lgtd_lifx_packet_info,
     link,
-    lgtd_lifx_packet_infos_cmp
+    lgtd_lifx_packet_info_cmp
 );
 
 static void
@@ -75,7 +75,7 @@ lgtd_lifx_wire_null_packet_handler(struct lgtd_lifx_gateway *gw,
 }
 
 void
-lgtd_lifx_wire_load_packet_infos_map(void)
+lgtd_lifx_wire_load_packet_info_map(void)
 {
 #define DECODER(x)  ((void (*)(void *))(x))
 #define ENCODER(x)  ((void (*)(void *))(x))
@@ -91,7 +91,7 @@ lgtd_lifx_wire_load_packet_infos_map(void)
     .decode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
     .handle = lgtd_lifx_wire_null_packet_handler
 
-    static struct lgtd_lifx_packet_infos packet_table[] = {
+    static struct lgtd_lifx_packet_info packet_table[] = {
         // Gateway packets:
         {
             REQUEST_ONLY,
@@ -192,18 +192,18 @@ lgtd_lifx_wire_load_packet_infos_map(void)
 
     for (int i = 0; i != LGTD_ARRAY_SIZE(packet_table); ++i) {
         RB_INSERT(
-            lgtd_lifx_packet_infos_map,
-            &lgtd_lifx_packet_infos,
+            lgtd_lifx_packet_info_map,
+            &lgtd_lifx_packet_info,
             &packet_table[i]
         );
     }
 }
 
-const struct lgtd_lifx_packet_infos *
-lgtd_lifx_wire_get_packet_infos(enum lgtd_lifx_packet_type packet_type)
+const struct lgtd_lifx_packet_info *
+lgtd_lifx_wire_get_packet_info(enum lgtd_lifx_packet_type packet_type)
 {
-    struct lgtd_lifx_packet_infos pkt_infos = { .type = packet_type };
-    return RB_FIND(lgtd_lifx_packet_infos_map, &lgtd_lifx_packet_infos, &pkt_infos);
+    struct lgtd_lifx_packet_info pkt_info = { .type = packet_type };
+    return RB_FIND(lgtd_lifx_packet_info_map, &lgtd_lifx_packet_info, &pkt_info);
 }
 
 
@@ -273,7 +273,7 @@ lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *hdr)
     hdr->packet_type = le16toh(hdr->packet_type);
 }
 
-const struct lgtd_lifx_packet_infos *
+const struct lgtd_lifx_packet_info *
 lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
                             enum lgtd_lifx_target_type target_type,
                             union lgtd_lifx_target target,
@@ -282,13 +282,13 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
 {
     assert(hdr);
 
-    const struct lgtd_lifx_packet_infos *pkt_infos =
-        lgtd_lifx_wire_get_packet_infos(packet_type);
+    const struct lgtd_lifx_packet_info *pkt_info =
+        lgtd_lifx_wire_get_packet_info(packet_type);
 
-    assert(pkt_infos);
+    assert(pkt_info);
 
     memset(hdr, 0, sizeof(*hdr));
-    hdr->size = pkt_infos->size + sizeof(*hdr);
+    hdr->size = pkt_info->size + sizeof(*hdr);
     hdr->packet_type = packet_type;
     if (site) {
         memcpy(hdr->site, site, sizeof(hdr->site));
@@ -313,7 +313,7 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
 
     lgtd_lifx_wire_encode_header(hdr, flags);
 
-    return pkt_infos;
+    return pkt_info;
 }
 
 void

@@ -49,21 +49,19 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
     struct lgtd_lifx_packet_header hdr;
     union lgtd_lifx_target target = { .tags = 0 };
 
-    const struct lgtd_lifx_packet_infos *pkt_infos = NULL;
+    const struct lgtd_lifx_packet_info *pkt_info = NULL;
     struct lgtd_lifx_gateway *gw;
     LIST_FOREACH(gw, &lgtd_lifx_gateways, link) {
-        pkt_infos = lgtd_lifx_wire_setup_header(
+        pkt_info = lgtd_lifx_wire_setup_header(
             &hdr,
             LGTD_LIFX_TARGET_ALL_DEVICES,
             target,
             gw->site.as_array,
             pkt_type
         );
-        assert(pkt_infos);
+        assert(pkt_info);
 
-        lgtd_lifx_gateway_enqueue_packet(
-            gw, &hdr, pkt_type, pkt, pkt_infos->size
-        );
+        lgtd_lifx_gateway_enqueue_packet(gw, &hdr, pkt_info, pkt);
 
         if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
             struct lgtd_lifx_bulb *bulb;
@@ -76,8 +74,8 @@ lgtd_router_broadcast(enum lgtd_lifx_packet_type pkt_type, void *pkt)
         }
     }
 
-    if (pkt_infos) {
-        lgtd_info("broadcasting %s", pkt_infos->name);
+    if (pkt_info) {
+        lgtd_info("broadcasting %s", pkt_info->name);
     }
 }
 
@@ -91,19 +89,16 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
     struct lgtd_lifx_packet_header hdr;
     union lgtd_lifx_target target = { .addr = bulb->addr };
 
-    const struct lgtd_lifx_packet_infos *pkt_infos;
-    pkt_infos = lgtd_lifx_wire_setup_header(
+    const struct lgtd_lifx_packet_info *pkt_info = lgtd_lifx_wire_setup_header(
         &hdr,
         LGTD_LIFX_TARGET_DEVICE,
         target,
         bulb->gw->site.as_array,
         pkt_type
     );
-    assert(pkt_infos);
+    assert(pkt_info);
 
-    lgtd_lifx_gateway_enqueue_packet(
-        bulb->gw, &hdr, pkt_type, pkt, pkt_infos->size
-    );
+    lgtd_lifx_gateway_enqueue_packet(bulb->gw, &hdr, pkt_info, pkt);
 
     if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
         bulb->dirty_at = lgtd_time_monotonic_msecs();
@@ -111,7 +106,7 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
         bulb->expected_power_on = payload->power;
     }
 
-    lgtd_info("sending %s to %s", pkt_infos->name, lgtd_addrtoa(bulb->addr));
+    lgtd_info("sending %s to %s", pkt_info->name, lgtd_addrtoa(bulb->addr));
 }
 
 void
@@ -119,7 +114,7 @@ lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
                         enum lgtd_lifx_packet_type pkt_type,
                         void *pkt)
 {
-    const struct lgtd_lifx_packet_infos *pkt_infos = NULL;
+    const struct lgtd_lifx_packet_info *pkt_info = NULL;
 
     struct lgtd_lifx_site *site;
     LIST_FOREACH(site, &tag->sites, link) {
@@ -130,18 +125,16 @@ lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
         union lgtd_lifx_target target;
         assert(tag == gw->tags[tag_id]);
         target.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
-        pkt_infos = lgtd_lifx_wire_setup_header(
+        pkt_info = lgtd_lifx_wire_setup_header(
             &hdr,
             LGTD_LIFX_TARGET_TAGS,
             target,
             gw->site.as_array,
             pkt_type
         );
-        assert(pkt_infos);
+        assert(pkt_info);
 
-        lgtd_lifx_gateway_enqueue_packet(
-            gw, &hdr, pkt_type, pkt, pkt_infos->size
-        );
+        lgtd_lifx_gateway_enqueue_packet(gw, &hdr, pkt_info, pkt);
 
         if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
             struct lgtd_lifx_bulb *bulb;
@@ -156,8 +149,8 @@ lgtd_router_send_to_tag(const struct lgtd_lifx_tag *tag,
         }
     }
 
-    if (pkt_infos) {
-        lgtd_info("sending %s to #%s", pkt_infos->name, tag->label);
+    if (pkt_info) {
+        lgtd_info("sending %s to #%s", pkt_info->name, tag->label);
     }
 }
 
@@ -166,25 +159,23 @@ lgtd_router_send_to_label(const char *label,
                           enum lgtd_lifx_packet_type pkt_type,
                           void *pkt)
 {
-    const struct lgtd_lifx_packet_infos *pkt_infos = NULL;
+    const struct lgtd_lifx_packet_info *pkt_info = NULL;
 
     struct lgtd_lifx_bulb *bulb;
     RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
         if (!strcmp(bulb->state.label, label)) {
             struct lgtd_lifx_packet_header hdr;
             union lgtd_lifx_target target = { .addr = bulb->addr };
-            pkt_infos = lgtd_lifx_wire_setup_header(
+            pkt_info = lgtd_lifx_wire_setup_header(
                 &hdr,
                 LGTD_LIFX_TARGET_DEVICE,
                 target,
                 bulb->gw->site.as_array,
                 pkt_type
             );
-            assert(pkt_infos);
+            assert(pkt_info);
 
-            lgtd_lifx_gateway_enqueue_packet(
-                bulb->gw, &hdr, pkt_type, pkt, pkt_infos->size
-            );
+            lgtd_lifx_gateway_enqueue_packet(bulb->gw, &hdr, pkt_info, pkt);
 
             if (pkt_type == LGTD_LIFX_SET_POWER_STATE) {
                 bulb->dirty_at = lgtd_time_monotonic_msecs();
@@ -194,8 +185,8 @@ lgtd_router_send_to_label(const char *label,
         }
     }
 
-    if (pkt_infos) {
-        lgtd_info("sending %s to %s", pkt_infos->name, label);
+    if (pkt_info) {
+        lgtd_info("sending %s to %s", pkt_info->name, label);
     }
 }
 

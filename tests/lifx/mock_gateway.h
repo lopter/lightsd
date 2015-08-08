@@ -11,7 +11,7 @@ struct lgtd_lifx_gateway;
 bool
 lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,
                                enum lgtd_lifx_packet_type pkt_type,
-                               const void *pkt)
+                               void *pkt)
 {
     (void)gw;
     (void)pkt_type;

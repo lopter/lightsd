@@ -69,7 +69,7 @@ static bool gateway_send_to_site_called_for_gw_2 = false;
 bool
 lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,
                                enum lgtd_lifx_packet_type pkt_type,
-                               const void *pkt)
+                               void *pkt)
 {
     if (!gw) {
         errx(1, "missing gateway");

@@ -3,10 +3,11 @@ INCLUDE_DIRECTORIES(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-ADD_LIBRARY(
+ADD_CORE_LIBRARY(
     test_core_router STATIC
     ${LIGHTSD_SOURCE_DIR}/core/log.c
     ${LIGHTSD_SOURCE_DIR}/core/proto.c
+    ${LIGHTSD_SOURCE_DIR}/core/stats.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${LIGHTSD_SOURCE_DIR}/lifx/tagging.c
     ${LIGHTSD_SOURCE_DIR}/lifx/timer.c
@@ -15,11 +16,7 @@ ADD_LIBRARY(
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
 )
 
-TARGET_LINK_LIBRARIES(
-    test_core_router
-    ${EVENT2_CORE_LIBRARY}
-    ${TIME_MONOTONIC_LIBRARY}
-)
+TARGET_LINK_LIBRARIES(test_core_router ${EVENT2_CORE_LIBRARY})
 
 FUNCTION(ADD_ROUTER_TEST TEST_SOURCE)
     ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_core_router)

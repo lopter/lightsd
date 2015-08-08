@@ -47,6 +47,7 @@
 #include "client.h"
 #include "pipe.h"
 #include "listen.h"
+#include "daemon.h"
 #include "lightsd.h"
 
 struct lgtd_opts lgtd_opts = {
@@ -142,8 +143,10 @@ lgtd_usage(const char *progname)
 }
 
 int
-main(int argc, char *argv[])
+main(int argc, char *argv[], char *envp[])
 {
+    lgtd_daemon_setup_proctitle(argc, argv, envp);
+
     lgtd_configure_libevent();
     lgtd_configure_signal_handling();
 
@@ -215,6 +218,10 @@ main(int argc, char *argv[])
     lgtd_lifx_wire_load_packet_infos_map();
     if (!lgtd_lifx_timer_setup() || !lgtd_lifx_broadcast_setup()) {
         lgtd_err(1, "can't setup lightsd");
+    }
+
+    if (!lgtd_opts.foreground && !lgtd_daemon_unleash()) {
+        lgtd_err(1, "can't fork to the background");
     }
 
     lgtd_lifx_timer_start_discovery();

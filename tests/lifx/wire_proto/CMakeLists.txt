@@ -3,14 +3,15 @@ INCLUDE_DIRECTORIES(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-ADD_LIBRARY(
-    test_lifx_wire_proto STATIC
+ADD_CORE_LIBRARY(
+    test_lifx_wire_proto_core STATIC
     ${LIGHTSD_SOURCE_DIR}/core/log.c
+    ${LIGHTSD_SOURCE_DIR}/core/stats.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
 )
 
 FUNCTION(ADD_WIRE_PROTO_TEST TEST_SOURCE)
-    ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_lifx_wire_proto)
+    ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_lifx_wire_proto_core)
 ENDFUNCTION()
 
 FILE(GLOB TESTS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "test_*.c")

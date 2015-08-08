@@ -1,6 +1,8 @@
 #include "router.c"
 
+#include "mock_daemon.h"
 #include "tests_utils.h"
+
 #include "tests_router_utils.h"
 
 int

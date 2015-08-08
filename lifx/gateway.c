@@ -44,6 +44,8 @@
 #include "core/client.h"
 #include "core/proto.h"
 #include "core/router.h"
+#include "core/stats.h"
+#include "core/daemon.h"
 #include "core/lightsd.h"
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
@@ -54,6 +56,7 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
 {
     assert(gw);
 
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(gateways, -1);
     event_del(gw->refresh_ev);
     event_del(gw->write_ev);
     if (gw->socket != -1) {
@@ -283,6 +286,8 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
     // In case this is the first bulb (re-)discovered, start the watchdog, it
     // will stop by itself:
     lgtd_lifx_timer_start_watchdog();
+
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(gateways, 1);
 
     return gw;
 

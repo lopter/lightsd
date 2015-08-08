@@ -15,6 +15,7 @@ ADD_DEFINITIONS("-DJSMN_STRICT=1")
 ADD_EXECUTABLE(
     lightsd
     client.c
+    daemon.c
     jsmn.c
     jsonrpc.c
     listen.c
@@ -23,6 +24,7 @@ ADD_EXECUTABLE(
     pipe.c
     proto.c
     router.c
+    stats.c
 )
 
 TARGET_LINK_LIBRARIES(
@@ -31,3 +33,7 @@ TARGET_LINK_LIBRARIES(
     ${EVENT2_CORE_LIBRARY}
     ${TIME_MONOTONIC_LIBRARY}
 )
+
+IF (HAVE_LIBBSD)
+    TARGET_LINK_LIBRARIES(lightsd ${LIBBSD_LIBRARY})
+ENDIF (HAVE_LIBBSD)

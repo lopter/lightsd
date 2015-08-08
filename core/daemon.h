@@ -17,17 +17,8 @@
 
 #pragma once
 
-struct evconnlistener;
+enum { LGTD_DAEMON_TITLE_SIZE = 2048 };
 
-struct lgtd_listen {
-    SLIST_ENTRY(lgtd_listen)    link;
-    const char                  *addr;
-    const char                  *port;
-    struct evconnlistener       *evlistener;
-};
-SLIST_HEAD(lgtd_listen_list, lgtd_listen);
-
-extern struct lgtd_listen_list lgtd_listeners;
-
-bool lgtd_listen_open(const char *, const char *);
-void lgtd_listen_close_all(void);
+bool lgtd_daemon_unleash(void); // \_o<
+void lgtd_daemon_setup_proctitle(int, char *[], char *[]);
+void lgtd_daemon_update_proctitle(void);

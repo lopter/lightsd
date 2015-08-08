@@ -17,17 +17,19 @@
 
 #pragma once
 
-struct evconnlistener;
-
-struct lgtd_listen {
-    SLIST_ENTRY(lgtd_listen)    link;
-    const char                  *addr;
-    const char                  *port;
-    struct evconnlistener       *evlistener;
+struct lgtd_stats {
+    int gateways;
+    int bulbs;
+    int bulbs_powered_on;
+    int clients;
 };
-SLIST_HEAD(lgtd_listen_list, lgtd_listen);
 
-extern struct lgtd_listen_list lgtd_listeners;
+void lgtd_stats_add(int, int);
+int lgtd_stats_get(int);
 
-bool lgtd_listen_open(const char *, const char *);
-void lgtd_listen_close_all(void);
+#define LGTD_STATS_GET(name) lgtd_stats_get(offsetof(struct lgtd_stats, name))
+
+#define LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(name, value) do {           \
+    lgtd_stats_add(offsetof(struct lgtd_stats, name), (value));         \
+    lgtd_daemon_update_proctitle();                                     \
+} while (0)

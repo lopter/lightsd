@@ -28,9 +28,14 @@
 #include <stdio.h>
 #include <time.h>
 
+#if LGTD_HAVE_LIBBSD
+#include <bsd/unistd.h>
+#endif
+
 #include <event2/event.h>
 
 #include "lifx/wire_proto.h"
+#include "stats.h"
 #include "lightsd.h"
 
 static void

@@ -20,6 +20,7 @@
 #include <err.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <event2/listener.h>
@@ -76,6 +77,13 @@ lgtd_listen_open(const char *addr, const char *port)
     assert(addr);
     assert(port);
 
+    struct lgtd_listen *listener;
+    SLIST_FOREACH(listener, &lgtd_listeners, link) {
+        if (!strcmp(listener->addr, addr) && listener->port == port) {
+            return true;
+        }
+    }
+
     struct evutil_addrinfo *res = NULL, hints = {
         .ai_family = AF_UNSPEC,
         .ai_socktype = SOCK_STREAM,
@@ -91,7 +99,6 @@ lgtd_listen_open(const char *addr, const char *port)
         return false;
     }
 
-    struct lgtd_listen *listener;
     struct evconnlistener *evlistener;
     for (struct evutil_addrinfo *it = res; it; it = it->ai_next) {
         evlistener = NULL;

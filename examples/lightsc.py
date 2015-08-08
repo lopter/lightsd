@@ -72,6 +72,14 @@ def power_off(socket, target):
 def get_light_state(socket, target):
     return jsonrpc_call(socket, "get_light_state", [target])
 
+
+def tag(socket, target, tag):
+    return jsonrpc_call(socket, "tag", [target, tag])
+
+
+def untag(socket, target, tag):
+    return jsonrpc_call(socket, "untag", [target, tag])
+
 if __name__ == "__main__":
     s = socket.create_connection(("localhost", 1234))
     h = 0

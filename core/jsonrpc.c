@@ -977,6 +977,90 @@ lgtd_jsonrpc_check_and_call_get_light_state(struct lgtd_client *client)
     lgtd_proto_target_list_clear(&targets);
 }
 
+static void
+lgtd_jsonrpc_check_and_call_proto_tag_or_untag(struct lgtd_client *client,
+                                               void (*lgtd_proto_fn)(struct lgtd_client *,
+                                                          const struct lgtd_proto_target_list *,
+                                                          const char *))
+
+{
+    struct lgtd_jsonrpc_target_args {
+        const jsmntok_t *target;
+        int             target_ntokens;
+        const jsmntok_t *tag;
+    } params = { NULL, 0, NULL };
+    static const struct lgtd_jsonrpc_node schema[] = {
+        LGTD_JSONRPC_NODE(
+            "target",
+            offsetof(struct lgtd_jsonrpc_target_args, target),
+            offsetof(struct lgtd_jsonrpc_target_args, target_ntokens),
+            lgtd_jsonrpc_type_string_number_or_array,
+            false
+        ),
+        LGTD_JSONRPC_NODE(
+            "tag",
+            offsetof(struct lgtd_jsonrpc_target_args, tag),
+            -1,
+            lgtd_jsonrpc_type_string,
+            false
+        )
+    };
+
+    struct lgtd_jsonrpc_request *req = client->current_request;
+    bool ok = lgtd_jsonrpc_extract_and_validate_params_against_schema(
+        &params,
+        schema,
+        LGTD_ARRAY_SIZE(schema),
+        req->params,
+        req->params_ntokens,
+        client->json
+    );
+    if (!ok) {
+        lgtd_jsonrpc_send_error(
+            client, LGTD_JSONRPC_INVALID_PARAMS, "Invalid parameters"
+        );
+        return;
+    }
+
+    struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
+    ok = lgtd_jsonrpc_build_target_list(
+        &targets, client, params.target, params.target_ntokens
+    );
+    if (!ok) {
+        return;
+    }
+
+    char *tag = strndup(
+        &client->json[params.tag->start], LGTD_JSONRPC_TOKEN_LEN(params.tag)
+    );
+    if (!tag) {
+        lgtd_warn("can't allocate a tag");
+        lgtd_jsonrpc_send_error(
+            client, LGTD_JSONRPC_INTERNAL_ERROR, "Can't allocate memory"
+        );
+        goto error_strdup;
+    }
+
+    lgtd_proto_fn(client, &targets, tag);
+
+    free(tag);
+
+error_strdup:
+    lgtd_proto_target_list_clear(&targets);
+}
+
+static void
+lgtd_jsonrpc_check_and_call_tag(struct lgtd_client *client)
+{
+    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag(client, lgtd_proto_tag);
+}
+
+static void
+lgtd_jsonrpc_check_and_call_untag(struct lgtd_client *client)
+{
+    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag(client, lgtd_proto_untag);
+}
+
 void
 lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
 {
@@ -1001,6 +1085,14 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
         LGTD_JSONRPC_METHOD(
             "get_light_state", 1, // t
             lgtd_jsonrpc_check_and_call_get_light_state
+        ),
+        LGTD_JSONRPC_METHOD(
+            "tag", 2, // t, tag
+            lgtd_jsonrpc_check_and_call_tag
+        ),
+        LGTD_JSONRPC_METHOD(
+            "untag", 2, // t, tag
+            lgtd_jsonrpc_check_and_call_untag
         )
     };
 

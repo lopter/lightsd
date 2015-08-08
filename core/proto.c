@@ -224,3 +224,145 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
 
     lgtd_router_device_list_free(devices);
 }
+
+void
+lgtd_proto_tag(struct lgtd_client *client,
+               const struct lgtd_proto_target_list *targets,
+               const char *tag_label)
+{
+    assert(client);
+    assert(targets);
+    assert(tag_label);
+
+    struct lgtd_router_device_list *devices;
+    devices = lgtd_router_targets_to_devices(targets);
+    if (!devices) {
+        goto error_tag_alloc;
+    }
+
+    struct lgtd_lifx_tag *tag = lgtd_lifx_tagging_find_tag(tag_label);
+    if (!tag) {
+        tag = lgtd_lifx_tagging_allocate_tag(tag_label);
+        if (!tag) {
+            goto error_tag_alloc;
+        }
+        lgtd_info("created tag [%s]", tag_label);
+    }
+
+    struct lgtd_router_device *device;
+    struct lgtd_lifx_site *site;
+
+    // Loop over the devices and do allocations first, this makes error
+    // handling easier (since you can't rollback enqueued packets) and build
+    // the list of affected gateways so we can do SET_TAG_LABELS:
+    SLIST_FOREACH(device, devices, link) {
+        struct lgtd_lifx_gateway *gw = device->device->gw;
+        int tag_id = lgtd_lifx_gateway_get_tag_id(gw, tag);
+        if (tag_id == -1) {
+            tag_id = lgtd_lifx_gateway_allocate_tag_id(gw, -1, tag_label);
+            if (tag_id == -1) {
+                goto error_site_alloc;
+            }
+        }
+    }
+
+    // SET_TAG_LABELS, this is idempotent, do it everytime so we can recover
+    // from any bad state:
+    LIST_FOREACH(site, &tag->sites, link) {
+        int tag_id = site->tag_id;
+        assert(tag_id > -1 && tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
+        struct lgtd_lifx_packet_tag_labels pkt = { .tags = 0 };
+        pkt.tags = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
+        strncpy(pkt.label, tag_label, sizeof(pkt.label) - 1);
+        lgtd_lifx_wire_encode_tag_labels(&pkt);
+        bool enqueued = lgtd_lifx_gateway_send_to_site(
+            site->gw, LGTD_LIFX_SET_TAG_LABELS, &pkt
+        );
+        if (!enqueued) {
+            goto error_site_alloc;
+        }
+        lgtd_info(
+            "created tag [%s] with id %d on gw [%s]:%hu",
+            tag_label, tag_id, site->gw->ip_addr, site->gw->port
+        );
+    }
+
+    // Finally SET_TAGS on the devices:
+    SLIST_FOREACH(device, devices, link) {
+        struct lgtd_lifx_bulb *bulb = device->device;
+        int tag_id = lgtd_lifx_gateway_get_tag_id(bulb->gw, tag);
+        assert(tag_id > -1 && tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
+        int tag_value = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
+        if (!(bulb->state.tags & tag_value)) {
+            struct lgtd_lifx_packet_tags pkt;
+            pkt.tags = bulb->state.tags | tag_value;
+            lgtd_lifx_wire_encode_tags(&pkt);
+            lgtd_router_send_to_device(bulb, LGTD_LIFX_SET_TAGS, &pkt);
+        }
+    }
+
+    SEND_RESULT(client, true);
+    goto fini;
+
+error_site_alloc:
+    if (LIST_EMPTY(&tag->sites)) {
+        lgtd_lifx_tagging_deallocate_tag(tag);
+    } else { // tagging_decref will deallocate the tag for us:
+        struct lgtd_lifx_site *next_site;
+        LIST_FOREACH_SAFE(site, &tag->sites, link, next_site) {
+            lgtd_lifx_gateway_deallocate_tag_id(site->gw, site->tag_id);
+        }
+    }
+error_tag_alloc:
+    lgtd_client_send_error(
+        client, LGTD_CLIENT_INTERNAL_ERROR, "couldn't allocate new tag"
+    );
+fini:
+    lgtd_router_device_list_free(devices);
+    return;
+}
+
+void
+lgtd_proto_untag(struct lgtd_client *client,
+                 const struct lgtd_proto_target_list *targets,
+                 const char *tag_label)
+{
+    assert(client);
+    assert(targets);
+    assert(tag_label);
+
+    struct lgtd_lifx_tag *tag = lgtd_lifx_tagging_find_tag(tag_label);
+    if (!tag) {
+        SEND_RESULT(client, true);
+        return;
+    }
+
+    struct lgtd_router_device_list *devices = NULL;
+    devices = lgtd_router_targets_to_devices(targets);
+    if (!devices) {
+        lgtd_client_send_error(
+            client, LGTD_CLIENT_INTERNAL_ERROR, "couldn't allocate memory"
+        );
+        return;
+    }
+
+    struct lgtd_router_device *device;
+    SLIST_FOREACH(device, devices, link) {
+        struct lgtd_lifx_bulb *bulb = device->device;
+        struct lgtd_lifx_gateway *gw = bulb->gw;
+        int tag_id = lgtd_lifx_gateway_get_tag_id(gw, tag);
+        if (tag_id != -1) {
+            int tag_value = LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
+            if (bulb->state.tags & tag_value) {
+                struct lgtd_lifx_packet_tags pkt;
+                pkt.tags = bulb->state.tags & ~tag_value;
+                lgtd_lifx_wire_encode_tags(&pkt);
+                lgtd_router_send_to_device(bulb, LGTD_LIFX_SET_TAGS, &pkt);
+            }
+        }
+    }
+
+    SEND_RESULT(client, true);
+
+    lgtd_router_device_list_free(devices);
+}

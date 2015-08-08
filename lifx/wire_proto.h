@@ -238,7 +238,7 @@ struct lgtd_lifx_packet_waveform {
 };
 
 enum { LGTD_LIFX_ALL_TAGS = ~0 };
-struct lgtd_lifx_packet_get_tag_labels {
+struct lgtd_lifx_packet_tags {
     uint64le_t  tags;
 };
 
@@ -350,4 +350,7 @@ void lgtd_lifx_wire_decode_power_state(struct lgtd_lifx_packet_power_state *);
 void lgtd_lifx_wire_encode_light_color(struct lgtd_lifx_packet_light_color *);
 void lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *);
 
+void lgtd_lifx_wire_encode_tags(struct lgtd_lifx_packet_tags *);
+void lgtd_lifx_wire_decode_tags(struct lgtd_lifx_packet_tags *);
+void lgtd_lifx_wire_encode_tag_labels(struct lgtd_lifx_packet_tag_labels *);
 void lgtd_lifx_wire_decode_tag_labels(struct lgtd_lifx_packet_tag_labels *);

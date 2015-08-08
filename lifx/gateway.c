@@ -71,9 +71,9 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
             lgtd_lifx_tagging_decref(gw->tags[i], gw);
         }
     }
-    struct lgtd_lifx_bulb *bulb, *next_bulb;
-    SLIST_FOREACH_SAFE(bulb, &gw->bulbs, link_by_gw, next_bulb) {
-        lgtd_lifx_bulb_close(bulb);
+    while (!SLIST_EMPTY(&gw->bulbs)) {
+        struct lgtd_lifx_bulb *bulb = SLIST_FIRST(&gw->bulbs);
+        lgtd_lifx_gateway_remove_and_close_bulb(gw, bulb);
     }
 
     lgtd_info(
@@ -81,6 +81,23 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
         gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
     );
     free(gw);
+}
+
+void
+lgtd_lifx_gateway_remove_and_close_bulb(struct lgtd_lifx_gateway *gw,
+                                        struct lgtd_lifx_bulb *bulb)
+{
+    assert(gw);
+    assert(bulb);
+
+    int tag_id;
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, bulb->state.tags) {
+        assert(gw->tag_refcounts[tag_id] > 0);
+        gw->tag_refcounts[tag_id]--;
+    }
+    SLIST_REMOVE(&gw->bulbs, bulb, lgtd_lifx_bulb, link_by_gw);
+
+    lgtd_lifx_bulb_close(bulb);
 }
 
 static void
@@ -133,13 +150,6 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
             if (type == LGTD_LIFX_GET_TAG_LABELS) {
                 gw->pending_refresh_req = false;
             }
-            if (lgtd_opts.verbosity <= LGTD_DEBUG) {
-                const struct lgtd_lifx_packet_infos *pkt_infos =
-                    lgtd_lifx_wire_get_packet_infos(type);
-                lgtd_debug(
-                    "%s --> [%s]:%hu", pkt_infos->name, gw->ip_addr, gw->port
-                );
-            }
             gw->pkt_ring[gw->pkt_ring_tail].type = 0;
             LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(gw->pkt_ring_tail);
             gw->pkt_ring_full = false;
@@ -151,36 +161,77 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
     }
 }
 
+static bool
+lgtd_lifx_gateway_send_to_site_impl(struct lgtd_lifx_gateway *gw,
+                                    enum lgtd_lifx_packet_type pkt_type,
+                                    const void *pkt,
+                                    const struct lgtd_lifx_packet_infos **pkt_infos)
+{
+    assert(gw);
+    assert(pkt_infos);
+
+    struct lgtd_lifx_packet_header hdr;
+    union lgtd_lifx_target target = { .addr = gw->site.as_array };
+    *pkt_infos = lgtd_lifx_wire_setup_header(
+        &hdr,
+        LGTD_LIFX_TARGET_SITE,
+        target,
+        gw->site.as_array,
+        pkt_type
+    );
+    assert(*pkt_infos);
+
+    lgtd_lifx_gateway_enqueue_packet(gw, &hdr, pkt_type, pkt, (*pkt_infos)->size);
+
+    return true; // FIXME, have real return values on the send paths...
+}
+
+static bool
+lgtd_lifx_gateway_send_to_site_quiet(struct lgtd_lifx_gateway *gw,
+                                     enum lgtd_lifx_packet_type pkt_type,
+                                     const void *pkt)
+{
+
+    const struct lgtd_lifx_packet_infos *pkt_infos;
+    bool rv = lgtd_lifx_gateway_send_to_site_impl(
+        gw, pkt_type, pkt, &pkt_infos
+    );
+
+    lgtd_debug(
+        "sending %s to site %s",
+        pkt_infos->name, lgtd_addrtoa(gw->site.as_array)
+    );
+
+    return rv; // FIXME, have real return values on the send paths...
+}
+
+bool
+lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,
+                               enum lgtd_lifx_packet_type pkt_type,
+                               const void *pkt)
+{
+    const struct lgtd_lifx_packet_infos *pkt_infos;
+    bool rv = lgtd_lifx_gateway_send_to_site_impl(
+        gw, pkt_type, pkt, &pkt_infos
+    );
+
+    lgtd_info(
+        "sending %s to site %s",
+        pkt_infos->name, lgtd_addrtoa(gw->site.as_array)
+    );
+
+    return rv; // FIXME, have real return values on the send paths...
+}
+
 static void
 lgtd_lifx_gateway_send_get_all_light_state(struct lgtd_lifx_gateway *gw)
 {
     assert(gw);
 
-    struct lgtd_lifx_packet_header hdr;
-    union lgtd_lifx_target target = { .addr = gw->site.as_array };
+    lgtd_lifx_gateway_send_to_site_quiet(gw, LGTD_LIFX_GET_LIGHT_STATE, NULL);
 
-    lgtd_lifx_wire_setup_header(
-        &hdr,
-        LGTD_LIFX_TARGET_SITE,
-        target,
-        gw->site.as_array,
-        LGTD_LIFX_GET_LIGHT_STATE
-    );
-    lgtd_lifx_gateway_enqueue_packet(
-        gw, &hdr, LGTD_LIFX_GET_LIGHT_STATE, NULL, 0
-    );
-
-    struct lgtd_lifx_packet_get_tag_labels pkt = { .tags = LGTD_LIFX_ALL_TAGS };
-    lgtd_lifx_wire_setup_header(
-        &hdr,
-        LGTD_LIFX_TARGET_SITE,
-        target,
-        gw->site.as_array,
-        LGTD_LIFX_GET_TAG_LABELS
-    );
-    lgtd_lifx_gateway_enqueue_packet(
-        gw, &hdr, LGTD_LIFX_GET_TAG_LABELS, &pkt, sizeof(pkt)
-    );
+    struct lgtd_lifx_packet_tags pkt = { .tags = LGTD_LIFX_ALL_TAGS };
+    lgtd_lifx_gateway_send_to_site_quiet(gw, LGTD_LIFX_GET_TAG_LABELS, &pkt);
 
     gw->pending_refresh_req = true;
 }
@@ -371,19 +422,55 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
 }
 
 void
+lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *gw,
+                                       uint64_t bulb_tags,
+                                       uint64_t pkt_tags)
+{
+    uint64_t changes = bulb_tags ^ pkt_tags;
+    uint64_t added_tags = changes & pkt_tags;
+    uint64_t removed_tags = changes & bulb_tags;
+    int tag_id;
+
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, added_tags) {
+        if (gw->tag_refcounts[tag_id] != UINT8_MAX) {
+            gw->tag_refcounts[tag_id]++;
+        } else {
+            lgtd_warnx(
+                "reached refcount limit (%u) for tag [%s] (%d) on gw [%s]:%hu",
+                UINT8_MAX, gw->tags[tag_id] ? gw->tags[tag_id]->label : NULL,
+                tag_id, gw->ip_addr, gw->port
+            );
+        }
+    }
+
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, removed_tags) {
+        assert(gw->tag_refcounts[tag_id] > 0);
+        if (--gw->tag_refcounts[tag_id] == 0) {
+            lgtd_info(
+                "deleting unused tag [%s] (%d) from gw [%s]:%hu (site %s)",
+                gw->tags[tag_id] ? gw->tags[tag_id]->label : NULL, tag_id,
+                gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
+            );
+            struct lgtd_lifx_packet_tag_labels pkt = {
+                .tags = ~(gw->tag_ids & ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))
+            };
+            lgtd_lifx_wire_encode_tag_labels(&pkt);
+            lgtd_lifx_gateway_send_to_site(gw, LGTD_LIFX_SET_TAG_LABELS, &pkt);
+        }
+    }
+}
+
+void
 lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *gw,
                                      const struct lgtd_lifx_packet_header *hdr,
                                      const struct lgtd_lifx_packet_pan_gateway *pkt)
 {
-    (void)pkt;
-
     assert(gw && hdr && pkt);
 
     lgtd_debug(
-        "SET_PAN_GATEWAY <-- [%s]:%hu - %s site=%s",
-        gw->ip_addr, gw->port,
-        lgtd_addrtoa(hdr->target.device_addr),
-        lgtd_addrtoa(hdr->site)
+        "SET_PAN_GATEWAY <-- [%s]:%hu - %s site=%s, service_type=%d",
+        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
+        lgtd_addrtoa(hdr->site), pkt->service_type
     );
 }
 
@@ -485,15 +572,43 @@ lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *gw,
 }
 
 int
+lgtd_lifx_gateway_get_tag_id(const struct lgtd_lifx_gateway *gw,
+                             const struct lgtd_lifx_tag *tag)
+{
+    assert(gw);
+    assert(tag);
+
+    int tag_id;
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, gw->tag_ids) {
+        if (gw->tags[tag_id] == tag) {
+            return tag_id;
+        }
+    }
+
+    return -1;
+}
+
+int
 lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
                                   int tag_id,
                                   const char *tag_label)
 {
     assert(gw);
     assert(tag_label);
-    // allocating a new tag_id (tag_id == -1) isn't supported yet:
-    assert(tag_id >= 0);
+    assert(tag_id >= -1);
     assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
+
+    if (tag_id == -1) {
+        tag_id = lgtd_lifx_wire_bitscan64_forward(~gw->tag_ids);
+        if (tag_id == -1) {
+            lgtd_warnx(
+                "no tag_id left for new tag [%s] on gw [%s]:%hu (site %s)",
+                tag_label, gw->ip_addr, gw->port,
+                lgtd_addrtoa(gw->site.as_array)
+            );
+            return -1;
+        }
+    }
 
     if (!(gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))) {
         struct lgtd_lifx_tag *tag;
@@ -545,9 +660,9 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
     assert(gw && hdr && pkt);
 
     lgtd_debug(
-        "SET_TAG_LABELS <-- [%s]:%hu - %s label=%s, tags=%jx",
+        "SET_TAG_LABELS <-- [%s]:%hu - %s label=%.*s, tags=%jx",
         gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
-        pkt->label, (uintmax_t)pkt->tags
+        LGTD_LIFX_LABEL_SIZE, pkt->label, (uintmax_t)pkt->tags
     );
 
     int tag_id;
@@ -558,4 +673,39 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
             lgtd_lifx_gateway_deallocate_tag_id(gw, tag_id);
         }
     }
+}
+
+void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
+                                   const struct lgtd_lifx_packet_header *hdr,
+                                   const struct lgtd_lifx_packet_tags *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    lgtd_debug(
+        "SET_TAGS <-- [%s]:%hu - %s tags=%#jx",
+        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
+        (uintmax_t)pkt->tags
+    );
+
+    struct lgtd_lifx_bulb *b = lgtd_lifx_gateway_get_or_open_bulb(
+        gw, hdr->target.device_addr
+    );
+    if (!b) {
+        return;
+    }
+
+    int tag_id;
+    LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, pkt->tags) {
+        if (!(gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))) {
+            lgtd_warnx(
+                "trying to set unknown tag_id %d (%#jx) "
+                "on bulb %s (%.*s), gw [%s]:%hu (site %s)",
+                tag_id, LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id),
+                lgtd_addrtoa(b->addr), LGTD_LIFX_LABEL_SIZE, b->state.label,
+                gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
+            );
+        }
+    }
+
+    lgtd_lifx_bulb_set_tags(b, pkt->tags);
 }

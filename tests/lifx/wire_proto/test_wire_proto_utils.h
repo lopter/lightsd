@@ -35,3 +35,12 @@ void lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
     (void)hdr;
     (void)pkt;
 }
+
+void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
+                                   const struct lgtd_lifx_packet_header *hdr,
+                                   const struct lgtd_lifx_packet_tags *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}

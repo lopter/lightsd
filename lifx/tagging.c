@@ -66,6 +66,32 @@ lgtd_lifx_tagging_find_tag(const char *tag_label)
 }
 
 struct lgtd_lifx_tag *
+lgtd_lifx_tagging_allocate_tag(const char *tag_label)
+{
+    assert(tag_label);
+    assert(strlen(tag_label) < LGTD_LIFX_LABEL_SIZE);
+
+    struct lgtd_lifx_tag *tag = calloc(1, sizeof(*tag));
+    if (!tag) {
+        return NULL;
+    }
+
+    strncpy(tag->label, tag_label, sizeof(tag->label) - 1);
+    LIST_INSERT_HEAD(&lgtd_lifx_tags, tag, link);
+    return tag;
+}
+
+void
+lgtd_lifx_tagging_deallocate_tag(struct lgtd_lifx_tag *tag)
+{
+    assert(tag);
+    assert(LIST_EMPTY(&tag->sites));
+
+    LIST_REMOVE(tag, link);
+    free(tag);
+}
+
+struct lgtd_lifx_tag *
 lgtd_lifx_tagging_incref(const char *tag_label,
                          struct lgtd_lifx_gateway *gw,
                          int tag_id)
@@ -77,12 +103,10 @@ lgtd_lifx_tagging_incref(const char *tag_label,
     bool dealloc_tag = false;
     struct lgtd_lifx_tag *tag = lgtd_lifx_tagging_find_tag(tag_label);
     if (!tag) {
-        tag = calloc(1, sizeof(*tag));
+        tag = lgtd_lifx_tagging_allocate_tag(tag_label);
         if (!tag) {
             return NULL;
         }
-        strncpy(tag->label, tag_label, sizeof(tag->label) - 1);
-        LIST_INSERT_HEAD(&lgtd_lifx_tags, tag, link);
         dealloc_tag = true;
     }
 
@@ -91,8 +115,7 @@ lgtd_lifx_tagging_incref(const char *tag_label,
         site = calloc(1, sizeof(*site));
         if (!site) {
             if (dealloc_tag) {
-                LIST_REMOVE(tag, link);
-                free(tag);
+                lgtd_lifx_tagging_deallocate_tag(tag);
             }
             errno = ENOMEM;
             return NULL;
@@ -100,9 +123,10 @@ lgtd_lifx_tagging_incref(const char *tag_label,
         if (dealloc_tag) {
             lgtd_info("discovered tag [%s]", tag_label);
         }
-        lgtd_debug(
-            "tag [%s] added to gw [%s]:%hu (site %s)",
-            tag_label, gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
+        lgtd_info(
+            "tag [%s] added to gw [%s]:%hu (site %s) with tag_id %d",
+            tag_label, gw->ip_addr, gw->port,
+            lgtd_addrtoa(gw->site.as_array), tag_id
         );
         site->gw = gw;
         site->tag_id = tag_id;
@@ -132,8 +156,7 @@ lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *tag,
         free(site);
     }
     if (LIST_EMPTY(&tag->sites)) {
-        LIST_REMOVE(tag, link);
         lgtd_info("forgetting unused tag [%s]", tag->label);
-        free(tag);
+        lgtd_lifx_tagging_deallocate_tag(tag);
     }
 }

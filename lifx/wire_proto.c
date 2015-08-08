@@ -92,6 +92,7 @@ lgtd_lifx_wire_load_packet_infos_map(void)
     .handle = lgtd_lifx_wire_null_packet_handler
 
     static struct lgtd_lifx_packet_infos packet_table[] = {
+        // Gateway packets:
         {
             REQUEST_ONLY,
             NO_PAYLOAD,
@@ -105,6 +106,43 @@ lgtd_lifx_wire_load_packet_infos_map(void)
             .decode = DECODER(lgtd_lifx_wire_decode_pan_gateway),
             .encode = ENCODER(lgtd_lifx_wire_encode_pan_gateway),
             .handle = HANDLER(lgtd_lifx_gateway_handle_pan_gateway)
+        },
+        {
+            REQUEST_ONLY,
+            .name = "SET_TAG_LABELS",
+            .type = LGTD_LIFX_SET_TAG_LABELS,
+            .size = sizeof(struct lgtd_lifx_packet_tag_labels),
+            .encode = ENCODER(lgtd_lifx_wire_encode_tag_labels)
+        },
+        {
+            REQUEST_ONLY,
+            .name = "GET_TAG_LABELS",
+            .type = LGTD_LIFX_GET_TAG_LABELS,
+            .size = sizeof(struct lgtd_lifx_packet_tags),
+            .encode = ENCODER(lgtd_lifx_wire_encode_tags)
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "TAG_LABELS",
+            .type = LGTD_LIFX_TAG_LABELS,
+            .size = sizeof(struct lgtd_lifx_packet_tag_labels),
+            .decode = DECODER(lgtd_lifx_wire_decode_tag_labels),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_tag_labels)
+        },
+        // Bulb packets:
+        {
+            REQUEST_ONLY,
+            .name = "SET_LIGHT_COLOR",
+            .type = LGTD_LIFX_SET_LIGHT_COLOR,
+            .size = sizeof(struct lgtd_lifx_packet_light_color),
+            .encode = ENCODER(lgtd_lifx_wire_encode_light_color)
+        },
+        {
+            REQUEST_ONLY,
+            .name = "SET_WAVEFORM",
+            .type = LGTD_LIFX_SET_WAVEFORM,
+            .size = sizeof(struct lgtd_lifx_packet_waveform),
+            .encode = ENCODER(lgtd_lifx_wire_encode_waveform)
         },
         {
             REQUEST_ONLY,
@@ -128,6 +166,7 @@ lgtd_lifx_wire_load_packet_infos_map(void)
             .type = LGTD_LIFX_SET_POWER_STATE,
         },
         {
+            RESPONSE_ONLY,
             .name = "POWER_STATE",
             .type = LGTD_LIFX_POWER_STATE,
             .size = sizeof(struct lgtd_lifx_packet_power_state),
@@ -136,32 +175,18 @@ lgtd_lifx_wire_load_packet_infos_map(void)
         },
         {
             REQUEST_ONLY,
-            .name = "SET_LIGHT_COLOR",
-            .type = LGTD_LIFX_SET_LIGHT_COLOR,
-            .size = sizeof(struct lgtd_lifx_packet_light_color),
-            .encode = ENCODER(lgtd_lifx_wire_encode_light_color)
-        },
-        {
-            REQUEST_ONLY,
-            .name = "SET_WAVEFORM",
-            .type = LGTD_LIFX_SET_WAVEFORM,
-            .size = sizeof(struct lgtd_lifx_packet_waveform),
-            .encode = ENCODER(lgtd_lifx_wire_encode_waveform)
-        },
-        {
-            REQUEST_ONLY,
-            .name = "GET_TAG_LABELS",
-            .type = LGTD_LIFX_GET_TAG_LABELS,
-            .size = sizeof(struct lgtd_lifx_packet_get_tag_labels),
-            .encode = lgtd_lifx_wire_null_packet_encoder_decoder
+            .name = "SET_TAGS",
+            .type = LGTD_LIFX_SET_TAGS,
+            .size = sizeof(struct lgtd_lifx_packet_tags),
+            .encode = ENCODER(lgtd_lifx_wire_encode_tags)
         },
         {
             RESPONSE_ONLY,
-            .name = "TAG_LABELS",
-            .type = LGTD_LIFX_TAG_LABELS,
-            .size = sizeof(struct lgtd_lifx_packet_tag_labels),
-            .decode = DECODER(lgtd_lifx_wire_decode_tag_labels),
-            .handle = HANDLER(lgtd_lifx_gateway_handle_tag_labels)
+            .name = "TAGS",
+            .type = LGTD_LIFX_TAGS,
+            .size = sizeof(struct lgtd_lifx_packet_tags),
+            .decode = DECODER(lgtd_lifx_wire_decode_tags),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_tags)
         }
     };
 
@@ -356,10 +381,34 @@ lgtd_lifx_wire_encode_waveform(struct lgtd_lifx_packet_waveform *pkt)
 }
 
 void
+lgtd_lifx_wire_encode_tag_labels(struct lgtd_lifx_packet_tag_labels *pkt)
+{
+    assert(pkt);
+
+    pkt->tags = htole64(pkt->tags);
+}
+
+void
 lgtd_lifx_wire_decode_tag_labels(struct lgtd_lifx_packet_tag_labels *pkt)
 {
     assert(pkt);
 
     pkt->label[sizeof(pkt->label) - 1] = '\0';
+    pkt->tags = le64toh(pkt->tags);
+}
+
+void
+lgtd_lifx_wire_encode_tags(struct lgtd_lifx_packet_tags *pkt)
+{
+    assert(pkt);
+
+    pkt->tags = htole64(pkt->tags);
+}
+
+void
+lgtd_lifx_wire_decode_tags(struct lgtd_lifx_packet_tags *pkt)
+{
+    assert(pkt);
+
     pkt->tags = le64toh(pkt->tags);
 }

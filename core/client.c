@@ -34,6 +34,8 @@
 #include "jsonrpc.h"
 #include "client.h"
 #include "proto.h"
+#include "stats.h"
+#include "daemon.h"
 #include "lightsd.h"
 
 struct lgtd_client_list lgtd_clients = LIST_HEAD_INITIALIZER(&lgtd_clients);
@@ -43,6 +45,8 @@ lgtd_client_close(struct lgtd_client *client)
 {
     assert(client);
     assert(client->io);
+
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(clients, -1);
 
     LIST_REMOVE(client, link);
     bufferevent_free(client->io);
@@ -216,6 +220,8 @@ lgtd_client_open(evutil_socket_t peer, const struct sockaddr_storage *peer_addr)
     bufferevent_enable(client->io, EV_READ|EV_WRITE|EV_TIMEOUT);
 
     LIST_INSERT_HEAD(&lgtd_clients, client, link);
+
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(clients, 1);
 
     return client;
 }

@@ -30,6 +30,7 @@
 #include "jsonrpc.h"
 #include "client.h"
 #include "listen.h"
+#include "daemon.h"
 #include "lightsd.h"
 
 struct lgtd_listen_list lgtd_listeners =
@@ -69,6 +70,8 @@ lgtd_listen_close_all(void)
         evconnlistener_free(listener->evlistener);
         free(listener);
     }
+
+    lgtd_daemon_update_proctitle();
 }
 
 bool
@@ -129,6 +132,8 @@ lgtd_listen_open(const char *addr, const char *port)
     }
 
     evutil_freeaddrinfo(res);
+
+    lgtd_daemon_update_proctitle();
 
     return true;
 

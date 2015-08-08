@@ -1,6 +1,7 @@
 #include "proto.c"
 
 #include "mock_client_buf.h"
+#include "mock_daemon.h"
 #include "tests_utils.h"
 
 #define MOCKED_CLIENT_SEND_RESPONSE

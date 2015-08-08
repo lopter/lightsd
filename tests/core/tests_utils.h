@@ -40,3 +40,4 @@ struct lgtd_lifx_tag *lgtd_tests_insert_mock_tag(const char *);
 struct lgtd_lifx_site *lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *,
                                                 struct lgtd_lifx_gateway *,
                                                 int);
+struct lgtd_listen *lgtd_tests_insert_mock_listener(const char *addr, const char *port);

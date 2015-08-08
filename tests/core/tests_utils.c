@@ -24,12 +24,18 @@
 #include "core/jsonrpc.h"
 #include "core/client.h"
 #include "core/proto.h"
+#include "core/listen.h"
+#include "core/daemon.h"
+#include "core/stats.h"
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"
 #include "tests_utils.h"
 
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
+
+struct lgtd_listen_list lgtd_listeners =
+    SLIST_HEAD_INITIALIZER(&lgtd_listeners);
 
 struct lgtd_lifx_gateway *
 lgtd_tests_insert_mock_gateway(int id)
@@ -40,6 +46,8 @@ lgtd_tests_insert_mock_gateway(int id)
     gw->site.as_array[0] = id;
 
     LIST_INSERT_HEAD(&lgtd_lifx_gateways, gw, link);
+
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(gateways, 1);
 
     return gw;
 }
@@ -113,6 +121,17 @@ lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *tag,
     gw->tags[tag_id] = tag;
     LIST_INSERT_HEAD(&tag->sites, site, link);
     return site;
+}
+
+struct lgtd_listen *
+lgtd_tests_insert_mock_listener(const char *addr, const char *port)
+{
+    struct lgtd_listen *listener = calloc(1, sizeof(*listener));
+    listener->addr = addr;
+    listener->port = port;
+    SLIST_INSERT_HEAD(&lgtd_listeners, listener, link);
+
+    return listener;
 }
 
 char *

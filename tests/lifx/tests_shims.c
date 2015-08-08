@@ -35,3 +35,8 @@ lgtd_sockaddrport(const struct sockaddr_storage *peer)
         return ntohs(in6_peer->sin6_port);
     }
 }
+
+void
+lgtd_daemon_update_proctitle(void)
+{
+}

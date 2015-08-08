@@ -1,6 +1,7 @@
 #include "proto.c"
 
 #include "mock_client_buf.h"
+#include "mock_daemon.h"
 #include "tests_utils.h"
 
 #define MOCKED_CLIENT_SEND_RESPONSE
@@ -38,7 +39,7 @@ void
 lgtd_client_send_response(struct lgtd_client *client, const char *msg)
 {
     if (!client) {
-        errx(1, "client shouldn't ne NULL");
+        errx(1, "client shouldn't be NULL");
     }
 
     if (strcmp(msg, "true")) {

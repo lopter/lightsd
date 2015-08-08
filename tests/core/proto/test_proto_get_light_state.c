@@ -1,6 +1,8 @@
 #include "proto.c"
 
 #include "mock_client_buf.h"
+#include "mock_daemon.h"
+#include "mock_gateway.h"
 #include "tests_utils.h"
 
 #define MOCKED_ROUTER_TARGETS_TO_DEVICES

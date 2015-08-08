@@ -65,6 +65,9 @@ dependencies:
 - CMake ≥ 2.8;
 - libevent ≥ 2.0.19.
 
+lightsd optionally depends on libbsd ≥ 0.5.0 on platforms missing
+``setproctitle`` (pretty much any non-BSD system, including Mac OS X).
+
 lightsd is actively developed and tested from Arch Linux, Debian and Mac OS X;
 both for 32/64 bits and little/big endian architectures.
 
@@ -85,5 +88,20 @@ port 1234:
 ::
 
    .../lightsd/build$ core/lightsd -v info -l ::1:1234
+
+lightsd forks in the background by default, display running processes and check
+how we are doing:
+
+::
+
+   ps aux | grep lightsd
+
+You can stop lightsd with:
+
+::
+
+   pkill lightsd
+
+Use the ``-f`` option to run lightsd in the foreground.
 
 .. vim: set tw=80 spelllang=en spell:

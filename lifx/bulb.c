@@ -32,6 +32,8 @@
 #include "core/time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
+#include "core/daemon.h"
+#include "core/stats.h"
 #include "core/lightsd.h"
 
 struct lgtd_lifx_bulb_map lgtd_lifx_bulbs_table =
@@ -62,6 +64,7 @@ lgtd_lifx_bulb_open(struct lgtd_lifx_gateway *gw, const uint8_t *addr)
     bulb->gw = gw;
     memcpy(bulb->addr, addr, sizeof(bulb->addr));
     RB_INSERT(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(bulbs, 1);
 
     bulb->last_light_state_at = lgtd_time_monotonic_msecs();
 
@@ -74,6 +77,10 @@ lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *bulb)
     assert(bulb);
     assert(bulb->gw);
 
+    LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(bulbs, -1);
+    if (bulb->state.power == LGTD_LIFX_POWER_ON) {
+        LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(bulbs_powered_on, -1);
+    }
     RB_REMOVE(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
     SLIST_REMOVE(&bulb->gw->bulbs, bulb, lgtd_lifx_bulb, link_by_gw);
     lgtd_info(
@@ -94,6 +101,13 @@ lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *bulb,
 {
     assert(bulb);
     assert(state);
+
+    if (state->power != bulb->state.power) {
+        LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(
+            bulbs_powered_on, state->power == LGTD_LIFX_POWER_ON ? 1 : -1
+        );
+    }
+
     bulb->last_light_state_at = received_at;
     memcpy(&bulb->state, state, sizeof(bulb->state));
 }
@@ -102,5 +116,12 @@ void
 lgtd_lifx_bulb_set_power_state(struct lgtd_lifx_bulb *bulb, uint16_t power)
 {
     assert(bulb);
+
+    if (power != bulb->state.power) {
+        LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(
+            bulbs_powered_on, power == LGTD_LIFX_POWER_ON ? 1 : -1
+        );
+    }
+
     bulb->state.power = power;
 }

@@ -15,19 +15,33 @@
 // You should have received a copy of the GNU General Public License
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once
+#include <assert.h>
+#include <stdint.h>
 
-struct evconnlistener;
+#include "stats.h"
 
-struct lgtd_listen {
-    SLIST_ENTRY(lgtd_listen)    link;
-    const char                  *addr;
-    const char                  *port;
-    struct evconnlistener       *evlistener;
-};
-SLIST_HEAD(lgtd_listen_list, lgtd_listen);
+struct lgtd_stats lgtd_counters = { .gateways = 0 };
 
-extern struct lgtd_listen_list lgtd_listeners;
+void
+lgtd_stats_add(int offset, int value)
+{
+    assert(offset >= 0);
+    assert(offset < (int)sizeof(lgtd_counters));
+    assert(offset % sizeof(int) == 0);
 
-bool lgtd_listen_open(const char *, const char *);
-void lgtd_listen_close_all(void);
+    int *counter = (int *)((uint8_t *)&lgtd_counters + offset);
+
+    assert(*counter + value >= 0);
+
+    *counter += value;
+}
+
+int
+lgtd_stats_get(int offset)
+{
+    assert(offset >= 0);
+    assert(offset < (int)sizeof(lgtd_counters));
+    assert(offset % sizeof(int) == 0);
+
+    return *(int *)((uint8_t *)&lgtd_counters + offset);
+}

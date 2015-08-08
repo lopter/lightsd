@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)  # first version TARGET_INCLUDE_DIRECTORIES
 
 PROJECT(LIGHTSD C)
 
@@ -22,28 +22,34 @@ ENABLE_TESTING()
 # TODO: we need at least 2.0.19-stable because of the logging defines
 FIND_PACKAGE(Event2 REQUIRED COMPONENTS core)
 FIND_PACKAGE(Endian REQUIRED)
+
+INCLUDE(CheckFunctionExists)
 INCLUDE(TestBigEndian)
+INCLUDE(CompatSetProctitle)
 INCLUDE(CompatTimeMonotonic)
 
-TEST_BIG_ENDIAN(LGTD_BIG_ENDIAN_SYSTEM)
+TEST_BIG_ENDIAN(BIG_ENDIAN_SYSTEM)
 
 ### Global definitions #########################################################
 
 INCLUDE(AddAllSubdirectories)
 INCLUDE(AddTestFromSources)
 
-SET(CMAKE_C_FLAGS "-pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
 
-ADD_DEFINITIONS("-DLGTD_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}")
-ADD_DEFINITIONS("-DLGTD_BIG_ENDIAN_SYSTEM=${LGTD_BIG_ENDIAN_SYSTEM}")
-
-# Only relevant for the GNU libc:
 ADD_DEFINITIONS(
+    # Only relevant for the GNU libc:
     "-D_POSIX_C_SOURCE=200809L"
     "-D_BSD_SOURCE=1"
     "-D_DEFAULT_SOURCE=1"
 
     "-D_DARWIN_C_SOURCE=1"
+
+    "-DLGTD_BIG_ENDIAN_SYSTEM=${BIG_ENDIAN_SYSTEM}"
+    "-DLGTD_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}"
+
+    "-DLGTD_HAVE_LIBBSD=${HAVE_LIBBSD}"
+    "-DLGTD_HAVE_PROCTITLE=${HAVE_PROCTITLE}"
 )
 
 IF (CMAKE_BUILD_TYPE MATCHES "DEBUG")
@@ -54,10 +60,11 @@ IF (CMAKE_BUILD_TYPE MATCHES "DEBUG")
 ENDIF ()
 
 INCLUDE_DIRECTORIES(
-    ${LIGHTSD_SOURCE_DIR}/compat/generic
     ${LIGHTSD_BINARY_DIR}/compat
+    ${LIGHTSD_BINARY_DIR}/compat/generic
 )
 
+ADD_SUBDIRECTORY(compat)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(lifx)
 ADD_SUBDIRECTORY(tests)

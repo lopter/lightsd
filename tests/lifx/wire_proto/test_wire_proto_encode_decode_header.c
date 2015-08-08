@@ -20,10 +20,10 @@ main(void)
     if (le16toh(hdr.size) != 42) {
         lgtd_errx(1, "size = %hu (expected = 42)", le16toh(hdr.size));
     }
-    if (le64toh(hdr.target.tags != 0xbad)) {
+    if (le64toh(hdr.target.tags) != 0xbad) {
         lgtd_errx(
             1, "tags = %#jx (expected = 0xbad)",
-            (uintmax_t)le16toh(hdr.target.tags)
+            (uintmax_t)le64toh(hdr.target.tags)
         );
     }
     if (le16toh(hdr.packet_type) != LGTD_LIFX_ECHO_REQUEST) {

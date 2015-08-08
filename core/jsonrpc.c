@@ -129,7 +129,7 @@ lgtd_jsonrpc_type_number(const jsmntok_t *t, const char *json)
     return c == '-' || (c >= '0' && c <= '9');
 }
 
-static bool __attribute__((unused))
+static bool
 lgtd_jsonrpc_type_bool(const jsmntok_t *t, const char *json)
 {
     if (t->type != JSMN_PRIMITIVE) {

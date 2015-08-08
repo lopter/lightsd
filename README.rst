@@ -10,8 +10,8 @@ but has some advantages:
 
 - no discovery delay ever, you get all the bulbs and their state right away;
 - lightsd is always in sync with the bulbs and always know their state;
-- lightsd act as an abstraction layer and can expose new discovery mechanism and
-  totally new APIs;
+- lightsd act as an abstraction layer and can expose new discovery mechanisms and
+  an unified API across different kind of smart bulbs;
 - For those of you with a high paranoia factor, lightsd let you place your bulbs
   in a totally separate and closed network.
 
@@ -24,8 +24,8 @@ Current features
 lightsd discovers your LIFX bulbs, stays in sync with them and support the
 following commands through a JSON-RPC_ interface:
 
-- power_off;
-- power_on;
+- power_off (with auto-retry);
+- power_on (with auto-retry);
 - set_light_from_hsbk;
 - set_waveform (change the light according to a function like SAW or SINE);
 - get_light_state;
@@ -102,5 +102,23 @@ You can stop lightsd with:
    pkill lightsd
 
 Use the ``-f`` option to run lightsd in the foreground.
+
+Known issues
+------------
+
+The grouping (tagging) code of the LIFX White 800 is bugged: after a tagging
+operation the LIFX White 800 keep saying it has no tags. Reboot the bulb to make
+the tags appears.
+
+Power ON/OFF are the only commands with auto-retry, i.e: lightsd will keep
+sending the command to the bulb until its state changes. This is not implemented
+(yet) for ``set_light_from_hsbk``, ``set_waveform``, ``tag`` and ``untag``.
+
+While lighsd appears to be pretty stable, if you want to run lightsd in the
+background, I recommend doing so in a processor supervisor (e.g: Supervisor_)
+that can restart lightsd if it crashes. Otherwise, please feel free to report
+crashes to me.
+
+.. _Supervisor: http://www.supervisord.org/
 
 .. vim: set tw=80 spelllang=en spell:

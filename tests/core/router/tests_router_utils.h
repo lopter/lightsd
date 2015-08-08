@@ -13,12 +13,9 @@ struct {
 void
 lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
                                  const struct lgtd_lifx_packet_header *hdr,
-                                 enum lgtd_lifx_packet_type pkt_type,
-                                 const void *pkt,
-                                 int pkt_size)
+                                 const struct lgtd_lifx_packet_info *pkt_info,
+                                 void *pkt)
 {
-    (void)pkt_type;
-
     lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].gw = gw;
     // headers are created on the stack so we need to dup them:
     lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].hdr = malloc(
@@ -30,7 +27,7 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
         sizeof(*hdr)
     );
     lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].pkt = pkt;
-    lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].pkt_size = pkt_size;
+    lgtd_tests_gw_pkt_queue[lgtd_tests_gw_pkt_queue_size].pkt_size = pkt_info->size;
     lgtd_tests_gw_pkt_queue_size++;
 }
 

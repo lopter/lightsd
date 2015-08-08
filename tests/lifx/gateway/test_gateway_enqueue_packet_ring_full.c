@@ -5,7 +5,7 @@
 int
 main(void)
 {
-    lgtd_lifx_wire_load_packet_infos_map();
+    lgtd_lifx_wire_load_packet_info_map();
 
     struct lgtd_lifx_gateway gw;
     memset(&gw, 0, sizeof(gw));
@@ -17,7 +17,7 @@ main(void)
     union lgtd_lifx_target target = { .tags = 0 };
 
     struct lgtd_lifx_packet_header hdr;
-    lgtd_lifx_wire_setup_header(
+    const struct lgtd_lifx_packet_info *pkt_info = lgtd_lifx_wire_setup_header(
         &hdr,
         LGTD_LIFX_TARGET_ALL_DEVICES,
         target,
@@ -29,9 +29,7 @@ main(void)
     gw.pkt_ring_head = 1;
     gw.pkt_ring_tail = 2;
 
-    lgtd_lifx_gateway_enqueue_packet(
-        &gw, &hdr, LGTD_LIFX_SET_POWER_STATE, &pkt, sizeof(pkt)
-    );
+    lgtd_lifx_gateway_enqueue_packet(&gw, &hdr, pkt_info, &pkt);
 
     if (memcmp(gw_write_buf, &hdr, sizeof(hdr))) {
         errx(1, "header incorrectly buffered");
@@ -65,9 +63,7 @@ main(void)
         errx(1, "event_add should have been called with gw.write_ev");
     }
 
-    lgtd_lifx_gateway_enqueue_packet(
-        &gw, &hdr, LGTD_LIFX_SET_POWER_STATE, &pkt, sizeof(pkt)
-    );
+    lgtd_lifx_gateway_enqueue_packet(&gw, &hdr, pkt_info, &pkt);
 
     if (gw_write_buf_idx != sizeof(pkt) + sizeof(hdr)) {
         errx(1, "nothing should have been buffered");

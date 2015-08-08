@@ -40,7 +40,7 @@ lgtd_lifx_tagging_incref(const char *label,
 int
 main(void)
 {
-    lgtd_lifx_wire_load_packet_infos_map();
+    lgtd_lifx_wire_load_packet_info_map();
 
     struct lgtd_lifx_gateway gw;
     memset(&gw, 0, sizeof(gw));

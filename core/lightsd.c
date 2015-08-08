@@ -220,7 +220,7 @@ main(int argc, char *argv[], char *envp[])
     argc -= optind;
     argv += optind;
 
-    lgtd_lifx_wire_load_packet_infos_map();
+    lgtd_lifx_wire_load_packet_info_map();
     if (!lgtd_lifx_timer_setup() || !lgtd_lifx_broadcast_setup()) {
         lgtd_err(1, "can't setup lightsd");
     }

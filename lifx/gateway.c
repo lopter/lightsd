@@ -164,24 +164,24 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
 static bool
 lgtd_lifx_gateway_send_to_site_impl(struct lgtd_lifx_gateway *gw,
                                     enum lgtd_lifx_packet_type pkt_type,
-                                    const void *pkt,
-                                    const struct lgtd_lifx_packet_infos **pkt_infos)
+                                    void *pkt,
+                                    const struct lgtd_lifx_packet_info **pkt_info)
 {
     assert(gw);
-    assert(pkt_infos);
+    assert(pkt_info);
 
     struct lgtd_lifx_packet_header hdr;
     union lgtd_lifx_target target = { .addr = gw->site.as_array };
-    *pkt_infos = lgtd_lifx_wire_setup_header(
+    *pkt_info = lgtd_lifx_wire_setup_header(
         &hdr,
         LGTD_LIFX_TARGET_SITE,
         target,
         gw->site.as_array,
         pkt_type
     );
-    assert(*pkt_infos);
+    assert(*pkt_info);
 
-    lgtd_lifx_gateway_enqueue_packet(gw, &hdr, pkt_type, pkt, (*pkt_infos)->size);
+    lgtd_lifx_gateway_enqueue_packet(gw, &hdr, *pkt_info, pkt);
 
     return true; // FIXME, have real return values on the send paths...
 }
@@ -189,17 +189,17 @@ lgtd_lifx_gateway_send_to_site_impl(struct lgtd_lifx_gateway *gw,
 static bool
 lgtd_lifx_gateway_send_to_site_quiet(struct lgtd_lifx_gateway *gw,
                                      enum lgtd_lifx_packet_type pkt_type,
-                                     const void *pkt)
+                                     void *pkt)
 {
 
-    const struct lgtd_lifx_packet_infos *pkt_infos;
+    const struct lgtd_lifx_packet_info *pkt_info;
     bool rv = lgtd_lifx_gateway_send_to_site_impl(
-        gw, pkt_type, pkt, &pkt_infos
+        gw, pkt_type, pkt, &pkt_info
     );
 
     lgtd_debug(
         "sending %s to site %s",
-        pkt_infos->name, lgtd_addrtoa(gw->site.as_array)
+        pkt_info->name, lgtd_addrtoa(gw->site.as_array)
     );
 
     return rv; // FIXME, have real return values on the send paths...
@@ -208,16 +208,16 @@ lgtd_lifx_gateway_send_to_site_quiet(struct lgtd_lifx_gateway *gw,
 bool
 lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,
                                enum lgtd_lifx_packet_type pkt_type,
-                               const void *pkt)
+                               void *pkt)
 {
-    const struct lgtd_lifx_packet_infos *pkt_infos;
+    const struct lgtd_lifx_packet_info *pkt_info;
     bool rv = lgtd_lifx_gateway_send_to_site_impl(
-        gw, pkt_type, pkt, &pkt_infos
+        gw, pkt_type, pkt, &pkt_info
     );
 
     lgtd_info(
         "sending %s to site %s",
-        pkt_infos->name, lgtd_addrtoa(gw->site.as_array)
+        pkt_info->name, lgtd_addrtoa(gw->site.as_array)
     );
 
     return rv; // FIXME, have real return values on the send paths...
@@ -387,13 +387,12 @@ lgtd_lifx_gateway_close_all(void)
 void
 lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
                                  const struct lgtd_lifx_packet_header *hdr,
-                                 enum lgtd_lifx_packet_type pkt_type,
-                                 const void *pkt,
-                                 int pkt_size)
+                                 const struct lgtd_lifx_packet_info *pkt_info,
+                                 void *pkt)
 {
     assert(gw);
     assert(hdr);
-    assert(pkt_size >= 0 && pkt_size < LGTD_LIFX_MAX_PACKET_SIZE);
+    assert(pkt_info);
     assert(!memcmp(hdr->site, gw->site.as_array, LGTD_LIFX_ADDR_LENGTH));
     assert(gw->pkt_ring_head >= 0);
     assert(gw->pkt_ring_head < (int)LGTD_ARRAY_SIZE(gw->pkt_ring));
@@ -401,19 +400,18 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
     if (gw->pkt_ring_full) {
         lgtd_warnx(
             "dropping packet type %s: packet queue on [%s]:%hu is full",
-            lgtd_lifx_wire_get_packet_infos(pkt_type)->name,
-            gw->ip_addr, gw->port
+            pkt_info->name, gw->ip_addr, gw->port
         );
         return;
     }
 
     evbuffer_add(gw->write_buf, hdr, sizeof(*hdr));
     if (pkt) {
-        assert((unsigned)pkt_size == le16toh(hdr->size) - sizeof(*hdr));
-        evbuffer_add(gw->write_buf, pkt, pkt_size);
+        assert(pkt_info->size == le16toh(hdr->size) - sizeof(*hdr));
+        evbuffer_add(gw->write_buf, pkt, pkt_info->size);
     }
-    gw->pkt_ring[gw->pkt_ring_head].size = sizeof(*hdr) + pkt_size;
-    gw->pkt_ring[gw->pkt_ring_head].type = pkt_type;
+    gw->pkt_ring[gw->pkt_ring_head].size = sizeof(*hdr) + pkt_info->size;
+    gw->pkt_ring[gw->pkt_ring_head].type = pkt_info->type;
     LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(gw->pkt_ring_head);
     if (gw->pkt_ring_head == gw->pkt_ring_tail) {
         gw->pkt_ring_full = true;

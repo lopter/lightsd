@@ -117,9 +117,9 @@ lgtd_lifx_broadcast_handle_read(void)
             continue;
         }
 
-        const struct lgtd_lifx_packet_infos *pkt_infos =
-            lgtd_lifx_wire_get_packet_infos(read.hdr.packet_type);
-        if (!pkt_infos) {
+        const struct lgtd_lifx_packet_info *pkt_info =
+            lgtd_lifx_wire_get_packet_info(read.hdr.packet_type);
+        if (!pkt_info) {
             lgtd_warnx(
                 "received unknown packet %#x from [%s]:%hu",
                 read.hdr.packet_type, peer_addr, peer_port
@@ -129,7 +129,7 @@ lgtd_lifx_broadcast_handle_read(void)
         if (!(read.hdr.protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE)) {
             lgtd_warnx(
                 "received non-addressable packet %s from [%s]:%hu",
-                pkt_infos->name, peer_addr, peer_port
+                pkt_info->name, peer_addr, peer_port
             );
             continue;
         }
@@ -145,8 +145,8 @@ lgtd_lifx_broadcast_handle_read(void)
         if (gw) {
             void *pkt = &read.buf[LGTD_LIFX_PACKET_HEADER_SIZE];
             gw->last_pkt_at = received_at;
-            pkt_infos->decode(pkt);
-            pkt_infos->handle(gw, &read.hdr, pkt);
+            pkt_info->decode(pkt);
+            pkt_info->handle(gw, &read.hdr, pkt);
         } else {
             lgtd_warnx(
                 "got packet from unknown gateway [%s]:%hu", peer_addr, peer_port

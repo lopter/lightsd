@@ -35,7 +35,9 @@ TEST_BIG_ENDIAN(BIG_ENDIAN_SYSTEM)
 INCLUDE(AddAllSubdirectories)
 INCLUDE(AddTestFromSources)
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pipe -Wextra -Wall -Wstrict-prototypes -std=c99")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} -pipe")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Wstrict-prototypes -std=c99")
+SET(CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} "")
 
 ADD_DEFINITIONS(
     # Only relevant for the GNU libc:
@@ -55,7 +57,7 @@ ADD_DEFINITIONS(
 IF (CMAKE_BUILD_TYPE MATCHES "DEBUG")
     ADD_DEFINITIONS("-DQUEUE_MACRO_DEBUG=1")
     IF (CMAKE_COMPILER_IS_GNUCC)
-        ADD_DEFINITIONS("-g3" "-ggdb")
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -ggdb")
     ENDIF ()
 ENDIF ()
 

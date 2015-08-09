@@ -31,6 +31,8 @@ main(void)
     const void *pkt_queued = lgtd_tests_gw_pkt_queue[0].pkt;
     int pkt_size = lgtd_tests_gw_pkt_queue[0].pkt_size;
 
+    lgtd_lifx_wire_decode_header(hdr_queued);
+
     if (recpt_gw != gw_1) {
         lgtd_errx(1, "the packet has been sent to the wrong gateway");
     }
@@ -81,6 +83,8 @@ main(void)
         hdr_queued = lgtd_tests_gw_pkt_queue[i].hdr;
         pkt_queued = lgtd_tests_gw_pkt_queue[i].pkt;
         pkt_size = lgtd_tests_gw_pkt_queue[i].pkt_size;
+
+        lgtd_lifx_wire_decode_header(hdr_queued);
 
         if (!lgtd_tests_lifx_header_has_flags(hdr_queued, expected_flags)) {
             lgtd_errx(1, "the packet header doesn't have the right protocol flags");

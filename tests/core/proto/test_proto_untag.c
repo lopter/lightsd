@@ -119,10 +119,10 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
     }
 
     struct lgtd_lifx_packet_tags *pkt_tags = pkt;
-    if (pkt_tags->tags != 0x2) {
+    if (le64toh(pkt_tags->tags) != 0x2) {
         errx(
             1, "invalid SET_TAGS payload=%#jx (expected %#x)",
-            (uintmax_t)pkt_tags->tags, 0x2
+            (uintmax_t)le64toh(pkt_tags->tags), 0x2
         );
     }
 

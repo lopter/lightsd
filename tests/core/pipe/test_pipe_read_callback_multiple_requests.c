@@ -160,7 +160,9 @@ evbuffer_pullup(struct evbuffer *buf, ev_ssize_t size)
     }
 
     if (size != -1) {
-        errx(1, "got unexpected size %ld in pullup (expected -1)", size);
+        errx(
+            1, "got unexpected size %jd in pullup (expected -1)", (intmax_t)size
+        );
     }
 
     int offset;

@@ -26,11 +26,11 @@ following commands through a JSON-RPC_ interface:
 
 - power_off (with auto-retry);
 - power_on (with auto-retry);
+- power_toggle (power on if off and vice-versa, with auto-retry);
 - set_light_from_hsbk;
 - set_waveform (change the light according to a function like SAW or SINE);
 - get_light_state;
-- tag/untag (group/ungroup bulbs together);
-- toggle (power on if off and vice-versa, coming up).
+- tag/untag (group/ungroup bulbs together).
 
 The JSON-RPC interface works on top of TCP/IPv4/v6, Unix sockets (coming up) or
 over a command pipe (named pipe, see mkfifo(1)).

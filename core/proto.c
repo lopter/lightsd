@@ -71,6 +71,35 @@ lgtd_proto_power_on(struct lgtd_client *client,
 }
 
 void
+lgtd_proto_power_toggle(struct lgtd_client *client,
+                        const struct lgtd_proto_target_list *targets)
+{
+    assert(targets);
+
+    struct lgtd_router_device_list *devices = NULL;
+    devices = lgtd_router_targets_to_devices(targets);
+    if (!devices) {
+        lgtd_client_send_error(
+            client, LGTD_CLIENT_INTERNAL_ERROR, "couldn't allocate memory"
+        );
+        return;
+    }
+
+    struct lgtd_router_device *device;
+    SLIST_FOREACH(device, devices, link) {
+        struct lgtd_lifx_bulb *bulb = device->device;
+        struct lgtd_lifx_packet_power_state pkt = {
+            .power = ~bulb->state.power
+        };
+        lgtd_router_send_to_device(bulb, LGTD_LIFX_SET_POWER_STATE, &pkt);
+    }
+
+    SEND_RESULT(client, true);
+
+    lgtd_router_device_list_free(devices);
+}
+
+void
 lgtd_proto_power_off(struct lgtd_client *client,
                      const struct lgtd_proto_target_list *targets)
 {
@@ -329,7 +358,6 @@ error_tag_alloc:
     );
 fini:
     lgtd_router_device_list_free(devices);
-    return;
 }
 
 void

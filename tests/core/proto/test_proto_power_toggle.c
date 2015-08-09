@@ -128,7 +128,7 @@ main(void)
     struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
-    lgtd_proto_toggle(&client, targets);
+    lgtd_proto_power_toggle(&client, targets);
 
     const char expected[] = "true";
 

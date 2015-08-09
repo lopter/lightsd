@@ -82,11 +82,11 @@ Clone this repository and then:
    .../lightsd/build$ make -j5
 
 Finally, to start lightsd with the jsonrpc interface listening on localhost
-port 1234:
+port 1234 and a command pipe named lightsd.cmd:
 
 ::
 
-   .../lightsd/build$ core/lightsd -v info -l ::1:1234
+   .../lightsd/build$ core/lightsd -v info -l ::1:1234 -c lightsd.cmd
 
 lightsd forks in the background by default, display running processes and check
 how we are doing:
@@ -106,18 +106,22 @@ Use the ``-f`` option to run lightsd in the foreground.
 Known issues
 ------------
 
-The grouping (tagging) code of the LIFX White 800 is bugged: after a tagging
-operation the LIFX White 800 keep saying it has no tags. Reboot the bulb to make
-the tags appears.
+The grouping (tagging) code of the LIFX White 800 (and presumably the Color 650
+as well) is bugged: after a tagging operation the LIFX White 800 keep saying it
+has no tags. Reboot the bulb to make the tags appears.
 
 Power ON/OFF are the only commands with auto-retry, i.e: lightsd will keep
 sending the command to the bulb until its state changes. This is not implemented
 (yet) for ``set_light_from_hsbk``, ``set_waveform``, ``tag`` and ``untag``.
 
-While lighsd appears to be pretty stable, if you want to run lightsd in the
-background, I recommend doing so in a processor supervisor (e.g: Supervisor_)
-that can restart lightsd if it crashes. Otherwise, please feel free to report
-crashes to me.
+In general, crappy WiFi network with latency, jitter or packet loss are gonna be
+challenging until lightsd has an auto-retry mechanism, there is also room for
+optimizations in how lightsd communicates with the bulbs.
+
+While lightsd appears to be pretty stable, if you want to run lightsd in the
+background, I recommend doing so in a process supervisor (e.g: Supervisor_) that
+can restart lightsd if it crashes. Otherwise, please feel free to report crashes
+to me.
 
 .. _Supervisor: http://www.supervisord.org/
 

@@ -12,7 +12,7 @@ Commands that manipulate bulbs will take a *target* argument to define on which
 bulb(s) the operation should apply:
 
 +-----------------------------+-----------------------------------------------+
-| ``\*``                      | targets all bulbs                             |
+| ``*``                       | targets all bulbs                             |
 +-----------------------------+-----------------------------------------------+
 | ``#TagName``                | targets bulbs tagged with *TagName*           |
 +-----------------------------+-----------------------------------------------+
@@ -74,5 +74,30 @@ Available methods
     - label: bulb label (utf-8 encoded string);
     - power: boolean, true when the bulb is powered on false otherwise;
     - tags: list of tags applied to the bulb (utf-8 encoded strings).
+
+.. function:: tag(target, label)
+
+   Tag (group) the given target bulb(s) with the given label (group name), then
+   label can be used as a target by prefixing it with ``#``.
+
+   To add a device to an existing "group" simply do:
+
+   ::
+
+      tag(["#myexistingtag", "bulbtoadd"], "myexistingtag")
+
+   .. note::
+
+      Notice how ``#`` is prepended to the tag label depending on whether it's
+      used as a target or a regular argument.
+
+.. function:: untag(target, label)
+
+   Remove the given tag from the given target bulb(s). To completely delete a
+   tag (group), simple do:
+
+   ::
+
+      untag("#myexistingtag", "myexistingtag")
 
 .. vim: set tw=80 spelllang=en spell:

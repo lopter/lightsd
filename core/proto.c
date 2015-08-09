@@ -195,7 +195,7 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
             bulb->state.power == LGTD_LIFX_POWER_ON ? "true" : "false",
             bulb->state.label
         );
-        if (written == sizeof(buf)) {
+        if (written >= (int)sizeof(buf)) {
             lgtd_warnx(
                 "can't send state of bulb %s (%s) to client "
                 "[%s]:%hu: output buffer to small",

@@ -938,44 +938,24 @@ lgtd_jsonrpc_extract_target_list(struct lgtd_proto_target_list *targets,
     );
 }
 
-static void
-lgtd_jsonrpc_check_and_call_power_on(struct lgtd_client *client)
-{
-    struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
-    bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);
-    if (!ok) {
-        return;
-    }
-
-    lgtd_proto_power_on(client, &targets);
-    lgtd_proto_target_list_clear(&targets);
+#define CHECK_AND_CALL_TARGETS_ONLY_METHOD(proto_method)                       \
+static void                                                                    \
+lgtd_jsonrpc_check_and_call_##proto_method(struct lgtd_client *client)         \
+{                                                                              \
+    struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);  \
+    bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);              \
+    if (!ok) {                                                                 \
+        return;                                                                \
+    }                                                                          \
+                                                                               \
+    lgtd_proto_##proto_method(client, &targets);                               \
+    lgtd_proto_target_list_clear(&targets);                                    \
 }
 
-static void
-lgtd_jsonrpc_check_and_call_power_off(struct lgtd_client *client)
-{
-    struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
-    bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);
-    if (!ok) {
-        return;
-    }
-
-    lgtd_proto_power_off(client, &targets);
-    lgtd_proto_target_list_clear(&targets);
-}
-
-static void
-lgtd_jsonrpc_check_and_call_get_light_state(struct lgtd_client *client)
-{
-    struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
-    bool ok = lgtd_jsonrpc_extract_target_list(&targets, client);
-    if (!ok) {
-        return;
-    }
-
-    lgtd_proto_get_light_state(client, &targets);
-    lgtd_proto_target_list_clear(&targets);
-}
+CHECK_AND_CALL_TARGETS_ONLY_METHOD(power_on);
+CHECK_AND_CALL_TARGETS_ONLY_METHOD(power_off);
+CHECK_AND_CALL_TARGETS_ONLY_METHOD(power_toggle);
+CHECK_AND_CALL_TARGETS_ONLY_METHOD(get_light_state);
 
 static void
 lgtd_jsonrpc_check_and_call_proto_tag_or_untag(struct lgtd_client *client,
@@ -1072,6 +1052,10 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
         LGTD_JSONRPC_METHOD(
             "power_off", 1, // t
             lgtd_jsonrpc_check_and_call_power_off
+        ),
+        LGTD_JSONRPC_METHOD(
+            "power_toggle", 1, // t
+            lgtd_jsonrpc_check_and_call_power_toggle
         ),
         LGTD_JSONRPC_METHOD(
             "set_light_from_hsbk", 6, // t, h, s, b, k, t

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import json
-import pprint
 import socket
 import sys
 import time
@@ -67,6 +66,10 @@ def power_on(socket, target):
 
 def power_off(socket, target):
     return jsonrpc_call(socket, "power_off", {"target": target})
+
+
+def power_toggle(socket, target):
+    return jsonrpc_call(socket, "power_toggle", {"target": target})
 
 
 def get_light_state(socket, target):

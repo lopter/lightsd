@@ -37,6 +37,10 @@ Available methods
 
    Power on the given bulb(s).
 
+.. function:: power_toggle(target)
+
+   Power on (if they are off) or power off (if they are on) the given bulb(s).
+
 .. function:: set_light_from_hsbk(target, h, s, b, k, t)
 
    :param float h: Hue from 0 to 360.

@@ -121,3 +121,13 @@ lgtd_proto_untag(struct lgtd_client *client,
     (void)tag_label;
 }
 #endif
+
+#ifndef MOCKED_LGTD_PROTO_POWER_TOGGLE
+void
+lgtd_proto_power_toggle(struct lgtd_client *client,
+                        const struct lgtd_proto_target_list *targets)
+{
+    (void)client;
+    (void)targets;
+}
+#endif

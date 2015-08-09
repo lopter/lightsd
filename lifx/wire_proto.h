@@ -28,15 +28,17 @@ typedef float    floatle_t;
 static inline floatle_t
 lgtd_lifx_wire_htolefloat(float f)
 {
-    *(uint32_t *)&f = htole32(*(uint32_t *)&f);
-    return f;
+    union { float f; uint32_t i; } u  = { .f = f };
+    htole32(u.i);
+    return u.f;
 }
 
 static inline floatle_t
 lgtd_lifx_wire_lefloattoh(float f)
 {
-    *(uint32_t *)&f = le32toh(*(uint32_t *)&f);
-    return f;
+    union { float f; uint32_t i; } u  = { .f = f };
+    le32toh(u.i);
+    return u.f;
 }
 
 enum { LGTD_LIFX_PROTOCOL_PORT = 56700 };

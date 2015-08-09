@@ -222,7 +222,7 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
             buf, sizeof(buf), state_fmt,
             h, s, b, bulb->state.kelvin,
             bulb->state.power == LGTD_LIFX_POWER_ON ? "true" : "false",
-            bulb->state.label
+            bulb->state.label[0] ? bulb->state.label : lgtd_addrtoa(bulb->addr)
         );
         if (written >= (int)sizeof(buf)) {
             lgtd_warnx(

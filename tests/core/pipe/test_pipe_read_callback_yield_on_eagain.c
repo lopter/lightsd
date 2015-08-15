@@ -7,7 +7,6 @@
 #include "lifx/wire_proto.h"
 
 #define MOCKED_EVENT_NEW
-#define MOCKED_EVENT_DEL
 #define MOCKED_EVBUFFER_NEW
 #define MOCKED_EVBUFFER_READ
 #define MOCKED_EVBUFFER_PULLUP
@@ -20,12 +19,24 @@
 #define MOCKED_JSONRPC_DISPATCH_REQUEST
 #include "tests_pipe_utils.h"
 
-static unsigned char request[] = ("{"
-    "\"jsonrpc\": \"2.0\","
-    "\"method\": \"get_light_state\","
-    "\"params\": [\"*\"],"
-    "\"id\": 42"
-"}");
+#define REQUEST_1 "{"                   \
+    "\"jsonrpc\": \"2.0\","             \
+    "\"method\": \"get_light_state\","  \
+    "\"params\": [\"*\"],"              \
+    "\"id\": 42"                        \
+"}"
+
+#define REQUEST_2 "{"           \
+    "\"jsonrpc\": \"2.0\","     \
+    "\"method\": \"power_on\"," \
+    "\"params\": [\"*\"],"      \
+    "\"id\": 43"                \
+"}"
+
+static unsigned char request[] = (
+    REQUEST_1
+    REQUEST_2
+);
 
 static char *tmpdir = NULL;
 
@@ -47,8 +58,29 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
         errx(1, "number of parsed json tokens not passed in");
     }
 
-    if (memcmp(client->json, request, sizeof(request))) {
-        errx(1, "got unexpected json");
+    switch (jsonrpc_dispatch_request_call_count) {
+    case 0:
+        if (memcmp(client->json, request, sizeof(request) - 1)) {
+            errx(
+                1, "got unexpected json %s (expected %s)",
+                client->json, request
+            );
+        }
+        break;
+    case 1:
+        if (memcmp(client->json, REQUEST_2, sizeof(REQUEST_2) - 1)) {
+            errx(
+                1, "got unexpected json %s (expected %s)",
+                client->json, REQUEST_2
+            );
+        }
+        break;
+    default:
+        errx(
+            1, "jsonrpc_dispatch_request_call_count = %d",
+            jsonrpc_dispatch_request_call_count
+        );
+        break;
     }
 
     jsonrpc_dispatch_request_call_count++;
@@ -68,27 +100,6 @@ event_new(struct event_base *base,
     (void)ctx;
 
     return (void *)1;
-}
-
-static int event_del_call_count = 0;
-
-int
-event_del(struct event *ev)
-{
-    (void)ev;
-    event_del_call_count++;
-    return 0;
-}
-
-static int
-get_nbytes_read(int call_count)
-{
-    switch (call_count) {
-    case 0:
-        return sizeof(request) - 1; // we don't return the '\0'
-    default:
-        return 0;
-    }
 }
 
 struct evbuffer *
@@ -113,17 +124,25 @@ evbuffer_drain(struct evbuffer *buf, size_t len)
         errx(1, "the client json parser context wasn't re-initialized");
     }
 
-
     switch (evbuffer_drain_call_count) {
     case 0:
-        if (len != sizeof(request) - 1) {
+        if (len != sizeof(REQUEST_1) - 1) {
             errx(
                 1, "trying to drain %ju bytes (expected %ju)",
-                (uintmax_t)len, (uintmax_t)sizeof(request) - 1
+                (uintmax_t)len, (uintmax_t)sizeof(REQUEST_1) - 1
+            );
+        }
+        break;
+    case 1:
+        if (len != sizeof(REQUEST_2) - 1) {
+            errx(
+                1, "trying to drain %ju bytes (expected %ju)",
+                (uintmax_t)len, (uintmax_t)sizeof(REQUEST_2) - 1
             );
         }
         break;
     default:
+        errx(1, "evbuffer_drain_call_count = %d", evbuffer_drain_call_count);
         break;
     }
     evbuffer_drain_call_count++;
@@ -146,7 +165,21 @@ evbuffer_pullup(struct evbuffer *buf, ev_ssize_t size)
         );
     }
 
-    return &request[evbuffer_pullup_call_count++ ? sizeof(request) - 1 : 0];
+    int offset;
+    switch (evbuffer_pullup_call_count) {
+    case 0:
+        offset = 0;
+        break;
+    case 1:
+        offset = sizeof(REQUEST_1) - 1;
+        break;
+    default:
+        offset = sizeof(request);
+        break;
+    }
+    evbuffer_pullup_call_count++;
+
+    return &request[offset];
 }
 
 static int evbuffer_get_length_call_count = 0;
@@ -158,7 +191,21 @@ evbuffer_get_length(const struct evbuffer *buf)
         errx(1, "got unexpected buf %p (expected %p)", buf, (void *)2);
     }
 
-    return get_nbytes_read(evbuffer_get_length_call_count++);
+    size_t len;
+    switch (evbuffer_get_length_call_count) {
+    case 0:
+        len = sizeof(REQUEST_1) - 1;
+        break;
+    case 1:
+        len = sizeof(request) - sizeof(REQUEST_1);
+        break;
+    default:
+        len = 0;
+        break;
+    }
+    evbuffer_get_length_call_count++;
+
+    return len;
 }
 
 static int evbuffer_read_call_count = 0;
@@ -181,7 +228,24 @@ evbuffer_read(struct evbuffer *buf, evutil_socket_t fd, int howmuch)
         );
     }
 
-    return get_nbytes_read(evbuffer_read_call_count++);
+    int rv = 0;
+    switch (evbuffer_read_call_count) {
+    case 0:
+        rv = sizeof(REQUEST_1) - 1;
+        break;
+    case 1:
+        rv = -1;
+        errno = EAGAIN;
+        break;
+    case 2:
+        rv = sizeof(request) - sizeof(REQUEST_1);
+        break;
+    default:
+        break;
+    }
+    evbuffer_read_call_count++;
+
+    return rv;
 }
 
 int
@@ -197,22 +261,9 @@ main(void)
     }
 
     struct lgtd_command_pipe *pipe = SLIST_FIRST(&lgtd_command_pipes);
-    lgtd_command_pipe_read_callback(pipe->fd, EV_READ, pipe);
-    if (event_del_call_count != 1) {
-        errx(1, "the pipe wasn't reset");
-    }
 
-    jsonrpc_dispatch_request_call_count = 0;
-    evbuffer_drain_call_count = 0;
-    evbuffer_read_call_count = 0;
-    evbuffer_pullup_call_count = 0;
-    evbuffer_get_length_call_count = 0;
-    event_del_call_count = 0;
-    pipe = SLIST_FIRST(&lgtd_command_pipes);
     lgtd_command_pipe_read_callback(pipe->fd, EV_READ, pipe);
-    if (event_del_call_count != 1) {
-        errx(1, "the pipe wasn't reset");
-    }
+    lgtd_command_pipe_read_callback(pipe->fd, EV_READ, pipe);
 
     return 0;
 }

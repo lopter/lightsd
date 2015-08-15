@@ -41,7 +41,7 @@ struct lgtd_command_pipe_list lgtd_command_pipes =
     SLIST_HEAD_INITIALIZER(&lgtd_command_pipes);
 
 static void
-lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
+_lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
 {
     assert(pipe);
 
@@ -49,14 +49,22 @@ lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
     if (pipe->fd != -1) {
         close(pipe->fd);
     }
-    unlink(pipe->path);
     SLIST_REMOVE(&lgtd_command_pipes, pipe, lgtd_command_pipe, link);
     evbuffer_free(pipe->read_buf);
     event_free(pipe->read_ev);
-
-    lgtd_info("closed command pipe %s", pipe->path);
     free(pipe);
 }
+
+static void
+lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
+{
+    const char *path = pipe->path;
+    _lgtd_command_pipe_close(pipe);
+    unlink(path);
+    lgtd_info("closed command pipe %s", path);
+}
+
+static void lgtd_command_pipe_reset(struct lgtd_command_pipe *);
 
 static void
 lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
@@ -70,7 +78,6 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
     struct lgtd_command_pipe *pipe = ctx;
 
     bool drain = false;
-    int read = 0;
     for (int nbytes = evbuffer_read(pipe->read_buf, pipe->fd, -1);
          nbytes;
          nbytes = evbuffer_read(pipe->read_buf, pipe->fd, -1)) {
@@ -80,16 +87,12 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
             }
             if (errno != EAGAIN) {
                 lgtd_warn("read error on command pipe %s", pipe->path);
-                const char *path = pipe->path;
-                lgtd_command_pipe_close(pipe);
-                lgtd_command_pipe_open(path);
-                return;
+                break;
             }
-            continue;
+            return; // EAGAIN, go back to the event loop
         }
 
         if (!drain) {
-            read += nbytes;
         next_request:
             (void)0;
             const char *buf = (char *)evbuffer_pullup(pipe->read_buf, -1);
@@ -127,25 +130,22 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
                 jsmn_init(&pipe->client.jsmn_ctx);
                 int request_size = pipe->client.jsmn_tokens[0].end;
                 evbuffer_drain(pipe->read_buf, request_size);
-                read -= request_size;
-                if (read) {
+                if (request_size < bufsz) {
                     goto next_request;
                 }
                 break;
             }
-        } else {
-            evbuffer_drain(pipe->read_buf, read + nbytes);
-            read = 0;
+        }
+
+        if (drain) {
+            ssize_t bufsz = evbuffer_get_length(pipe->read_buf);
+            evbuffer_drain(pipe->read_buf, bufsz);
+            drain = false;
+            jsmn_init(&pipe->client.jsmn_ctx);
         }
     }
 
-    if (read) {
-        lgtd_debug(
-            "pipe %s: discarding %d bytes of unusable data", pipe->path, read
-        );
-        evbuffer_drain(pipe->read_buf, read);
-    }
-    jsmn_init(&pipe->client.jsmn_ctx);
+    lgtd_command_pipe_reset(pipe);
 }
 
 static mode_t
@@ -156,8 +156,8 @@ lgtd_command_pipe_get_umask(void)
     return mask;
 }
 
-bool
-lgtd_command_pipe_open(const char *path)
+static bool
+_lgtd_command_pipe_open(const char *path)
 {
     assert(path);
 
@@ -218,8 +218,6 @@ lgtd_command_pipe_open(const char *path)
         goto error;
     }
 
-    lgtd_info("command pipe ready at %s", pipe->path);
-
     SLIST_INSERT_HEAD(&lgtd_command_pipes, pipe, link);
 
     return true;
@@ -236,6 +234,27 @@ error:
         close(pipe->fd);
     }
     free(pipe);
+    return false;
+}
+
+static void
+lgtd_command_pipe_reset(struct lgtd_command_pipe *pipe)
+{
+    const char *path = pipe->path;
+    // we could optimize a bit to avoid re-allocations here:
+    _lgtd_command_pipe_close(pipe);
+    if (!_lgtd_command_pipe_open(path)) {
+        lgtd_warn("can't re-open pipe %s", path);
+    }
+}
+
+bool
+lgtd_command_pipe_open(const char *path)
+{
+    if (_lgtd_command_pipe_open(path)) {
+        lgtd_info("command pipe ready at %s", path);
+        return true;
+    }
     return false;
 }
 

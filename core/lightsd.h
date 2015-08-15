@@ -28,6 +28,10 @@
     .tv_sec = (v) / 1000,           \
     .tv_usec = ((v) % 1000) * 1000  \
 }
+#define LGTD_SNPRINTF_APPEND(buf, i, bufsz, ...) do {       \
+    int n = snprintf(&(buf)[(i)], bufsz - i, __VA_ARGS__);  \
+    (i) = LGTD_MIN((i) + n, bufsz);                         \
+} while (0)
 
 enum lgtd_verbosity {
     LGTD_DEBUG = 0,

@@ -26,6 +26,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #if LGTD_HAVE_LIBBSD
@@ -100,12 +101,22 @@ lgtd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
     assert(buf);
     assert(buflen > 0);
 
+    const char *printed;
     if (peer->ss_family == AF_INET) {
         const struct sockaddr_in *in_peer = (const struct sockaddr_in *)peer;
-        inet_ntop(AF_INET, &in_peer->sin_addr, buf, buflen);
+        int i = 0;
+        LGTD_SNPRINTF_APPEND(buf, i, buflen, "::ffff:");
+        printed = inet_ntop(AF_INET, &in_peer->sin_addr, &buf[i], buflen - i);
     } else {
         const struct sockaddr_in6 *in6_peer = (const struct sockaddr_in6 *)peer;
-        inet_ntop(AF_INET6, &in6_peer->sin6_addr, buf, buflen);
+        printed = inet_ntop(AF_INET6, &in6_peer->sin6_addr, buf, buflen);
+    }
+    if (!printed) {
+        buf[0] = 0;
+        lgtd_warnx("not enough space to log an ip address");
+#ifndef NDEBUG
+        abort();
+#endif
     }
 }
 

@@ -24,7 +24,7 @@
 #       tags and labels into double quotes '"likethis"'. Also keep in mind
 #       that the pipe is write-only you cannot read any result back.
 
-_b64e() {
+_lightsc_b64e() {
     if type base64 >/dev/null 2>&1 ; then
         base64
     elif type b64encode >/dev/null 2>&1 ; then
@@ -35,11 +35,19 @@ _b64e() {
     fi
 }
 
-_gen_request_id() {
+_lightsc_gen_request_id() {
     if type dd >/dev/null 2>&1 ; then
-        printf '"%s"' `dd if=/dev/urandom bs=8 count=1 2>&- | _b64e`
+        printf '"%s"' `dd if=/dev/urandom bs=8 count=1 2>&- | _lightsc_b64e`
     else
         echo null
+    fi
+}
+
+_lightsc_jq() {
+    if type jq >/dev/null 2>&1 ; then
+        jq .
+    else
+        cat
     fi
 }
 
@@ -61,12 +69,13 @@ lightsc() {
         params=$params,$target
     done
 
-    tee $pipe <<EOF
+    tee $pipe <<EOF |
 {
   "jsonrpc": "2.0",
   "method": "$method",
   "params": [$params],
-  "id": `_gen_request_id`
+  "id": `_lightsc_gen_request_id`
 }
 EOF
+_lightsc_jq
 }

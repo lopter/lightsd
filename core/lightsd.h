@@ -51,7 +51,9 @@ struct lgtd_opts {
 extern struct lgtd_opts lgtd_opts;
 extern struct event_base *lgtd_ev_base;
 
-const char *lgtd_addrtoa(const uint8_t *);
+char *lgtd_iee8023mactoa(const uint8_t *addr, char *buf, int buflen);
+#define LGTD_IEEE8023MACTOA(addr, buf) \
+    lgtd_iee8023mactoa((addr), (buf), sizeof(buf))
 void lgtd_sockaddrtoa(const struct sockaddr_storage *, char *buf, int buflen);
 short lgtd_sockaddrport(const struct sockaddr_storage *);
 

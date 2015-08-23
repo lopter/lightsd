@@ -76,9 +76,10 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
         lgtd_lifx_gateway_remove_and_close_bulb(gw, bulb);
     }
 
+    char site[LGTD_LIFX_ADDR_STRLEN];
     lgtd_info(
         "connection with gateway bulb [%s]:%hu (site %s) closed",
-        gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
+        gw->ip_addr, gw->port, LGTD_IEEE8023MACTOA(gw->site.as_array, site)
     );
     free(gw);
 }
@@ -197,9 +198,10 @@ lgtd_lifx_gateway_send_to_site_quiet(struct lgtd_lifx_gateway *gw,
         gw, pkt_type, pkt, &pkt_info
     );
 
+    char site[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "sending %s to site %s",
-        pkt_info->name, lgtd_addrtoa(gw->site.as_array)
+        pkt_info->name, LGTD_IEEE8023MACTOA(gw->site.as_array, site)
     );
 
     return rv; // FIXME, have real return values on the send paths...
@@ -215,9 +217,10 @@ lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,
         gw, pkt_type, pkt, &pkt_info
     );
 
+    char site[LGTD_LIFX_ADDR_STRLEN];
     lgtd_info(
         "sending %s to site %s",
-        pkt_info->name, lgtd_addrtoa(gw->site.as_array)
+        pkt_info->name, LGTD_IEEE8023MACTOA(gw->site.as_array, site)
     );
 
     return rv; // FIXME, have real return values on the send paths...
@@ -266,9 +269,10 @@ lgtd_lifx_gateway_get_or_open_bulb(struct lgtd_lifx_gateway *gw,
         bulb = lgtd_lifx_bulb_open(gw, bulb_addr);
         if (bulb) {
             SLIST_INSERT_HEAD(&gw->bulbs, bulb, link_by_gw);
+            char addr[LGTD_LIFX_ADDR_STRLEN];
             lgtd_info(
                 "bulb %s on [%s]:%hu",
-                lgtd_addrtoa(bulb_addr), gw->ip_addr, gw->port
+                LGTD_IEEE8023MACTOA(bulb->addr, addr), gw->ip_addr, gw->port
             );
         }
     }
@@ -328,9 +332,11 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
         goto error_allocate;
     }
 
+    char site_addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_info(
         "gateway for site %s at [%s]:%hu",
-        lgtd_addrtoa(gw->site.as_array), gw->ip_addr, gw->port
+        LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr),
+        gw->ip_addr, gw->port
     );
     LIST_INSERT_HEAD(&lgtd_lifx_gateways, gw, link);
 
@@ -444,10 +450,12 @@ lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *gw,
     LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, removed_tags) {
         assert(gw->tag_refcounts[tag_id] > 0);
         if (--gw->tag_refcounts[tag_id] == 0) {
+            char site[LGTD_LIFX_ADDR_STRLEN];
             lgtd_info(
                 "deleting unused tag [%s] (%d) from gw [%s]:%hu (site %s)",
-                gw->tags[tag_id] ? gw->tags[tag_id]->label : NULL, tag_id,
-                gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
+                gw->tags[tag_id] ? gw->tags[tag_id]->label : NULL,
+                tag_id, gw->ip_addr, gw->port,
+                LGTD_IEEE8023MACTOA(gw->site.as_array, site)
             );
             struct lgtd_lifx_packet_tag_labels pkt = {
                 .tags = ~(gw->tag_ids & ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))
@@ -465,10 +473,12 @@ lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *gw,
 {
     assert(gw && hdr && pkt);
 
+    char addr[LGTD_LIFX_ADDR_STRLEN], site[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_PAN_GATEWAY <-- [%s]:%hu - %s site=%s, service_type=%d",
-        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
-        lgtd_addrtoa(hdr->site), pkt->service_type
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        LGTD_IEEE8023MACTOA(hdr->site, site), pkt->service_type
     );
 }
 
@@ -479,11 +489,13 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 {
     assert(gw && hdr && pkt);
 
+    char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_LIGHT_STATE <-- [%s]:%hu - %s "
         "hue=%#hx, saturation=%#hx, brightness=%#hx, "
         "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#jx",
-        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         pkt->hue, pkt->saturation, pkt->brightness, pkt->kelvin,
         pkt->dim, pkt->power, LGTD_LIFX_LABEL_SIZE, pkt->label,
         (uintmax_t)pkt->tags
@@ -554,9 +566,11 @@ lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *gw,
 {
     assert(gw && hdr && pkt);
 
+    char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_POWER_STATE <-- [%s]:%hu - %s power=%#hx",
-        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr), pkt->power
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr), pkt->power
     );
 
     struct lgtd_lifx_bulb *b = lgtd_lifx_gateway_get_or_open_bulb(
@@ -596,13 +610,15 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
     assert(tag_id >= -1);
     assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
 
+    char site[LGTD_LIFX_ADDR_STRLEN];
+    LGTD_IEEE8023MACTOA(gw->site.as_array, site);
+
     if (tag_id == -1) {
         tag_id = lgtd_lifx_wire_bitscan64_forward(~gw->tag_ids);
         if (tag_id == -1) {
             lgtd_warnx(
                 "no tag_id left for new tag [%s] on gw [%s]:%hu (site %s)",
-                tag_label, gw->ip_addr, gw->port,
-                lgtd_addrtoa(gw->site.as_array)
+                tag_label, gw->ip_addr, gw->port, site
             );
             return -1;
         }
@@ -614,14 +630,13 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
         if (!tag) {
             lgtd_warn(
                 "couldn't allocate a new reference to tag [%s] (site %s)",
-                tag_label, lgtd_addrtoa(gw->site.as_array)
+                tag_label, site
             );
             return -1;
         }
         lgtd_debug(
             "tag_id %d allocated for tag [%s] on gw [%s]:%hu (site %s)",
-            tag_id, tag_label, gw->ip_addr, gw->port,
-            lgtd_addrtoa(gw->site.as_array)
+            tag_id, tag_label, gw->ip_addr, gw->port, site
         );
         gw->tag_ids |= LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
         gw->tags[tag_id] = tag;
@@ -638,11 +653,12 @@ lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *gw, int tag_id)
     assert(tag_id < LGTD_LIFX_GATEWAY_MAX_TAGS);
 
     if (gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id)) {
+        char site[LGTD_LIFX_ADDR_STRLEN];
         lgtd_debug(
             "tag_id %d deallocated for tag [%s] on gw [%s]:%hu (site %s)",
             tag_id, gw->tags[tag_id]->label,
             gw->ip_addr, gw->port,
-            lgtd_addrtoa(gw->site.as_array)
+            LGTD_IEEE8023MACTOA(gw->site.as_array, site)
         );
         lgtd_lifx_tagging_decref(gw->tags[tag_id], gw);
         gw->tag_ids &= ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
@@ -657,9 +673,11 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
 {
     assert(gw && hdr && pkt);
 
+    char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_TAG_LABELS <-- [%s]:%hu - %s label=%.*s, tags=%jx",
-        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         LGTD_LIFX_LABEL_SIZE, pkt->label, (uintmax_t)pkt->tags
     );
 
@@ -679,9 +697,11 @@ void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
 {
     assert(gw && hdr && pkt);
 
+    char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_TAGS <-- [%s]:%hu - %s tags=%#jx",
-        gw->ip_addr, gw->port, lgtd_addrtoa(hdr->target.device_addr),
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         (uintmax_t)pkt->tags
     );
 
@@ -692,6 +712,7 @@ void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
         return;
     }
 
+    char bulb_addr[LGTD_LIFX_ADDR_STRLEN], site_addr[LGTD_LIFX_ADDR_STRLEN];
     int tag_id;
     LGTD_LIFX_WIRE_FOREACH_TAG_ID(tag_id, pkt->tags) {
         if (!(gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))) {
@@ -699,8 +720,9 @@ void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
                 "trying to set unknown tag_id %d (%#jx) "
                 "on bulb %s (%.*s), gw [%s]:%hu (site %s)",
                 tag_id, LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id),
-                lgtd_addrtoa(b->addr), LGTD_LIFX_LABEL_SIZE, b->state.label,
-                gw->ip_addr, gw->port, lgtd_addrtoa(gw->site.as_array)
+                LGTD_IEEE8023MACTOA(b->addr, bulb_addr),
+                LGTD_LIFX_LABEL_SIZE, b->state.label, gw->ip_addr, gw->port,
+                LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr)
             );
         }
     }

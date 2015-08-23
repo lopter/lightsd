@@ -123,10 +123,11 @@ lgtd_lifx_tagging_incref(const char *tag_label,
         if (dealloc_tag) {
             lgtd_info("discovered tag [%s]", tag_label);
         }
+        char site_addr[LGTD_LIFX_ADDR_STRLEN];
         lgtd_info(
             "tag [%s] added to gw [%s]:%hu (site %s) with tag_id %d",
             tag_label, gw->ip_addr, gw->port,
-            lgtd_addrtoa(gw->site.as_array), tag_id
+            LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr), tag_id
         );
         site->gw = gw;
         site->tag_id = tag_id;
@@ -147,10 +148,11 @@ lgtd_lifx_tagging_decref(struct lgtd_lifx_tag *tag,
     struct lgtd_lifx_site *site;
     site = lgtd_lifx_tagging_find_site(&tag->sites, gw);
     if (site) {
+        char site_addr[LGTD_LIFX_ADDR_STRLEN];
         lgtd_debug(
             "tag [%s] removed from gw [%s]:%hu (site %s)",
             tag->label, gw->ip_addr, gw->port,
-            lgtd_addrtoa(gw->site.as_array)
+            LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr)
         );
         LIST_REMOVE(site, link);
         free(site);

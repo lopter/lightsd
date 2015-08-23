@@ -31,10 +31,12 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
     }
 
     uint8_t expected_addr[LGTD_LIFX_ADDR_LENGTH] = { 1, 2, 3, 4, 5 };
+    char addr[LGTD_LIFX_ADDR_STRLEN], expected[LGTD_LIFX_ADDR_STRLEN];
     if (memcmp(bulb->addr, expected_addr, LGTD_LIFX_ADDR_LENGTH)) {
         errx(
             1, "got bulb with addr %s (expected %s)",
-            lgtd_addrtoa(bulb->addr), lgtd_addrtoa(expected_addr)
+            LGTD_IEEE8023MACTOA(bulb->addr, addr),
+            LGTD_IEEE8023MACTOA(expected_addr, expected)
         );
     }
 

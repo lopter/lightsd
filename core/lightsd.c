@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <strings.h>
 
@@ -122,6 +123,11 @@ lgtd_configure_signal_handling(void)
             &sigevs[i]
         );
         evsignal_add(&sigevs[i], NULL);
+    }
+
+    struct sigaction act = { .sa_handler = SIG_IGN };
+    if (sigaction(SIGPIPE, &act, NULL)) {
+        lgtd_err(1, "can't configure signal handling");
     }
 }
 

@@ -14,10 +14,12 @@ main(void)
         errx(1, "lgtd_lifx_bulb_open didn't return any bulb");
     }
 
+    char addr[LGTD_LIFX_ADDR_STRLEN], expected[LGTD_LIFX_ADDR_STRLEN];
     if (memcmp(bulb->addr, bulb_addr, LGTD_LIFX_ADDR_LENGTH)) {
         errx(
             1, "got bulb addr %s (expected %s)",
-            lgtd_addrtoa(bulb->addr), lgtd_addrtoa(bulb_addr)
+            LGTD_IEEE8023MACTOA(bulb->addr, addr),
+            LGTD_IEEE8023MACTOA(bulb_addr, expected)
         );
     }
 

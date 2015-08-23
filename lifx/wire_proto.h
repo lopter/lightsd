@@ -44,6 +44,7 @@ lgtd_lifx_wire_lefloattoh(float f)
 enum { LGTD_LIFX_PROTOCOL_PORT = 56700 };
 
 enum { LGTD_LIFX_ADDR_LENGTH = 6 };
+enum { LGTD_LIFX_ADDR_STRLEN = 32 };
 
 #pragma pack(push, 1)
 

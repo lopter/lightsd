@@ -78,10 +78,13 @@ main(void)
     uint8_t expected_addr[LGTD_LIFX_ADDR_LENGTH] = {
         0, 0, 44, 0, 0, 0
     };
+    char expected_addr_buf[LGTD_LIFX_ADDR_STRLEN];
+    char dev_addr[LGTD_LIFX_ADDR_STRLEN];
     if (memcmp(hdr.target.device_addr, expected_addr, LGTD_LIFX_ADDR_LENGTH)) {
         lgtd_errx(
             1, "device addr = %s (expected = %s)",
-            lgtd_addrtoa(hdr.target.device_addr), lgtd_addrtoa(expected_addr)
+            LGTD_IEEE8023MACTOA(hdr.target.device_addr, dev_addr),
+            LGTD_IEEE8023MACTOA(expected_addr, expected_addr_buf)
         );
     }
     if (le16toh(hdr.packet_type) != LGTD_LIFX_ECHO_REQUEST) {
@@ -109,7 +112,8 @@ main(void)
     if (memcmp(hdr.target.device_addr, expected_addr, LGTD_LIFX_ADDR_LENGTH)) {
         lgtd_errx(
             1, "device addr = %s (expected = %s)",
-            lgtd_addrtoa(hdr.target.device_addr), lgtd_addrtoa(expected_addr)
+            LGTD_IEEE8023MACTOA(hdr.target.device_addr, dev_addr),
+            LGTD_IEEE8023MACTOA(expected_addr, expected_addr_buf)
         );
     }
     if (hdr.size != 42) {

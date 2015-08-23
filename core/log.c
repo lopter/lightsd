@@ -81,17 +81,18 @@ lgtd_log_header(const char *loglvl, bool showprogname)
     fprintf(stderr, "[%s] %s", loglvl, showprogname ? "lightsd: " : "");
 }
 
-const char *
-lgtd_addrtoa(const uint8_t *addr)
+char *
+lgtd_iee8023mactoa(const uint8_t *addr, char *buf, int buflen)
 {
     assert(addr);
+    assert(buf);
+    assert(buflen >= 2 * 6 + 5 + 1);
 
-    static char str[LGTD_LIFX_ADDR_LENGTH * 2 + LGTD_LIFX_ADDR_LENGTH - 1 + 1];
     snprintf(
-        str, sizeof(str), "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
+        buf, buflen, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
         addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]
     );
-    return str;
+    return buf;
 }
 
 void

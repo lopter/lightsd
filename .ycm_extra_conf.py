@@ -67,10 +67,9 @@ except OSError:
 # Set this to the absolute path to the folder (NOT the file!) containing the
 # compile_commands.json file to use that instead of 'flags'. See here for
 # more details: http://clang.llvm.org/docs/JSONCompilationDatabase.html
-#
-# Most projects will NOT need to set this to anything; you can just change the
-# 'flags' list of compilation flags.
-compilation_database_folder = ''
+compilation_database_folder = os.getenv(
+    "MY_BUILD", os.path.join(os.getcwd(), "build")
+)
 
 if os.path.exists( compilation_database_folder ):
   database = ycm_core.CompilationDatabase( compilation_database_folder )

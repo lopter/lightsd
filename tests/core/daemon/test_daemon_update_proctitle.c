@@ -11,6 +11,8 @@ void mock_setproctitle(const char *fmt, ...)
 
 #include "mock_gateway.h"
 #include "mock_pipe.h"
+#include "mock_router.h"
+#include "mock_timer.h"
 
 #include "tests_utils.h"
 

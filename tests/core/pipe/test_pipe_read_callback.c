@@ -15,6 +15,8 @@
 #define MOCKED_EVBUFFER_DRAIN
 #include "mock_event2.h"
 #include "mock_gateway.h"
+#include "mock_router.h"
+#include "mock_timer.h"
 
 #include "tests_utils.h"
 #define MOCKED_JSONRPC_DISPATCH_REQUEST

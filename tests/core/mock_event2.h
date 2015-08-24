@@ -1,5 +1,10 @@
 #pragma once
 
+#include <event2/buffer.h>
+#include <event2/event.h>
+
+#define MOCK_EVENT_NEW_EVENT_PTR ((void *)0xdadadada)
+
 #ifndef MOCKED_EVBUFFER_DRAIN
 int
 evbuffer_drain(struct evbuffer *buf, size_t len)
@@ -95,7 +100,28 @@ event_new(struct event_base *base,
     (void)events;
     (void)cb;
     (void)ctx;
-    return NULL;
+    return MOCK_EVENT_NEW_EVENT_PTR;
+}
+#endif
+
+#ifndef MOCKED_EVENT_ACTIVE
+void
+event_active(struct event *ev, int res, short ncalls)
+{
+    (void)ev;
+    (void)res;
+    (void)ncalls;
+}
+#endif
+
+#ifndef MOCKED_EVENT_PENDING
+int
+event_pending(const struct event *ev, short events, struct timeval *tv)
+{
+    (void)ev;
+    (void)events;
+    (void)tv;
+    return 0;
 }
 #endif
 

@@ -24,7 +24,9 @@ struct lgtd_opts lgtd_opts = {
     .verbosity = LGTD_DEBUG
 };
 
-struct event_base *lgtd_ev_base = NULL;
+#define MOCK_LGTD_EV_BASE ((void *)2222)
+
+struct event_base *lgtd_ev_base = MOCK_LGTD_EV_BASE;
 
 void
 lgtd_cleanup(void)

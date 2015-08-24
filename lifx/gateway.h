@@ -53,7 +53,7 @@ struct lgtd_lifx_gateway {
     struct lgtd_lifx_tag            *tags[LGTD_LIFX_GATEWAY_MAX_TAGS];
     uint8_t                         tag_refcounts[LGTD_LIFX_GATEWAY_MAX_TAGS];
     evutil_socket_t                 socket;
-    // Those three timers let us measure the latency of the gateway. If we
+    // Those three timestamps let us measure the latency of the gateway. If we
     // aren't the only client on the network then this won't be accurate since
     // we will get pushed packets we didn't ask for, but good enough for our
     // purpose of rate limiting our requests to the gateway:

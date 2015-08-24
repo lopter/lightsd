@@ -2,6 +2,8 @@
 
 #define MOCKED_LGTD_LIFX_GATEWAY_UPDATE_TAG_REFCOUNTS
 #include "mock_gateway.h"
+#include "mock_router.h"
+#include "mock_timer.h"
 
 static int update_tag_refcouts_call_counts = 0;
 

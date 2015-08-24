@@ -5,6 +5,7 @@
 
 #define MOCKED_LIFX_TAGGING_INCREF
 #include "test_gateway_utils.h"
+#include "mock_timer.h"
 
 static bool tagging_incref_called = false;
 

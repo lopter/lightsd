@@ -323,15 +323,25 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
         PRINT_COMPONENT(bulb->state.saturation, s, 0, 1);
         PRINT_COMPONENT(bulb->state.brightness, b, 0, 1);
 
+        const char *label;
+        int label_size;
+        if (bulb->state.label[0]) {
+            label = bulb->state.label;
+            label_size = (int)sizeof(bulb->state.label);
+        } else {
+            label = bulb_addr;
+            label_size = (int)sizeof(bulb_addr);
+        }
+
         LGTD_SNPRINTF_APPEND(
             buf, i, (int)sizeof(buf),
             ",\"hsbk\":[%s,%s,%s,%hu],"
             "\"power\":%s,"
-            "\"label\":\"%s\","
+            "\"label\":\"%.*s\","
             "\"tags\":[",
             h, s, b, bulb->state.kelvin,
             bulb->state.power == LGTD_LIFX_POWER_ON ? "true" : "false",
-            bulb->state.label[0] ? bulb->state.label : bulb_addr
+            label_size, label
         );
 
         if (i >= (int)sizeof(buf)) {

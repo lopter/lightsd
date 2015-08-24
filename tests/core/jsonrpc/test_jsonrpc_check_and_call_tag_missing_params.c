@@ -43,7 +43,7 @@ main(void)
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_proto_tag_or_untag_or_set_label(&client, lgtd_proto_tag);
+    lgtd_jsonrpc_check_and_call_tag(&client);
 
     if (tag_called) {
         errx(1, "lgtd_proto_tag was called");

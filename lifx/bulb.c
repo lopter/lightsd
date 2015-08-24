@@ -207,6 +207,21 @@ lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *bulb)
     free(bulb);
 }
 
+bool
+lgtd_lifx_bulb_has_label(const struct lgtd_lifx_bulb *bulb,
+                         const char *label)
+{
+    assert(bulb);
+    assert(label);
+
+    const char *bulb_label = &bulb->state.label[0];
+    const char *endp = memchr(bulb_label, 0, LGTD_LIFX_LABEL_SIZE);
+    int bulb_label_len = endp ? endp - bulb_label : LGTD_LIFX_LABEL_SIZE;
+    // clipping the label at 32 chars seems like the desired default behavior:
+    int label_len = LGTD_MIN(strlen(label), LGTD_LIFX_LABEL_SIZE);
+    return label_len == bulb_label_len && !memcmp(bulb_label, label, label_len);
+}
+
 void
 lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *bulb,
                                const struct lgtd_lifx_light_state *state,

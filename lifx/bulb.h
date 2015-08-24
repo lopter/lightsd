@@ -119,6 +119,9 @@ struct lgtd_lifx_bulb *lgtd_lifx_bulb_get(const uint8_t *);
 struct lgtd_lifx_bulb *lgtd_lifx_bulb_open(struct lgtd_lifx_gateway *, const uint8_t *);
 void lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *);
 
+bool lgtd_lifx_bulb_has_label(const struct lgtd_lifx_bulb *,
+                              const char *);
+
 void lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *,
                                     const struct lgtd_lifx_light_state *,
                                     lgtd_time_mono_t);

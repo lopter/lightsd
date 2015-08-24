@@ -169,5 +169,20 @@ main(void)
         lgtd_errx(1, "expected 4 device but got %d", count);
     }
 
+    // targeting a label shouldn't break at the first match:
+    struct lgtd_lifx_bulb *bulb_3_gw_2 = lgtd_tests_insert_mock_bulb(gw_2, 7);
+    strcpy(bulb_3_gw_2->state.label, "desk");
+    targets = lgtd_tests_build_target_list("desk", NULL);
+    devices = lgtd_router_targets_to_devices(targets);
+    if ((count = count_device(devices, bulb_1_gw_2)) != 1) {
+        lgtd_errx(1, "bulb bulb_1_gw_2 found %d times, expected 1", count);
+    }
+    if ((count = count_device(devices, bulb_3_gw_2)) != 1) {
+        lgtd_errx(1, "bulb bulb_3_gw_2 found %d times, expected 1", count);
+    }
+    if ((count = len(devices)) != 2) {
+        lgtd_errx(1, "expected 2 device but got %d", count);
+    }
+
     return 0;
 }

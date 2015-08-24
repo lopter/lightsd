@@ -38,6 +38,7 @@
 #include "gateway.h"
 #include "watchdog.h"
 #include "broadcast.h"
+#include "core/timer.h"
 #include "tagging.h"
 #include "core/jsmn.h"
 #include "core/jsonrpc.h"
@@ -57,13 +58,12 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
     assert(gw);
 
     LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(gateways, -1);
-    event_del(gw->refresh_ev);
+    lgtd_timer_stop(gw->refresh_timer);
     event_del(gw->write_ev);
     if (gw->socket != -1) {
         evutil_closesocket(gw->socket);
         LIST_REMOVE(gw, link);
     }
-    event_free(gw->refresh_ev);
     event_free(gw->write_ev);
     evbuffer_free(gw->write_buf);
     for (int i = 0; i != LGTD_LIFX_GATEWAY_MAX_TAGS; i++) {
@@ -240,13 +240,12 @@ lgtd_lifx_gateway_send_get_all_light_state(struct lgtd_lifx_gateway *gw)
 }
 
 static void
-lgtd_lifx_gateway_refresh_callback(evutil_socket_t socket,
-                                   short events,
-                                   void *ctx)
+lgtd_lifx_gateway_refresh_callback(struct lgtd_timer *timer,
+                                   union lgtd_timer_ctx ctx)
 {
-    (void)socket;
-    (void)events;
-    lgtd_lifx_gateway_send_get_all_light_state((struct lgtd_lifx_gateway *)ctx);
+    (void)timer;
+    struct lgtd_lifx_gateway *gw = ctx.as_ptr;
+    lgtd_lifx_gateway_send_get_all_light_state(gw);
 }
 
 void
@@ -254,7 +253,7 @@ lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *gw)
 {
     assert(gw);
 
-    event_active(gw->refresh_ev, 0, 0);
+    lgtd_timer_activate(gw->refresh_timer);
 }
 
 static struct lgtd_lifx_bulb *
@@ -303,6 +302,7 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
         lgtd_warn("can't open a new socket");
         goto error_connect;
     }
+
     gw->write_ev = event_new(
         lgtd_ev_base,
         gw->socket,
@@ -311,9 +311,11 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
         gw
     );
     gw->write_buf = evbuffer_new();
-    gw->refresh_ev = evtimer_new(
-        lgtd_ev_base, lgtd_lifx_gateway_refresh_callback, gw
-    );
+    if (!gw->write_ev || !gw->write_buf) {
+        lgtd_warn("can't allocate a new gateway bulb");
+        goto error_allocate;
+    }
+
     memcpy(&gw->peer, peer, sizeof(gw->peer));
     lgtd_sockaddrtoa(peer, gw->ip_addr, sizeof(gw->ip_addr));
     gw->port = lgtd_sockaddrport(peer);
@@ -322,13 +324,15 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
     gw->next_req_at = received_at;
     gw->last_pkt_at = received_at;
 
-    struct timeval refresh_interval = LGTD_MSECS_TO_TIMEVAL(
-        LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS
+    union lgtd_timer_ctx ctx = { .as_ptr = gw };
+    gw->refresh_timer = lgtd_timer_start(
+        LGTD_TIMER_ACTIVATE_NOW,
+        LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS,
+        lgtd_lifx_gateway_refresh_callback,
+        ctx
     );
-
-    if (!gw->write_ev || !gw->write_buf || !gw->refresh_ev
-        || event_add(gw->refresh_ev, &refresh_interval) != 0) {
-        lgtd_warn("can't allocate a new gateway bulb");
+    if (!gw->refresh_timer) {
+        lgtd_warn("can't allocate a new timer");
         goto error_allocate;
     }
 
@@ -354,9 +358,6 @@ error_allocate:
     }
     if (gw->write_buf) {
         evbuffer_free(gw->write_buf);
-    }
-    if (gw->refresh_ev) {
-        event_free(gw->refresh_ev);
     }
 error_connect:
     evutil_closesocket(gw->socket);
@@ -533,10 +534,10 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 
     int latency = gw->last_pkt_at - gw->last_req_at;
     if (latency < LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
-        if (!event_pending(gw->refresh_ev, EV_TIMEOUT, NULL)) {
+        if (!lgtd_timer_ispending(gw->refresh_timer)) {
             int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
             struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
-            evtimer_add(gw->refresh_ev, &tv);
+            lgtd_timer_reschedule(gw->refresh_timer, &tv);
             lgtd_debug(
                 "[%s]:%hu latency is %dms, scheduling next GET_LIGHT_STATE in %dms",
                 gw->ip_addr, gw->port, latency, timeout

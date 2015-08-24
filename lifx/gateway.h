@@ -71,7 +71,7 @@ struct lgtd_lifx_gateway {
     struct event                    *write_ev;
     struct evbuffer                 *write_buf;
     bool                            pending_refresh_req;
-    struct event                    *refresh_ev;
+    struct lgtd_timer               *refresh_timer;
 };
 LIST_HEAD(lgtd_lifx_gateway_list, lgtd_lifx_gateway);
 

@@ -2,7 +2,49 @@
 
 #include "mock_gateway.h"
 #include "mock_router.h"
+#define MOCKED_LGTD_TIMER_START
 #include "mock_timer.h"
+
+static int timer_start_call_count = 0;
+
+struct lgtd_timer *
+lgtd_timer_start(int flags,
+                 int ms,
+                 void (*cb)(struct lgtd_timer *,
+                            union lgtd_timer_ctx),
+                 union lgtd_timer_ctx ctx)
+{
+    if (flags != (LGTD_TIMER_PERSISTENT|LGTD_TIMER_ACTIVATE_NOW)) {
+        errx(
+            1, "got flags %#x (expected %#x)",
+            flags, LGTD_TIMER_PERSISTENT|LGTD_TIMER_ACTIVATE_NOW
+        );
+    }
+
+    if (ms != LGTD_LIFX_BULB_FETCH_HARDWARE_INFO_TIMER_MSECS) {
+        errx(
+            1, "got timeout %d (expected %d)",
+            ms, LGTD_LIFX_BULB_FETCH_HARDWARE_INFO_TIMER_MSECS
+        );
+    }
+
+    if (cb != lgtd_lifx_bulb_fetch_hardware_info) {
+        errx(
+            1, "got callback %p (expected %p)",
+            cb, lgtd_lifx_bulb_fetch_hardware_info
+        );
+    }
+
+    if (!ctx.as_uint) {
+        errx(1, "ctx wasn't set");
+    }
+
+    if (timer_start_call_count++) {
+        errx(1, "timer_start should have been called once");
+    }
+
+    return (void *)42;
+}
 
 int
 main(void)
@@ -42,6 +84,10 @@ main(void)
 
     if (LGTD_STATS_GET(bulbs) != 1) {
         errx(1, "bulbs counter is %d (expected 1)", LGTD_STATS_GET(bulbs));
+    }
+
+    if (!timer_start_call_count) {
+        errx(1, "timer_start_call_count = 0 (expected 1)");
     }
 
     return 0;

@@ -106,10 +106,9 @@ lgtd_daemon_update_proctitle(void)
     char title[LGTD_DAEMON_TITLE_SIZE] = { 0 };
     int i = 0;
 
-#define TITLE_APPEND(fmt, ...) do {                                         \
-    int n = snprintf((&title[i]), (sizeof(title) - i), (fmt), __VA_ARGS__); \
-    i = LGTD_MIN(i + n, (int)sizeof(title));                                \
-} while (0)
+#define TITLE_APPEND(fmt, ...) LGTD_SNPRINTF_APPEND(    \
+    title, i, (int)sizeof(title), (fmt), __VA_ARGS__    \
+)
 
 #define PREFIX(fmt, ...) TITLE_APPEND(                              \
     "%s" fmt, (i && title[i - 1] == ')' ? "; " : ""), __VA_ARGS__   \

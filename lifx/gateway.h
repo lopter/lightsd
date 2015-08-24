@@ -36,12 +36,19 @@ struct lgtd_lifx_message {
 struct lgtd_lifx_gateway {
     LIST_ENTRY(lgtd_lifx_gateway)   link;
     struct lgtd_lifx_bulb_list      bulbs;
+#define LGTD_LIFX_GATEWAY_GET_BULB_OR_RETURN(b, gw, bulb_addr)  do {    \
+    (b) = lgtd_lifx_gateway_get_or_open_bulb((gw), (bulb_addr));        \
+    if (!(b)) {                                                         \
+        return;                                                         \
+    }                                                                   \
+} while (0)
     // Multiple gateways can share the same site (that happens when bulbs are
     // far away enough that ZigBee can't be used). Moreover the SET_PAN_GATEWAY
     // packet doesn't include the device address in the header (i.e: site and
     // device_addr have the same value) so we have no choice but to use the
     // remote ip address to identify a gateway:
     struct sockaddr_storage         peer;
+    uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
     char                            ip_addr[INET6_ADDRSTRLEN];
     uint16_t                        port;
     // TODO: just use an integer and rename it to site_id:
@@ -60,6 +67,7 @@ struct lgtd_lifx_gateway {
     lgtd_time_mono_t                last_req_at;
     lgtd_time_mono_t                next_req_at;
     lgtd_time_mono_t                last_pkt_at;
+#define LGTD_LIFX_GATEWAY_LATENCY(gw) ((gw)->last_pkt_at - (gw)->last_req_at)
     struct lgtd_lifx_message        pkt_ring[LGTD_LIFX_GATEWAY_PACKET_RING_SIZE];
 #define LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(idx)  do { \
     (idx) += 1;                                             \
@@ -76,6 +84,12 @@ struct lgtd_lifx_gateway {
 LIST_HEAD(lgtd_lifx_gateway_list, lgtd_lifx_gateway);
 
 extern struct lgtd_lifx_gateway_list lgtd_lifx_gateways;
+
+#define LGTD_LIFX_GATEWAY_SET_BULB_ATTR(gw, bulb_addr, bulb_fn, ...) do {   \
+    struct lgtd_lifx_bulb *b;                                               \
+    LGTD_LIFX_GATEWAY_GET_BULB_OR_RETURN(b, gw, bulb_addr);                 \
+    (bulb_fn)(b, __VA_ARGS__);                                              \
+} while (0)
 
 struct lgtd_lifx_gateway *lgtd_lifx_gateway_get(const struct sockaddr_storage *);
 struct lgtd_lifx_gateway *lgtd_lifx_gateway_open(const struct sockaddr_storage *,
@@ -119,3 +133,15 @@ void lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *,
 void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *,
                                    const struct lgtd_lifx_packet_header *,
                                    const struct lgtd_lifx_packet_tags *);
+void lgtd_lifx_gateway_handle_ip_state(struct lgtd_lifx_gateway *,
+                                        const struct lgtd_lifx_packet_header *,
+                                        const struct lgtd_lifx_packet_ip_state *);
+void lgtd_lifx_gateway_handle_ip_firmware_info(struct lgtd_lifx_gateway *,
+                                               const struct lgtd_lifx_packet_header *,
+                                               const struct lgtd_lifx_packet_ip_firmware_info *);
+void lgtd_lifx_gateway_handle_product_info(struct lgtd_lifx_gateway *,
+                                           const struct lgtd_lifx_packet_header *,
+                                           const struct lgtd_lifx_packet_product_info *);
+void lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *,
+                                           const struct lgtd_lifx_packet_header *,
+                                           const struct lgtd_lifx_packet_runtime_info *);

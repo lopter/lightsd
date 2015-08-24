@@ -106,9 +106,9 @@ Use the ``-f`` option to run lightsd in the foreground.
 Known issues
 ------------
 
-The grouping (tagging) code of the LIFX White 800 (and presumably the Color 650
-as well) is bugged: after a tagging operation the LIFX White 800 keep saying it
-has no tags. Reboot the bulb to make the tags appears.
+The White 800 appears to be less reliable than the LIFX Original or Color 650.
+The grouping (tagging) code of the LIFX White 800 in particular appears to be
+bugged: after a tagging operation the LIFX White 800 keep saying it has no tags.
 
 Power ON/OFF are the only commands with auto-retry, i.e: lightsd will keep
 sending the command to the bulb until its state changes. This is not implemented

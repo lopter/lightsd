@@ -53,14 +53,7 @@ lgtd_isotime_now(char *strbuf, int bufsz)
     if (!localtime_r(&now.tv_sec, &tm_now)) {
         goto error;
     }
-    // '2015-01-02T10:13:16.132222+00:00'
-    snprintf(
-        strbuf, bufsz, "%d-%02d-%02dT%02d:%02d:%02d.%jd%c%02ld:%02ld",
-        1900 + tm_now.tm_year, 1 + tm_now.tm_mon, tm_now.tm_mday,
-        tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec,
-        (intmax_t)now.tv_usec, tm_now.tm_gmtoff >= 0 ? '+' : '-', // %+02ld doesn't work
-        LGTD_ABS(tm_now.tm_gmtoff / 60 / 60), tm_now.tm_gmtoff % (60 * 60)
-    );
+    LGTD_TM_TO_ISOTIME(&tm_now, strbuf, bufsz, now.tv_usec);
     return;
 error:
     strbuf[0] = '\0';
@@ -119,6 +112,27 @@ lgtd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
         abort();
 #endif
     }
+}
+
+char *
+lgtd_print_duration(uint64_t secs, char *buf, int bufsz)
+{
+    assert(buf);
+    assert(bufsz > 0);
+
+    int days = secs / (60 * 60 * 24);
+    int minutes = secs / 60;
+    int hours = minutes / 60;
+    hours = hours % 24;
+    minutes = minutes % 60;
+
+    int i = 0;
+    if (days) {
+        int n = snprintf(buf, bufsz, "%d days ", days);
+        i = LGTD_MIN(i + n, bufsz);
+    }
+    snprintf(&buf[i], bufsz - i, "%02d:%02d", hours, minutes);
+    return buf;
 }
 
 void

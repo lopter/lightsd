@@ -108,7 +108,10 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     LGTD_IEEE8023MACTOA(bulb->addr, addr);
-    lgtd_info("sending %s to %s", pkt_info->name, addr);
+    lgtd_info(
+        "sending %s to %s (%.*s)",
+        pkt_info->name, addr, LGTD_LIFX_LABEL_SIZE, bulb->state.label
+    );
 }
 
 void

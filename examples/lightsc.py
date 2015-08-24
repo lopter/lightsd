@@ -17,7 +17,7 @@ def jsonrpc_call(socket, method, params):
         "id": str(uuid.uuid4()),
     }
     socket.send(json.dumps(payload).encode("utf-8"))
-    response = socket.recv(2048).decode("utf-8")
+    response = socket.recv(8192).decode("utf-8")
     try:
         response = json.loads(response)
     except ValueError:

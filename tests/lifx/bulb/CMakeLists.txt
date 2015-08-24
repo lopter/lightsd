@@ -8,11 +8,13 @@ ADD_CORE_LIBRARY(
     ${LIGHTSD_SOURCE_DIR}/core/log.c
     ${LIGHTSD_SOURCE_DIR}/core/stats.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core/tests_utils.c
 )
 
 ADD_LIBRARY(
     test_lifx_bulb STATIC
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/tagging.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
 )
 

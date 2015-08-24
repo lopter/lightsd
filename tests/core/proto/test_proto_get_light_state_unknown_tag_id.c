@@ -87,24 +87,48 @@ main(void)
     struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
+    lgtd_opts.verbosity = LGTD_INFO;
+
     lgtd_proto_get_light_state(&client, targets);
 
-    const char expected[] = (
-        "["
-            "{"
-                "\"hsbk\":[0,0,1,4000],"
-                "\"power\":false,"
-                "\"label\":\"05:04:03:02:01:00\","
-                "\"tags\":[\"vapor\",\"d^-^b\"]"
+    const char expected[] = ("["
+        "{"
+            "\"_lifx\":{"
+                "\"addr\":\"05:04:03:02:01:00\","
+                "\"gateway\":{"
+                    "\"site\":\"00:00:00:00:00:00\","
+                    "\"url\":\"tcp://[]:0\","
+                    "\"latency\":0"
+                "},"
+                "\"mcu\":{\"firmware_version\":\"0.0\"},"
+                "\"wifi\":{\"firmware_version\":\"0.0\"}"
             "},"
-            "{"
-                "\"hsbk\":[240,1,0.733333,3600],"
-                "\"power\":true,"
-                "\"label\":\"wave\","
-                "\"tags\":[]"
-            "}"
-        "]"
-    );
+            "\"_model\":null,"
+            "\"_vendor\":null,"
+            "\"hsbk\":[0,0,1,4000],"
+            "\"power\":false,"
+            "\"label\":\"05:04:03:02:01:00\","
+            "\"tags\":[\"vapor\",\"d^-^b\"]"
+        "},"
+        "{"
+            "\"_lifx\":{"
+                "\"addr\":\"01:02:03:04:05:00\","
+                "\"gateway\":{"
+                    "\"site\":\"00:00:00:00:00:00\","
+                    "\"url\":\"tcp://[]:0\","
+                    "\"latency\":0"
+                "},"
+                "\"mcu\":{\"firmware_version\":\"0.0\"},"
+                "\"wifi\":{\"firmware_version\":\"0.0\"}"
+            "},"
+            "\"_model\":null,"
+            "\"_vendor\":null,"
+            "\"hsbk\":[240,1,0.733333,3600],"
+            "\"power\":true,"
+            "\"label\":\"wave\","
+            "\"tags\":[]"
+        "}"
+    "]");
 
     if (client_write_buf_idx != sizeof(expected) - 1) {
         lgtd_errx(

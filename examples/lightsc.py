@@ -81,10 +81,10 @@ def triangle(socket, target, h, s, b, k,
     )
 
 
-def pulse(socket, target, h, s, b, k, period, cycles,
-          duty_cycle=0.5, transient=True):
+def square(socket, target, h, s, b, k, period, cycles,
+           duty_cycle=0.5, transient=True):
     return set_waveform(
-        socket, target, "PULSE", h, s, b, k,
+        socket, target, "SQUARE", h, s, b, k,
         cycles=cycles,
         period=period,
         skew_ratio=duty_cycle,

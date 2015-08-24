@@ -156,7 +156,7 @@ lgtd_proto_set_waveform(struct lgtd_client *client,
     assert(saturation >= 0 && saturation <= UINT16_MAX);
     assert(brightness >= 0 && brightness <= UINT16_MAX);
     assert(kelvin >= 2500 && kelvin <= 9000);
-    assert(waveform <= LGTD_LIFX_WAVEFORM_PULSE);
+    assert(waveform <= LGTD_LIFX_WAVEFORM_SQUARE);
     assert(skew_ratio >= -32767 && skew_ratio <= 32768);
     assert(period >= 0);
     assert(cycles >= 0);

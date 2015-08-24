@@ -232,8 +232,11 @@ main(int argc, char *argv[], char *envp[])
         lgtd_err(1, "can't setup lightsd");
     }
 
-    if (!lgtd_opts.foreground && !lgtd_daemon_unleash()) {
-        lgtd_err(1, "can't fork to the background");
+    if (!lgtd_opts.foreground) {
+        lgtd_info("forking into the background now...");
+        if (!lgtd_daemon_unleash()) {
+            lgtd_err(1, "can't fork to the background");
+        }
     }
 
     lgtd_lifx_watchdog_start_discovery();

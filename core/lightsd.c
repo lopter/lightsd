@@ -63,6 +63,7 @@ struct event_base *lgtd_ev_base = NULL;
 void
 lgtd_cleanup(void)
 {
+    lgtd_lifx_watchdog_close();
     lgtd_listen_close_all();
     lgtd_command_pipe_close_all();
     lgtd_client_close_all();

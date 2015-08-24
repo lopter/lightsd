@@ -245,6 +245,10 @@ struct lgtd_lifx_packet_tags {
     uint64le_t  tags;
 };
 
+struct lgtd_lifx_packet_label {
+    char        label[LGTD_LIFX_LABEL_SIZE];
+};
+
 struct lgtd_lifx_packet_tag_labels {
     uint64le_t  tags;
     char        label[LGTD_LIFX_LABEL_SIZE];

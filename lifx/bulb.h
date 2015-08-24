@@ -138,3 +138,5 @@ void lgtd_lifx_bulb_set_product_info(struct lgtd_lifx_bulb *,
 void lgtd_lifx_bulb_set_runtime_info(struct lgtd_lifx_bulb *,
                                      const struct lgtd_lifx_runtime_info *,
                                      lgtd_time_mono_t);
+void lgtd_lifx_bulb_set_label(struct lgtd_lifx_bulb *,
+                              const char [LGTD_LIFX_LABEL_SIZE]);

@@ -112,7 +112,8 @@ bugged: after a tagging operation the LIFX White 800 keep saying it has no tags.
 
 Power ON/OFF are the only commands with auto-retry, i.e: lightsd will keep
 sending the command to the bulb until its state changes. This is not implemented
-(yet) for ``set_light_from_hsbk``, ``set_waveform``, ``tag`` and ``untag``.
+(yet) for ``set_light_from_hsbk``, ``set_waveform``, ``set_label``, ``tag`` and
+``untag``.
 
 In general, crappy WiFi network with latency, jitter or packet loss are gonna be
 challenging until lightsd has an auto-retry mechanism, there is also room for

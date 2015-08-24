@@ -958,16 +958,17 @@ CHECK_AND_CALL_TARGETS_ONLY_METHOD(power_toggle);
 CHECK_AND_CALL_TARGETS_ONLY_METHOD(get_light_state);
 
 static void
-lgtd_jsonrpc_check_and_call_proto_tag_or_untag(struct lgtd_client *client,
-                                               void (*lgtd_proto_fn)(struct lgtd_client *,
-                                                          const struct lgtd_proto_target_list *,
-                                                          const char *))
+lgtd_jsonrpc_check_and_call_proto_tag_or_untag_or_set_label(
+        struct lgtd_client *client,
+        void (*lgtd_proto_fn)(struct lgtd_client *,
+                              const struct lgtd_proto_target_list *,
+                              const char *))
 
 {
     struct lgtd_jsonrpc_target_args {
         const jsmntok_t *target;
         int             target_ntokens;
-        const jsmntok_t *tag;
+        const jsmntok_t *label;
     } params = { NULL, 0, NULL };
     static const struct lgtd_jsonrpc_node schema[] = {
         LGTD_JSONRPC_NODE(
@@ -978,8 +979,8 @@ lgtd_jsonrpc_check_and_call_proto_tag_or_untag(struct lgtd_client *client,
             false
         ),
         LGTD_JSONRPC_NODE(
-            "tag",
-            offsetof(struct lgtd_jsonrpc_target_args, tag),
+            "label",
+            offsetof(struct lgtd_jsonrpc_target_args, label),
             -1,
             lgtd_jsonrpc_type_string,
             false
@@ -1010,20 +1011,20 @@ lgtd_jsonrpc_check_and_call_proto_tag_or_untag(struct lgtd_client *client,
         return;
     }
 
-    char *tag = strndup(
-        &client->json[params.tag->start], LGTD_JSONRPC_TOKEN_LEN(params.tag)
+    char *label = strndup(
+        &client->json[params.label->start], LGTD_JSONRPC_TOKEN_LEN(params.label)
     );
-    if (!tag) {
-        lgtd_warn("can't allocate a tag");
+    if (!label) {
+        lgtd_warn("can't allocate a label");
         lgtd_jsonrpc_send_error(
             client, LGTD_JSONRPC_INTERNAL_ERROR, "Can't allocate memory"
         );
         goto error_strdup;
     }
 
-    lgtd_proto_fn(client, &targets, tag);
+    lgtd_proto_fn(client, &targets, label);
 
-    free(tag);
+    free(label);
 
 error_strdup:
     lgtd_proto_target_list_clear(&targets);
@@ -1032,13 +1033,25 @@ error_strdup:
 static void
 lgtd_jsonrpc_check_and_call_tag(struct lgtd_client *client)
 {
-    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag(client, lgtd_proto_tag);
+    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag_or_set_label(
+        client, lgtd_proto_tag
+    );
 }
 
 static void
 lgtd_jsonrpc_check_and_call_untag(struct lgtd_client *client)
 {
-    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag(client, lgtd_proto_untag);
+    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag_or_set_label(
+        client, lgtd_proto_untag
+    );
+}
+
+static void
+lgtd_jsonrpc_check_and_call_set_label(struct lgtd_client *client)
+{
+    return lgtd_jsonrpc_check_and_call_proto_tag_or_untag_or_set_label(
+        client, lgtd_proto_set_label
+    );
 }
 
 void
@@ -1077,6 +1090,10 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
         LGTD_JSONRPC_METHOD(
             "untag", 2, // t, tag
             lgtd_jsonrpc_check_and_call_untag
+        ),
+        LGTD_JSONRPC_METHOD(
+            "set_label", 2, // t, label
+            lgtd_jsonrpc_check_and_call_set_label
         )
     };
 

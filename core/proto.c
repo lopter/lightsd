@@ -512,3 +512,24 @@ lgtd_proto_untag(struct lgtd_client *client,
 
     lgtd_router_device_list_free(devices);
 }
+
+void
+lgtd_proto_set_label(struct lgtd_client *client,
+                     const struct lgtd_proto_target_list *targets,
+                     const char *label)
+{
+    assert(client);
+    assert(targets);
+    assert(label);
+
+    int label_len = strlen(label);
+    struct lgtd_lifx_packet_label pkt;
+    memcpy(pkt.label, label, LGTD_MIN(label_len, (int)sizeof(pkt.label)));
+    // this will go out on the network don't leave garbage in it:
+    memset(&pkt.label[label_len], 0, LGTD_MAX(
+        (int)sizeof(pkt.label) - label_len, 0
+    ));
+    SEND_RESULT(
+        client, lgtd_router_send(targets, LGTD_LIFX_SET_BULB_LABEL, &pkt)
+    );
+}

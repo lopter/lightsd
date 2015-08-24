@@ -298,6 +298,21 @@ lgtd_lifx_wire_load_packet_info_map(void)
             .decode = DECODER(lgtd_lifx_wire_decode_runtime_info),
             .handle = HANDLER(lgtd_lifx_gateway_handle_runtime_info)
         },
+        {
+            REQUEST_ONLY,
+            .encode = lgtd_lifx_wire_null_packet_encoder_decoder,
+            .name = "SET_BULB_LABEL",
+            .type = LGTD_LIFX_SET_BULB_LABEL,
+            .size = sizeof(struct lgtd_lifx_packet_label)
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "BULB_LABEL",
+            .type = LGTD_LIFX_BULB_LABEL,
+            .size = sizeof(struct lgtd_lifx_packet_label),
+            .decode = lgtd_lifx_wire_null_packet_encoder_decoder,
+            .handle = HANDLER(lgtd_lifx_gateway_handle_bulb_label)
+        },
         // Unimplemented but "known" packets
         {
             UNIMPLEMENTED,
@@ -328,16 +343,6 @@ lgtd_lifx_wire_load_packet_info_map(void)
             UNIMPLEMENTED,
             .name = "GET_BULB_LABEL",
             .type = LGTD_LIFX_GET_BULB_LABEL
-        },
-        {
-            UNIMPLEMENTED,
-            .name = "SET_BULB_LABEL",
-            .type = LGTD_LIFX_SET_BULB_LABEL
-        },
-        {
-            UNIMPLEMENTED,
-            .name = "BULB_LABEL",
-            .type = LGTD_LIFX_BULB_LABEL
         },
         {
             UNIMPLEMENTED,

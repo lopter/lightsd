@@ -38,7 +38,7 @@ main(void)
     const char json[] = ("{"
         "\"jsonrpc\": \"2.0\","
         "\"method\": \"tag\","
-        "\"params\": {\"target\": \"*\", \"tag\": \"suspensions\"},"
+        "\"params\": {\"target\": \"*\", \"label\": \"suspensions\"},"
         "\"id\": \"42\""
     "}");
     int parsed = parse_json(
@@ -55,7 +55,7 @@ main(void)
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_proto_tag_or_untag(&client, lgtd_proto_tag);
+    lgtd_jsonrpc_check_and_call_tag(&client);
 
     if (!tag_called) {
         errx(1, "lgtd_proto_tag wasn't called");

@@ -23,6 +23,7 @@
 
 #define LGTD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
 #define LGTD_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define LGTD_MAX(a, b) ((a) > (b) ? (a) : (b))
 #define LGTD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 #define LGTD_MSECS_TO_TIMEVAL(v) {  \
     .tv_sec = (v) / 1000,           \

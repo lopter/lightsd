@@ -42,3 +42,4 @@ void lgtd_proto_power_toggle(struct lgtd_client *, const struct lgtd_proto_targe
 void lgtd_proto_get_light_state(struct lgtd_client *, const struct lgtd_proto_target_list *);
 void lgtd_proto_tag(struct lgtd_client *, const struct lgtd_proto_target_list *, const char *);
 void lgtd_proto_untag(struct lgtd_client *, const struct lgtd_proto_target_list *, const char *);
+void lgtd_proto_set_label(struct lgtd_client *, const struct lgtd_proto_target_list *, const char *);

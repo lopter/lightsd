@@ -10,6 +10,7 @@ ADD_CORE_LIBRARY(
     ${LIGHTSD_SOURCE_DIR}/core/router.c
     ${LIGHTSD_SOURCE_DIR}/core/stats.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../core/tests_utils.c
 )
 
 ADD_LIBRARY(

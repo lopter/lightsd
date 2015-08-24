@@ -31,9 +31,6 @@
 #include "lifx/gateway.h"
 #include "tests_utils.h"
 
-struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
-    LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
-
 struct lgtd_listen_list lgtd_listeners =
     SLIST_HEAD_INITIALIZER(&lgtd_listeners);
 

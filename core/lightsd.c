@@ -41,12 +41,13 @@
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"
 #include "lifx/broadcast.h"
-#include "lifx/timer.h"
+#include "lifx/watchdog.h"
 #include "version.h"
 #include "jsmn.h"
 #include "jsonrpc.h"
 #include "client.h"
 #include "pipe.h"
+#include "timer.h"
 #include "listen.h"
 #include "daemon.h"
 #include "lightsd.h"
@@ -65,9 +66,9 @@ lgtd_cleanup(void)
     lgtd_listen_close_all();
     lgtd_command_pipe_close_all();
     lgtd_client_close_all();
-    lgtd_lifx_timer_close();
     lgtd_lifx_broadcast_close();
     lgtd_lifx_gateway_close_all();
+    lgtd_timer_stop_all();
     event_base_free(lgtd_ev_base);
 #if LIBEVENT_VERSION_NUMBER >= 0x02010100
     libevent_global_shutdown();
@@ -227,7 +228,7 @@ main(int argc, char *argv[], char *envp[])
     argv += optind;
 
     lgtd_lifx_wire_load_packet_info_map();
-    if (!lgtd_lifx_timer_setup() || !lgtd_lifx_broadcast_setup()) {
+    if (!lgtd_lifx_watchdog_setup() || !lgtd_lifx_broadcast_setup()) {
         lgtd_err(1, "can't setup lightsd");
     }
 
@@ -235,7 +236,7 @@ main(int argc, char *argv[], char *envp[])
         lgtd_err(1, "can't fork to the background");
     }
 
-    lgtd_lifx_timer_start_discovery();
+    lgtd_lifx_watchdog_start_discovery();
 
     event_base_dispatch(lgtd_ev_base);
 

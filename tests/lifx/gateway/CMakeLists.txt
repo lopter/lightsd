@@ -16,7 +16,7 @@ ADD_LIBRARY(
     test_lifx_gateway STATIC
     ${LIGHTSD_SOURCE_DIR}/lifx/broadcast.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
-    ${LIGHTSD_SOURCE_DIR}/lifx/timer.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/watchdog.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
 )
 

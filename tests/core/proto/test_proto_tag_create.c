@@ -5,6 +5,8 @@
 #define MOCKED_LIFX_GATEWAY_SEND_TO_SITE
 #define MOCKED_LIFX_GATEWAY_ALLOCATE_TAG_ID
 #include "mock_gateway.h"
+#include "mock_event2.h"
+#include "mock_timer.h"
 #include "tests_utils.h"
 
 #define MOCKED_ROUTER_TARGETS_TO_DEVICES

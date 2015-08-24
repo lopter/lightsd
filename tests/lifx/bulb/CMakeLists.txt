@@ -6,7 +6,6 @@ INCLUDE_DIRECTORIES(
 ADD_CORE_LIBRARY(
     test_lifx_bulb_core STATIC
     ${LIGHTSD_SOURCE_DIR}/core/log.c
-    ${LIGHTSD_SOURCE_DIR}/core/router.c
     ${LIGHTSD_SOURCE_DIR}/core/stats.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
 )

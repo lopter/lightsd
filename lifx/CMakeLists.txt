@@ -11,6 +11,6 @@ ADD_LIBRARY(
     bulb.c
     gateway.c
     tagging.c
-    timer.c
+    watchdog.c
     wire_proto.c
 )

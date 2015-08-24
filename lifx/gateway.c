@@ -36,8 +36,8 @@
 #include "core/time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
+#include "watchdog.h"
 #include "broadcast.h"
-#include "timer.h"
 #include "tagging.h"
 #include "core/jsmn.h"
 #include "core/jsonrpc.h"
@@ -342,7 +342,7 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
 
     // In case this is the first bulb (re-)discovered, start the watchdog, it
     // will stop by itself:
-    lgtd_lifx_timer_start_watchdog();
+    lgtd_lifx_watchdog_start();
 
     LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(gateways, 1);
 

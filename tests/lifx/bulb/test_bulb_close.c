@@ -1,6 +1,8 @@
 #include "bulb.c"
 
 #include "mock_gateway.h"
+#include "mock_router.h"
+#include "mock_timer.h"
 
 int
 main(void)

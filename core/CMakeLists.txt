@@ -25,6 +25,7 @@ ADD_EXECUTABLE(
     proto.c
     router.c
     stats.c
+    timer.c
 )
 
 TARGET_LINK_LIBRARIES(

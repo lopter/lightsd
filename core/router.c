@@ -168,7 +168,7 @@ lgtd_router_send_to_label(const char *label,
 
     struct lgtd_lifx_bulb *bulb;
     RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
-        if (!strcmp(bulb->state.label, label)) {
+        if (lgtd_lifx_bulb_has_label(bulb, label)) {
             struct lgtd_lifx_packet_header hdr;
             union lgtd_lifx_target target = { .addr = bulb->addr };
             pkt_info = lgtd_lifx_wire_setup_header(
@@ -341,19 +341,25 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
             struct lgtd_lifx_bulb *bulb = NULL;
             if (isxdigit(target->target[0])) {
                 bulb = lgtd_router_device_addr_to_device(target->target);
-            }
-            if (!bulb) {
-                RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
-                    if (!strcmp(bulb->state.label, target->target)) {
-                        break;
+                if (bulb) {
+                    bool ok = lgtd_router_insert_device_if_not_in_list(
+                        devices, bulb
+                    );
+                    if (!ok) {
+                        goto device_alloc_error;
                     }
+                    continue;
                 }
             }
-            if (!bulb) {
-                continue;
-            }
-            if (!lgtd_router_insert_device_if_not_in_list(devices, bulb)) {
-                goto device_alloc_error;
+            RB_FOREACH(bulb, lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table) {
+                if (lgtd_lifx_bulb_has_label(bulb, target->target)) {
+                    bool ok = lgtd_router_insert_device_if_not_in_list(
+                        devices, bulb
+                    );
+                    if (!ok) {
+                        goto device_alloc_error;
+                    }
+                }
             }
         }
     }

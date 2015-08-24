@@ -295,19 +295,20 @@ lgtd_jsonrpc_consume_object_or_array(const jsmntok_t *tokens,
                                      int parsed,
                                      const char *json)
 {
-    assert(tokens[ti].type == JSMN_OBJECT || tokens[ti].type == JSMN_ARRAY);
+    assert(lgtd_jsonrpc_type_object_or_array(&tokens[ti], json));
     assert(ti < parsed);
 
-    int objsize = tokens[ti].size;
-    if (tokens[ti++].type == JSMN_OBJECT) {
-        ti++; // move to the value
-    }
+    jsmntype_t container_type = tokens[ti].type;
+    int objsize = tokens[ti++].size;
     while (objsize-- && ti < parsed) {
-        if (tokens[ti].type == JSMN_OBJECT || tokens[ti].type == JSMN_ARRAY) {
+        if (container_type == JSMN_OBJECT) {
+            ti++; // move to the value
+        }
+        if (lgtd_jsonrpc_type_object_or_array(&tokens[ti], json)) {
             ti = lgtd_jsonrpc_consume_object_or_array(tokens, ti, parsed, json);
-       } else {
-            ti += tokens[ti].size + 1; // move to the next value
-       }
+        } else {
+            ti++;
+        }
     }
 
     return ti;

@@ -60,6 +60,38 @@ def sine(socket, target, h, s, b, k, period, cycles, peak=0.5, transient=True):
     )
 
 
+def half_sine(socket, target, h, s, b, k, period, cycles, transient=True):
+    return set_waveform(
+        socket, target, "HALF_SINE", h, s, b, k,
+        cycles=cycles,
+        period=period,
+        skew_ratio=0.5,
+        transient=transient
+    )
+
+
+def triangle(socket, target, h, s, b, k,
+             period, cycles, peak=0.5, transient=True):
+    return set_waveform(
+        socket, target, "TRIANGLE", h, s, b, k,
+        cycles=cycles,
+        period=period,
+        skew_ratio=peak,
+        transient=transient
+    )
+
+
+def pulse(socket, target, h, s, b, k, period, cycles,
+          duty_cycle=0.5, transient=True):
+    return set_waveform(
+        socket, target, "PULSE", h, s, b, k,
+        cycles=cycles,
+        period=period,
+        skew_ratio=duty_cycle,
+        transient=transient
+    )
+
+
 def power_on(socket, target):
     return jsonrpc_call(socket, "power_on", {"target": target})
 
@@ -82,6 +114,16 @@ def tag(socket, target, tag):
 
 def untag(socket, target, tag):
     return jsonrpc_call(socket, "untag", [target, tag])
+
+
+def adjust_brightness(socket, target, adjustment):
+    bulbs = get_light_state(socket, target)["result"]
+    for bulb in bulbs:
+        h, s, b, k = bulb["hsbk"]
+        b += adjustment
+        b = max(min(b, 1.0), 0.0)
+        set_light_from_hsbk(socket, bulb["label"], h, s, b, k, 500)
+
 
 if __name__ == "__main__":
     s = socket.create_connection(("localhost", 1234))

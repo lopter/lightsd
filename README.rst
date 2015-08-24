@@ -30,6 +30,7 @@ following commands through a JSON-RPC_ interface:
 - set_light_from_hsbk;
 - set_waveform (change the light according to a function like SAW or SINE);
 - get_light_state;
+- set_label;
 - tag/untag (group/ungroup bulbs together).
 
 The JSON-RPC interface works on top of TCP/IPv4/v6, Unix sockets (coming up) or

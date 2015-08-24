@@ -24,8 +24,10 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <event2/util.h>
 
@@ -74,12 +76,32 @@ lgtd_lifx_wire_null_packet_handler(struct lgtd_lifx_gateway *gw,
     (void)pkt;
 }
 
+static void
+lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
+                                     const struct lgtd_lifx_packet_header *hdr,
+                                     const void *pkt)
+{
+    (void)pkt;
+
+    const struct lgtd_lifx_packet_info *pkt_info;
+    pkt_info = lgtd_lifx_wire_get_packet_info(hdr->packet_type);
+    bool addressable = hdr->protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE;
+    bool tagged = hdr->protocol & LGTD_LIFX_PROTOCOL_TAGGED;
+    unsigned int protocol = hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
+    lgtd_info(
+        "%s <-- [%s]:%hu - (Unimplemented, header info: "
+        "addressable=%d, tagged=%d, protocol=%d)",
+        pkt_info->name, gw->ip_addr, gw->port,
+        addressable, tagged, protocol
+    );
+}
+
 void
 lgtd_lifx_wire_load_packet_info_map(void)
 {
 #define DECODER(x)  ((void (*)(void *))(x))
 #define ENCODER(x)  ((void (*)(void *))(x))
-#define HANDLER(x)                                  \
+#define HANDLER(x)                                      \
     ((void (*)(struct lgtd_lifx_gateway *,              \
                const struct lgtd_lifx_packet_header *,  \
                const void *))(x))
@@ -90,6 +112,10 @@ lgtd_lifx_wire_load_packet_info_map(void)
 #define REQUEST_ONLY                                        \
     .decode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
     .handle = lgtd_lifx_wire_null_packet_handler
+#define UNIMPLEMENTED                                       \
+    .decode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
+    .encode = lgtd_lifx_wire_null_packet_encoder_decoder,   \
+    .handle = lgtd_lifx_wire_enosys_packet_handler
 
     static struct lgtd_lifx_packet_info packet_table[] = {
         // Gateway packets:
@@ -187,6 +213,211 @@ lgtd_lifx_wire_load_packet_info_map(void)
             .size = sizeof(struct lgtd_lifx_packet_tags),
             .decode = DECODER(lgtd_lifx_wire_decode_tags),
             .handle = HANDLER(lgtd_lifx_gateway_handle_tags)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_MESH_INFO",
+            .type = LGTD_LIFX_GET_MESH_INFO
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "MESH_INFO",
+            .type = LGTD_LIFX_MESH_INFO,
+            .size = sizeof(struct lgtd_lifx_packet_ip_state),
+            .decode = DECODER(lgtd_lifx_wire_decode_ip_state),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_ip_state)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_MESH_FIRMWARE",
+            .type = LGTD_LIFX_GET_MESH_FIRMWARE
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "MESH_FIRMWARE",
+            .type = LGTD_LIFX_MESH_FIRMWARE,
+            .size = sizeof(struct lgtd_lifx_packet_ip_firmware_info),
+            .decode = DECODER(lgtd_lifx_wire_decode_ip_firmware_info),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_ip_firmware_info)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_WIFI_INFO",
+            .type = LGTD_LIFX_GET_WIFI_INFO,
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "WIFI_INFO",
+            .type = LGTD_LIFX_WIFI_INFO,
+            .size = sizeof(struct lgtd_lifx_packet_ip_state),
+            .decode = DECODER(lgtd_lifx_wire_decode_ip_state),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_ip_state)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_WIFI_FIRMWARE_STATE",
+            .type = LGTD_LIFX_GET_WIFI_FIRMWARE_STATE
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "WIFI_FIRMWARE_STATE",
+            .type = LGTD_LIFX_WIFI_FIRMWARE_STATE,
+            .size = sizeof(struct lgtd_lifx_packet_ip_firmware_info),
+            .decode = DECODER(lgtd_lifx_wire_decode_ip_firmware_info),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_ip_firmware_info)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_VERSION",
+            .type = LGTD_LIFX_GET_VERSION
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "VERSION_STATE",
+            .type = LGTD_LIFX_VERSION_STATE,
+            .size = sizeof(struct lgtd_lifx_packet_product_info),
+            .decode = DECODER(lgtd_lifx_wire_decode_product_info),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_product_info)
+        },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_INFO",
+            .type = LGTD_LIFX_GET_INFO
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "INFO_STATE",
+            .type = LGTD_LIFX_INFO_STATE,
+            .size = sizeof(struct lgtd_lifx_packet_runtime_info),
+            .decode = DECODER(lgtd_lifx_wire_decode_runtime_info),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_runtime_info)
+        },
+        // Unimplemented but "known" packets
+        {
+            UNIMPLEMENTED,
+            .name = "GET_TIME",
+            .type = LGTD_LIFX_GET_TIME
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_TIME",
+            .type = LGTD_LIFX_SET_TIME
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "TIME_STATE",
+            .type = LGTD_LIFX_TIME_STATE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_RESET_SWITCH_STATE",
+            .type = LGTD_LIFX_GET_RESET_SWITCH_STATE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "RESET_SWITCH_STATE",
+            .type = LGTD_LIFX_RESET_SWITCH_STATE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_BULB_LABEL",
+            .type = LGTD_LIFX_GET_BULB_LABEL
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_BULB_LABEL",
+            .type = LGTD_LIFX_SET_BULB_LABEL
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "BULB_LABEL",
+            .type = LGTD_LIFX_BULB_LABEL
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_MCU_RAIL_VOLTAGE",
+            .type = LGTD_LIFX_GET_MCU_RAIL_VOLTAGE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "MCU_RAIL_VOLTAGE",
+            .type = LGTD_LIFX_MCU_RAIL_VOLTAGE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "REBOOT",
+            .type = LGTD_LIFX_REBOOT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_FACTORY_TEST_MODE",
+            .type = LGTD_LIFX_SET_FACTORY_TEST_MODE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "DISABLE_FACTORY_TEST_MODE",
+            .type = LGTD_LIFX_DISABLE_FACTORY_TEST_MODE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "ACK",
+            .type = LGTD_LIFX_ACK
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "ECHO_REQUEST",
+            .type = LGTD_LIFX_ECHO_REQUEST
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "ECHO_RESPONSE",
+            .type = LGTD_LIFX_ECHO_RESPONSE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_DIM_ABSOLUTE",
+            .type = LGTD_LIFX_SET_DIM_ABSOLUTE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_DIM_RELATIVE",
+            .type = LGTD_LIFX_SET_DIM_RELATIVE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_WIFI_STATE",
+            .type = LGTD_LIFX_GET_WIFI_STATE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_WIFI_STATE",
+            .type = LGTD_LIFX_SET_WIFI_STATE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "WIFI_STATE",
+            .type = LGTD_LIFX_WIFI_STATE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_ACCESS_POINTS",
+            .type = LGTD_LIFX_GET_ACCESS_POINTS
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_ACCESS_POINTS",
+            .type = LGTD_LIFX_SET_ACCESS_POINTS
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "ACCESS_POINT",
+            .type = LGTD_LIFX_ACCESS_POINT
         }
     };
 
@@ -232,6 +463,25 @@ lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
     }
 
     return LGTD_LIFX_WAVEFORM_INVALID;
+}
+
+char *
+lgtd_lifx_wire_print_nsec_timestamp(uint64_t nsec_ts, char *buf, int bufsz)
+{
+    assert(buf);
+    assert(bufsz > 0);
+
+    time_t ts = LGTD_NSECS_TO_SECS(nsec_ts);
+
+    struct tm tm_utc;
+    if (gmtime_r(&ts, &tm_utc)) {
+        int64_t usecs = LGTD_NSECS_TO_USECS(nsec_ts - LGTD_SECS_TO_NSECS(ts));
+        LGTD_TM_TO_ISOTIME(&tm_utc, buf, bufsz, usecs);
+    } else {
+        buf[0] = '\0';
+    }
+
+    return buf;
 }
 
 static void
@@ -422,4 +672,45 @@ lgtd_lifx_wire_decode_tags(struct lgtd_lifx_packet_tags *pkt)
     assert(pkt);
 
     pkt->tags = le64toh(pkt->tags);
+}
+
+void
+lgtd_lifx_wire_decode_ip_state(struct lgtd_lifx_packet_ip_state *pkt)
+{
+    assert(pkt);
+
+    pkt->signal_strength = lgtd_lifx_wire_lefloattoh(pkt->signal_strength);
+    pkt->tx_bytes = le32toh(pkt->tx_bytes);
+    pkt->rx_bytes = le32toh(pkt->rx_bytes);
+    pkt->temperature = le16toh(pkt->temperature);
+}
+
+void
+lgtd_lifx_wire_decode_ip_firmware_info(struct lgtd_lifx_packet_ip_firmware_info *pkt)
+{
+    assert(pkt);
+
+    pkt->built_at = le64toh(pkt->built_at);
+    pkt->installed_at = le64toh(pkt->installed_at);
+    pkt->version = le32toh(pkt->version);
+}
+
+void
+lgtd_lifx_wire_decode_product_info(struct lgtd_lifx_packet_product_info *pkt)
+{
+    assert(pkt);
+
+    pkt->vendor_id = le32toh(pkt->vendor_id);
+    pkt->product_id = le32toh(pkt->product_id);
+    pkt->version = le32toh(pkt->version);
+}
+
+void
+lgtd_lifx_wire_decode_runtime_info(struct lgtd_lifx_packet_runtime_info *pkt)
+{
+    assert(pkt);
+
+    pkt->time = le64toh(pkt->time);
+    pkt->uptime = le64toh(pkt->uptime);
+    pkt->downtime = le64toh(pkt->downtime);
 }

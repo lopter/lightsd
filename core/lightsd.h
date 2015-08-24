@@ -24,10 +24,33 @@
 #define LGTD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
 #define LGTD_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define LGTD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-#define LGTD_MSECS_TO_TIMEVAL(v) { \
+#define LGTD_MSECS_TO_TIMEVAL(v) {  \
     .tv_sec = (v) / 1000,           \
     .tv_usec = ((v) % 1000) * 1000  \
 }
+#define LGTD_NSECS_TO_USECS(v) ((v) / (unsigned int)1E6)
+#define LGTD_NSECS_TO_SECS(v) ((v) / (unsigned int)1E9)
+#define LGTD_SECS_TO_NSECS(v) ((v) * (unsigned int)1E9)
+#define LGTD_TM_TO_ISOTIME(tm, sbuf, bufsz, usec) do {                          \
+    /* '2015-01-02T10:13:16.132222+00:00' */                                    \
+    if ((usec)) {                                                               \
+        snprintf(                                                               \
+            (sbuf), (bufsz), "%d-%02d-%02dT%02d:%02d:%02d.%jd%c%02ld:%02ld",    \
+            1900 + (tm)->tm_year, 1 + (tm)->tm_mon, (tm)->tm_mday,              \
+            (tm)->tm_hour, (tm)->tm_min, (tm)->tm_sec, (intmax_t)usec,          \
+            (tm)->tm_gmtoff >= 0 ? '+' : '-', /* %+02ld doesn't work */         \
+            LGTD_ABS((tm)->tm_gmtoff / 60 / 60), (tm)->tm_gmtoff % (60 * 60)    \
+        );                                                                      \
+    } else {                                                                    \
+        snprintf(                                                               \
+            (sbuf), (bufsz), "%d-%02d-%02dT%02d:%02d:%02d%c%02ld:%02ld",        \
+            1900 + (tm)->tm_year, 1 + (tm)->tm_mon, (tm)->tm_mday,              \
+            (tm)->tm_hour, (tm)->tm_min, (tm)->tm_sec,                          \
+            (tm)->tm_gmtoff >= 0 ? '+' : '-', /* %+02ld doesn't work */         \
+            LGTD_ABS((tm)->tm_gmtoff / 60 / 60), (tm)->tm_gmtoff % (60 * 60)    \
+        );                                                                      \
+    }                                                                           \
+} while (0)
 #define LGTD_SNPRINTF_APPEND(buf, i, bufsz, ...) do {       \
     int n = snprintf(&(buf)[(i)], bufsz - i, __VA_ARGS__);  \
     (i) = LGTD_MIN((i) + n, bufsz);                         \
@@ -56,6 +79,10 @@ char *lgtd_iee8023mactoa(const uint8_t *addr, char *buf, int buflen);
     lgtd_iee8023mactoa((addr), (buf), sizeof(buf))
 void lgtd_sockaddrtoa(const struct sockaddr_storage *, char *buf, int buflen);
 short lgtd_sockaddrport(const struct sockaddr_storage *);
+
+char *lgtd_print_duration(uint64_t, char *, int);
+#define LGTD_PRINT_DURATION(secs, arr) \
+    lgtd_print_duration((secs), (arr), sizeof((arr)))
 
 void _lgtd_err(void (*)(int, const char *, ...), int, const char *, ...)
     __attribute__((format(printf, 3, 4)));

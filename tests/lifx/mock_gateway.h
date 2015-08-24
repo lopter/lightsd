@@ -129,3 +129,51 @@ lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *gw,
     (void)pkt_tags;
 }
 #endif
+
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_IP_STATE
+void
+lgtd_lifx_gateway_handle_ip_state(struct lgtd_lifx_gateway *gw,
+                                  const struct lgtd_lifx_packet_header *hdr,
+                                  const struct lgtd_lifx_packet_ip_state *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif
+
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_IP_FIRMWARE_INFO
+void
+lgtd_lifx_gateway_handle_ip_firmware_info(struct lgtd_lifx_gateway *gw,
+                                          const struct lgtd_lifx_packet_header *hdr,
+                                          const struct lgtd_lifx_packet_ip_firmware_info *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif
+
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_PRODUCT_INFO
+void
+lgtd_lifx_gateway_handle_product_info(struct lgtd_lifx_gateway *gw,
+                                      const struct lgtd_lifx_packet_header *hdr,
+                                      const struct lgtd_lifx_packet_product_info *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif
+
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_RUNTIME_INFO
+void
+lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *gw,
+                                      const struct lgtd_lifx_packet_header *hdr,
+                                      const struct lgtd_lifx_packet_runtime_info *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif

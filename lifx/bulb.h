@@ -30,17 +30,72 @@ struct lgtd_lifx_light_state {
     char        label[LGTD_LIFX_LABEL_SIZE];
     uint64_t    tags;
 };
+
+struct lgtd_lifx_ip_state {
+    float       signal_strength;    // mW
+    uint32_t    tx_bytes;
+    uint32_t    rx_bytes;
+    uint16_t    temperature;        // Deci-celcius: e.g 24.3 -> 2430
+};
+
+struct lgtd_lifx_ip_firmware_info {
+    uint64_t    built_at;       // ns since epoch
+    uint64_t    installed_at;   // ns since epoch
+    uint32_t    version;
+};
+
+struct lgtd_lifx_product_info {
+    uint32_t    vendor_id;
+    uint32_t    product_id;
+    uint32_t    version;
+};
+
+struct lgtd_lifx_runtime_info {
+    uint64_t    time;       // ns since epoch
+    uint64_t    uptime;     // ns
+    uint64_t    downtime;   // ns, last power off period duration
+};
 #pragma pack(pop)
+
+enum { LGTD_LIFX_BULB_FETCH_HARDWARE_INFO_TIMER_MSECS = 5000 };
+// non-gateway fw 1.1 bulbs will never send this information, so just bail out
+// after a few tries:
+enum {
+    LGTD_LIFX_BULB_FETCH_WIFI_FW_INFO_TIMEOUT_MSECS =
+        LGTD_LIFX_BULB_FETCH_HARDWARE_INFO_TIMER_MSECS * 4
+};
+
+enum lgtd_lifx_bulb_ips {
+    LGTD_LIFX_BULB_MCU_IP = 0,
+    LGTD_LIFX_BULB_WIFI_IP,
+    LGTD_LIFX_BULB_IP_COUNT,
+};
+
+// keyed with enum lgtd_lifx_bulb_ips:
+extern const char * const lgtd_lifx_bulb_ip_names[];
+
+struct lgtd_lifx_bulb_ip {
+    struct lgtd_lifx_ip_state           state;
+    lgtd_time_mono_t                    state_updated_at;
+    struct lgtd_lifx_ip_firmware_info   fw_info;
+    lgtd_time_mono_t                    fw_info_updated_at;
+};
 
 struct lgtd_lifx_bulb {
     RB_ENTRY(lgtd_lifx_bulb)        link;
     SLIST_ENTRY(lgtd_lifx_bulb)     link_by_gw;
-    struct lgtd_lifx_gateway        *gw;
-    uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
-    struct lgtd_lifx_light_state    state;
     lgtd_time_mono_t                last_light_state_at;
+    lgtd_time_mono_t                runtime_info_updated_at;
     lgtd_time_mono_t                dirty_at;
     uint16_t                        expected_power_on;
+    uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
+    const char                      *model;
+    const char                      *vendor;
+    struct lgtd_lifx_gateway        *gw;
+    struct lgtd_lifx_light_state    state;
+    struct lgtd_lifx_bulb_ip        ips[LGTD_LIFX_BULB_IP_COUNT];
+    struct lgtd_lifx_product_info   product_info;
+    struct lgtd_lifx_runtime_info   runtime_info;
 };
 RB_HEAD(lgtd_lifx_bulb_map, lgtd_lifx_bulb);
 SLIST_HEAD(lgtd_lifx_bulb_list, lgtd_lifx_bulb);
@@ -69,3 +124,17 @@ void lgtd_lifx_bulb_set_light_state(struct lgtd_lifx_bulb *,
                                     lgtd_time_mono_t);
 void lgtd_lifx_bulb_set_power_state(struct lgtd_lifx_bulb *, uint16_t);
 void lgtd_lifx_bulb_set_tags(struct lgtd_lifx_bulb *, uint64_t);
+
+void lgtd_lifx_bulb_set_ip_state(struct lgtd_lifx_bulb *bulb,
+                                 enum lgtd_lifx_bulb_ips ip_id,
+                                 const struct lgtd_lifx_ip_state *state,
+                                 lgtd_time_mono_t received_at);
+void lgtd_lifx_bulb_set_ip_firmware_info(struct lgtd_lifx_bulb *bulb,
+                                         enum lgtd_lifx_bulb_ips ip_id,
+                                         const struct lgtd_lifx_ip_firmware_info *info,
+                                         lgtd_time_mono_t received_at);
+void lgtd_lifx_bulb_set_product_info(struct lgtd_lifx_bulb *,
+                                     const struct lgtd_lifx_product_info *);
+void lgtd_lifx_bulb_set_runtime_info(struct lgtd_lifx_bulb *,
+                                     const struct lgtd_lifx_runtime_info *,
+                                     lgtd_time_mono_t);

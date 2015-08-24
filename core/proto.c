@@ -195,40 +195,146 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
         return;
     }
 
-    static const char *state_fmt = ("{"
-        "\"hsbk\":[%s,%s,%s,%hu],"
-        "\"power\":%s,"
-        "\"label\":\"%s\","
-        "\"tags\":[");
-
-#define PRINT_COMPONENT(src, dst, start, stop)          \
-    lgtd_jsonrpc_uint16_range_to_float_string(          \
-        (src), (start), (stop), (dst), sizeof((dst))    \
-    )
-
     lgtd_client_start_send_response(client);
     lgtd_client_write_string(client, "[");
     struct lgtd_router_device *device;
     SLIST_FOREACH(device, devices, link) {
         struct lgtd_lifx_bulb *bulb = device->device;
 
+        char buf[2048],
+             site_addr[LGTD_LIFX_ADDR_STRLEN],
+             bulb_addr[LGTD_LIFX_ADDR_STRLEN];
+        int i = 0;
+
+        LGTD_IEEE8023MACTOA(bulb->addr, bulb_addr);
+        LGTD_IEEE8023MACTOA(bulb->gw->site.as_array, site_addr);
+
+        LGTD_SNPRINTF_APPEND(
+            buf, i, (int)sizeof(buf),
+            "{"
+                "\"_lifx\":{"
+                    "\"addr\":\"%s\","
+                    "\"gateway\":{"
+                        "\"site\":\"%s\","
+                        "\"url\":\"tcp://[%s]:%hu\","
+                        "\"latency\":%ju"
+                    "}",
+            bulb_addr, site_addr,
+            bulb->gw->ip_addr, bulb->gw->port,
+            (uintmax_t)LGTD_LIFX_GATEWAY_LATENCY(bulb->gw)
+        );
+
+#define PRINT_LIFX_FW_TIMESTAMPS(fw_info, built_at_buf, installed_at_buf)       \
+    LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP((fw_info)->built_at, (built_at_buf));   \
+    LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(                                        \
+        (fw_info)->installed_at, (installed_at_buf)                             \
+    )
+
+        for (int ip = 0; ip != LGTD_LIFX_BULB_IP_COUNT; ip++) {
+            if (lgtd_opts.verbosity == LGTD_DEBUG) {
+                char fw_built_at[64], fw_installed_at[64];
+                PRINT_LIFX_FW_TIMESTAMPS(
+                    &bulb->ips[ip].fw_info, fw_built_at, fw_installed_at
+                );
+
+                LGTD_SNPRINTF_APPEND(
+                    buf, i, (int)sizeof(buf),
+                    ",\"%s\":{"
+                        "\"firmware_built_at\":\"%s\","
+                        "\"firmware_installed_at\":\"%s\","
+                        "\"firmware_version\":\"%u.%u\","
+                        "\"signal_strength\":%f,"
+                        "\"tx_bytes\":%u,"
+                        "\"rx_bytes\":%u,"
+                        "\"temperature\":%u"
+                    "}",
+                    lgtd_lifx_bulb_ip_names[ip],
+                    fw_built_at, fw_installed_at,
+                    (bulb->ips[ip].fw_info.version & 0xffff0000) >> 16,
+                    bulb->ips[ip].fw_info.version & 0xffff,
+                    bulb->ips[ip].state.signal_strength,
+                    bulb->ips[ip].state.tx_bytes,
+                    bulb->ips[ip].state.rx_bytes,
+                    bulb->ips[ip].state.temperature
+                );
+            } else {
+                LGTD_SNPRINTF_APPEND(
+                    buf, i, (int)sizeof(buf),
+                    ",\"%s\":{\"firmware_version\":\"%u.%u\"}",
+                    lgtd_lifx_bulb_ip_names[ip],
+                    (bulb->ips[ip].fw_info.version & 0xffff0000) >> 16,
+                    bulb->ips[ip].fw_info.version & 0xffff
+                );
+            }
+        }
+
+        if (lgtd_opts.verbosity == LGTD_DEBUG) {
+            LGTD_SNPRINTF_APPEND(
+                buf, i, (int)sizeof(buf),
+                    ",\"product_info\":{"
+                        "\"vendor_id\":\"%x\","
+                        "\"product_id\":\"%x\","
+                        "\"version\":%u"
+                    "}",
+                bulb->product_info.vendor_id,
+                bulb->product_info.product_id,
+                bulb->product_info.version
+            );
+
+            char bulb_time[64];
+            LGTD_SNPRINTF_APPEND(
+                buf, i, (int)sizeof(buf),
+                    ",\"runtime_info\":{"
+                        "\"time\":\"%s\","
+                        "\"uptime\":%ju,"
+                        "\"downtime\":%ju"
+                    "}"
+                "}",
+                LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(
+                    bulb->runtime_info.time, bulb_time
+                ),
+                (uintmax_t)LGTD_NSECS_TO_SECS(bulb->runtime_info.uptime),
+                (uintmax_t)LGTD_NSECS_TO_SECS(bulb->runtime_info.downtime)
+            );
+        } else {
+            LGTD_SNPRINTF_APPEND(buf, i, (int)sizeof(buf), "}");
+        }
+
+#define PRINT_STRING_OR_NULL(buf, i, bufsz, v) do {                 \
+    if ((v)) {                                                      \
+        LGTD_SNPRINTF_APPEND((buf), (i), (bufsz), "\"%s\"", (v));   \
+    } else {                                                        \
+        LGTD_SNPRINTF_APPEND((buf), (i), (bufsz), "null");          \
+    }                                                               \
+} while (0)
+
+    LGTD_SNPRINTF_APPEND(buf, i, (int)sizeof(buf), ",\"_model\":");
+    PRINT_STRING_OR_NULL(buf, i, (int)sizeof(buf), bulb->model);
+    LGTD_SNPRINTF_APPEND(buf, i, (int)sizeof(buf), ",\"_vendor\":");
+    PRINT_STRING_OR_NULL(buf, i, (int)sizeof(buf), bulb->vendor);
+
+#define PRINT_COMPONENT(src, dst, start, stop)          \
+    lgtd_jsonrpc_uint16_range_to_float_string(          \
+        (src), (start), (stop), (dst), sizeof((dst))    \
+    )
+
         char h[16], s[16], b[16];
         PRINT_COMPONENT(bulb->state.hue, h, 0, 360);
         PRINT_COMPONENT(bulb->state.saturation, s, 0, 1);
         PRINT_COMPONENT(bulb->state.brightness, b, 0, 1);
 
-        char buf[3072],
-             bulb_addr[LGTD_LIFX_ADDR_STRLEN],
-             site_addr[LGTD_LIFX_ADDR_STRLEN];
-        LGTD_IEEE8023MACTOA(bulb->addr, bulb_addr);
-        LGTD_IEEE8023MACTOA(bulb->gw->site.as_array, site_addr);
-        int written = snprintf(
-            buf, sizeof(buf), state_fmt,
+        LGTD_SNPRINTF_APPEND(
+            buf, i, (int)sizeof(buf),
+            ",\"hsbk\":[%s,%s,%s,%hu],"
+            "\"power\":%s,"
+            "\"label\":\"%s\","
+            "\"tags\":[",
             h, s, b, bulb->state.kelvin,
             bulb->state.power == LGTD_LIFX_POWER_ON ? "true" : "false",
             bulb->state.label[0] ? bulb->state.label : bulb_addr
         );
-        if (written >= (int)sizeof(buf)) {
+
+        if (i >= (int)sizeof(buf)) {
             lgtd_warnx(
                 "can't send state of bulb %s (%s) to client "
                 "[%s]:%hu: output buffer to small",

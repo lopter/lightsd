@@ -28,7 +28,7 @@ typedef float    floatle_t;
 static inline floatle_t
 lgtd_lifx_wire_htolefloat(float f)
 {
-    union { float f; uint32_t i; } u  = { .f = f };
+    union { float f; uint32_t i; } u = { .f = f };
     htole32(u.i);
     return u.f;
 }
@@ -36,7 +36,7 @@ lgtd_lifx_wire_htolefloat(float f)
 static inline floatle_t
 lgtd_lifx_wire_lefloattoh(float f)
 {
-    union { float f; uint32_t i; } u  = { .f = f };
+    union { float f; uint32_t i; } u = { .f = f };
     le32toh(u.i);
     return u.f;
 }
@@ -250,7 +250,33 @@ struct lgtd_lifx_packet_tag_labels {
     char        label[LGTD_LIFX_LABEL_SIZE];
 };
 
+struct lgtd_lifx_packet_ip_state {
+    floatle_t   signal_strength;
+    uint32le_t  tx_bytes;
+    uint32le_t  rx_bytes;
+    uint16le_t  temperature;
+};
+
+struct lgtd_lifx_packet_ip_firmware_info {
+    uint64le_t  built_at;
+    uint64le_t  installed_at;
+    uint32le_t  version;
+};
+
+struct lgtd_lifx_packet_product_info {
+    uint32le_t  vendor_id;
+    uint32le_t  product_id;
+    uint32le_t  version;
+};
+
+struct lgtd_lifx_packet_runtime_info {
+    uint64le_t  time;
+    uint64le_t  uptime;
+    uint64le_t  downtime;
+};
 #pragma pack(pop)
+
+enum { LGTD_LIFX_VENDOR_ID = 1 };
 
 enum lgtd_lifx_header_flags {
     LGTD_LIFX_ADDRESSABLE = 1,
@@ -331,8 +357,10 @@ lgtd_lifx_wire_next_tag_id(int current_tag_id, uint64_t tags)
          (tag_id_varname) != -1;                                                    \
          (tag_id_varname) = lgtd_lifx_wire_next_tag_id((tag_id_varname), (tags)))
 
-
 enum lgtd_lifx_waveform_type lgtd_lifx_wire_waveform_string_id_to_type(const char *, int);
+char* lgtd_lifx_wire_print_nsec_timestamp(uint64_t, char *, int);
+#define LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(ts, arr) \
+    lgtd_lifx_wire_print_nsec_timestamp((ts), (arr), sizeof((arr)))
 
 const struct lgtd_lifx_packet_info *lgtd_lifx_wire_get_packet_info(enum lgtd_lifx_packet_type);
 void lgtd_lifx_wire_load_packet_info_map(void);
@@ -357,3 +385,8 @@ void lgtd_lifx_wire_encode_tags(struct lgtd_lifx_packet_tags *);
 void lgtd_lifx_wire_decode_tags(struct lgtd_lifx_packet_tags *);
 void lgtd_lifx_wire_encode_tag_labels(struct lgtd_lifx_packet_tag_labels *);
 void lgtd_lifx_wire_decode_tag_labels(struct lgtd_lifx_packet_tag_labels *);
+
+void lgtd_lifx_wire_decode_ip_state(struct lgtd_lifx_packet_ip_state *);
+void lgtd_lifx_wire_decode_ip_firmware_info(struct lgtd_lifx_packet_ip_firmware_info *);
+void lgtd_lifx_wire_decode_product_info(struct lgtd_lifx_packet_product_info *);
+void lgtd_lifx_wire_decode_runtime_info(struct lgtd_lifx_packet_runtime_info *);

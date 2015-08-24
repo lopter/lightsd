@@ -1,6 +1,6 @@
 #include "wire_proto.c"
 
-#include "test_wire_proto_utils.h"
+#include "mock_gateway.h"
 
 int
 main(void)

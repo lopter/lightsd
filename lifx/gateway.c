@@ -502,12 +502,8 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         (uintmax_t)pkt->tags
     );
 
-    struct lgtd_lifx_bulb *b = lgtd_lifx_gateway_get_or_open_bulb(
-        gw, hdr->target.device_addr
-    );
-    if (!b) {
-        return;
-    }
+    struct lgtd_lifx_bulb *b;
+    LGTD_LIFX_GATEWAY_GET_BULB_OR_RETURN(b, gw, hdr->target.device_addr);
 
     assert(sizeof(*pkt) == sizeof(b->state));
     lgtd_lifx_bulb_set_light_state(
@@ -532,7 +528,7 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         }
     }
 
-    int latency = gw->last_pkt_at - gw->last_req_at;
+    int latency = LGTD_LIFX_GATEWAY_LATENCY(gw);
     if (latency < LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
         if (!lgtd_timer_ispending(gw->refresh_timer)) {
             int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
@@ -574,14 +570,9 @@ lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *gw,
         LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr), pkt->power
     );
 
-    struct lgtd_lifx_bulb *b = lgtd_lifx_gateway_get_or_open_bulb(
-        gw, hdr->target.device_addr
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr, lgtd_lifx_bulb_set_power_state, pkt->power
     );
-    if (!b) {
-        return;
-    }
-
-    lgtd_lifx_bulb_set_power_state(b, pkt->power);
 }
 
 int
@@ -692,9 +683,10 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
     }
 }
 
-void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
-                                   const struct lgtd_lifx_packet_header *hdr,
-                                   const struct lgtd_lifx_packet_tags *pkt)
+void
+lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
+                              const struct lgtd_lifx_packet_header *hdr,
+                              const struct lgtd_lifx_packet_tags *pkt)
 {
     assert(gw && hdr && pkt);
 
@@ -706,12 +698,8 @@ void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
         (uintmax_t)pkt->tags
     );
 
-    struct lgtd_lifx_bulb *b = lgtd_lifx_gateway_get_or_open_bulb(
-        gw, hdr->target.device_addr
-    );
-    if (!b) {
-        return;
-    }
+    struct lgtd_lifx_bulb *b;
+    LGTD_LIFX_GATEWAY_GET_BULB_OR_RETURN(b, gw, hdr->target.device_addr);
 
     char bulb_addr[LGTD_LIFX_ADDR_STRLEN], site_addr[LGTD_LIFX_ADDR_STRLEN];
     int tag_id;
@@ -729,4 +717,133 @@ void lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
     }
 
     lgtd_lifx_bulb_set_tags(b, pkt->tags);
+}
+
+void
+lgtd_lifx_gateway_handle_ip_state(struct lgtd_lifx_gateway *gw,
+                                  const struct lgtd_lifx_packet_header *hdr,
+                                  const struct lgtd_lifx_packet_ip_state *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    const char  *type;
+    enum lgtd_lifx_bulb_ips ip_id;
+    switch (hdr->packet_type) {
+    case LGTD_LIFX_MESH_INFO:
+        type = "MCU_STATE";
+        ip_id = LGTD_LIFX_BULB_MCU_IP;
+        break;
+    case LGTD_LIFX_WIFI_INFO:
+        type = "WIFI_STATE";
+        ip_id = LGTD_LIFX_BULB_WIFI_IP;
+        break;
+    default:
+        lgtd_info("invalid ip state packet_type %#hx", hdr->packet_type);
+#ifndef NDEBUG
+        abort();
+#endif
+        return;
+    }
+
+    char addr[LGTD_LIFX_ADDR_STRLEN];
+    lgtd_debug(
+        "%s <-- [%s]:%hu - %s "
+        "signal_strength=%f, rx_bytes=%u, tx_bytes=%u, temperature=%hu",
+        type, gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        pkt->signal_strength, pkt->rx_bytes, pkt->tx_bytes, pkt->temperature
+    );
+
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr, lgtd_lifx_bulb_set_ip_state,
+        ip_id, (const struct lgtd_lifx_ip_state *)pkt, gw->last_pkt_at
+    );
+}
+
+void
+lgtd_lifx_gateway_handle_ip_firmware_info(struct lgtd_lifx_gateway *gw,
+                                          const struct lgtd_lifx_packet_header *hdr,
+                                          const struct lgtd_lifx_packet_ip_firmware_info *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    const char  *type;
+    enum lgtd_lifx_bulb_ips ip_id;
+    switch (hdr->packet_type) {
+    case LGTD_LIFX_MESH_FIRMWARE:
+        type = "MCU_FIRMWARE_INFO";
+        ip_id = LGTD_LIFX_BULB_MCU_IP;
+        break;
+    case LGTD_LIFX_WIFI_FIRMWARE_STATE:
+        type = "WIFI_FIRMWARE_INFO";
+        ip_id = LGTD_LIFX_BULB_WIFI_IP;
+        break;
+    default:
+        lgtd_info("invalid ip firmware packet_type %#hx", hdr->packet_type);
+#ifndef NDEBUG
+        abort();
+#endif
+        return;
+    }
+
+    char built_at[64], installed_at[64], addr[LGTD_LIFX_ADDR_STRLEN];
+    lgtd_debug(
+        "%s <-- [%s]:%hu - %s "
+        "built_at=%s, installed_at=%s, version=%u",
+        type, gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(pkt->built_at, built_at),
+        LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(pkt->installed_at, installed_at),
+        pkt->version
+    );
+
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr, lgtd_lifx_bulb_set_ip_firmware_info,
+        ip_id, (const struct lgtd_lifx_ip_firmware_info *)pkt, gw->last_pkt_at
+    );
+}
+
+void
+lgtd_lifx_gateway_handle_product_info(struct lgtd_lifx_gateway *gw,
+                                      const struct lgtd_lifx_packet_header *hdr,
+                                      const struct lgtd_lifx_packet_product_info *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    char addr[LGTD_LIFX_ADDR_STRLEN];
+    lgtd_debug(
+        "PRODUCT_INFO <-- [%s]:%hu - %s "
+        "vendor_id=%#x, product_id=%#x, version=%u",
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        pkt->vendor_id, pkt->product_id, pkt->version
+    );
+
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr, lgtd_lifx_bulb_set_product_info,
+        (const struct lgtd_lifx_product_info *)pkt
+    );
+}
+
+void
+lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *gw,
+                                      const struct lgtd_lifx_packet_header *hdr,
+                                      const struct lgtd_lifx_packet_runtime_info *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    char device_time[64], uptime[64], downtime[64], addr[LGTD_LIFX_ADDR_STRLEN];
+    lgtd_debug(
+        "PRODUCT_INFO <-- [%s]:%hu - %s time=%s, uptime=%s, downtime=%s",
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(pkt->time, device_time),
+        LGTD_PRINT_DURATION(LGTD_NSECS_TO_SECS(pkt->uptime), uptime),
+        LGTD_PRINT_DURATION(LGTD_NSECS_TO_SECS(pkt->downtime), downtime)
+    );
+
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr, lgtd_lifx_bulb_set_runtime_info,
+        (const struct lgtd_lifx_runtime_info *)pkt, gw->last_pkt_at
+    );
 }

@@ -306,3 +306,12 @@ lgtd_lifx_bulb_set_runtime_info(struct lgtd_lifx_bulb *bulb,
     bulb->runtime_info_updated_at = received_at;
     memcpy(&bulb->runtime_info, info, sizeof(bulb->runtime_info));
 }
+
+void
+lgtd_lifx_bulb_set_label(struct lgtd_lifx_bulb *bulb,
+                         const char label[LGTD_LIFX_LABEL_SIZE])
+{
+    assert(bulb);
+
+    memcpy(bulb->state.label, label, LGTD_LIFX_LABEL_SIZE);
+}

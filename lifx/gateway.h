@@ -145,3 +145,6 @@ void lgtd_lifx_gateway_handle_product_info(struct lgtd_lifx_gateway *,
 void lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *,
                                            const struct lgtd_lifx_packet_header *,
                                            const struct lgtd_lifx_packet_runtime_info *);
+void lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *,
+                                         const struct lgtd_lifx_packet_header *,
+                                         const struct lgtd_lifx_packet_label *);

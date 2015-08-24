@@ -5,7 +5,9 @@
 #include "lifx/gateway.h"
 
 struct lgtd_lifx_tag;
-struct lgtd_lifx_gateway;
+
+struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
+    LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
 
 #ifndef MOCKED_LIFX_GATEWAY_SEND_TO_SITE
 bool
@@ -171,6 +173,18 @@ void
 lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *gw,
                                       const struct lgtd_lifx_packet_header *hdr,
                                       const struct lgtd_lifx_packet_runtime_info *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif
+
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_BULB_LABEL
+void
+lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
+                                    const struct lgtd_lifx_packet_header *hdr,
+                                    const struct lgtd_lifx_packet_label *pkt)
 {
     (void)gw;
     (void)hdr;

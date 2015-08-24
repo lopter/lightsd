@@ -3,32 +3,32 @@
 #include "mock_client_buf.h"
 #include "mock_gateway.h"
 
-#define MOCKED_LGTD_UNTAG
+#define MOCKED_LGTD_PROTO_SET_LABEL
 #include "test_jsonrpc_utils.h"
 
-static bool untag_called = false;
+static bool tag_called = false;
 
 void
-lgtd_proto_untag(struct lgtd_client *client,
-                 const struct lgtd_proto_target_list *targets,
-                 const char *tag)
+lgtd_proto_set_label(struct lgtd_client *client,
+                     const struct lgtd_proto_target_list *targets,
+                     const char *label)
 {
     if (!client) {
         errx(1, "missing client!");
     }
 
-    if (strcmp(SLIST_FIRST(targets)->target, "#suspensions")) {
+    if (strcmp(SLIST_FIRST(targets)->target, "*")) {
         errx(
-            1, "Invalid target [%s] (expected=[#suspensions])",
+            1, "Invalid target [%s] (expected=[*])",
             SLIST_FIRST(targets)->target
         );
     }
 
-    if (strcmp(tag, "suspensions")) {
-        errx(1, "Invalid tag [%s] (expected=[suspensions])", tag);
+    if (strcmp(label, "candle")) {
+        errx(1, "Invalid label [%s] (expected=[candle])", label);
     }
 
-    untag_called = true;
+    tag_called = true;
 }
 
 int
@@ -37,8 +37,8 @@ main(void)
     jsmntok_t tokens[32];
     const char json[] = ("{"
         "\"jsonrpc\": \"2.0\","
-        "\"method\": \"tag\","
-        "\"params\": [[\"#suspensions\"], \"suspensions\"],"
+        "\"method\": \"set_label\","
+        "\"params\": {\"target\": \"*\", \"label\": \"candle\"},"
         "\"id\": \"42\""
     "}");
     int parsed = parse_json(
@@ -55,10 +55,10 @@ main(void)
         errx(1, "can't parse request");
     }
 
-    lgtd_jsonrpc_check_and_call_proto_tag_or_untag_or_set_label(&client, lgtd_proto_untag);
+    lgtd_jsonrpc_check_and_call_set_label(&client);
 
-    if (!untag_called) {
-        errx(1, "lgtd_proto_tag wasn't called");
+    if (!tag_called) {
+        errx(1, "lgtd_proto_label wasn't called");
     }
 
     return 0;

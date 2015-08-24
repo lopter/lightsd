@@ -26,6 +26,10 @@ bulb(s) the operation should apply:
 A target is either a string, a hexadecimal number (without any prefix like 0x)
 or an array of targets.
 
+.. note::
+
+   The maximum supported length for labels and tag names by LIFX bulbs is 32.
+
 Available methods
 -----------------
 
@@ -83,14 +87,22 @@ Available methods
 
 .. function:: get_light_state(target)
 
-    Return a list of dictionnaries, each dict representing the state of one
-    targeted bulb, the list is not in any specific order. Each dict has the
-    following fields:
+   Return a list of dictionnaries, each dict representing the state of one
+   targeted bulb, the list is not in any specific order. Each dict has the
+   following fields:
 
-    - hsbk: tuple (h, s, b, k) see function:`set_light_from_hsbk`;
-    - label: bulb label (utf-8 encoded string);
-    - power: boolean, true when the bulb is powered on false otherwise;
-    - tags: list of tags applied to the bulb (utf-8 encoded strings).
+   - hsbk: tuple (h, s, b, k) see function:`set_light_from_hsbk`;
+   - label: bulb label (utf-8 encoded string);
+   - power: boolean, true when the bulb is powered on false otherwise;
+   - tags: list of tags applied to the bulb (utf-8 encoded strings).
+
+.. function:: set_label(target, label)
+
+   Label the target bulb(s) with the given label.
+
+   .. note::
+
+      Use :func:`tag` instead set_label to give a common name to multiple bulbs.
 
 .. function:: tag(target, label)
 

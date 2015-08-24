@@ -116,6 +116,10 @@ def untag(socket, target, tag):
     return jsonrpc_call(socket, "untag", [target, tag])
 
 
+def set_label(socket, target, label):
+    return jsonrpc_call(socket, "set_label", [target, label])
+
+
 def adjust_brightness(socket, target, adjustment):
     bulbs = get_light_state(socket, target)["result"]
     for bulb in bulbs:

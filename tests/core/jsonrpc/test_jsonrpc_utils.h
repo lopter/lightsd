@@ -131,3 +131,15 @@ lgtd_proto_power_toggle(struct lgtd_client *client,
     (void)targets;
 }
 #endif
+
+#ifndef MOCKED_LGTD_PROTO_SET_LABEL
+void
+lgtd_proto_set_label(struct lgtd_client *client,
+                     const struct lgtd_proto_target_list *targets,
+                     const char *label)
+{
+    (void)client;
+    (void)targets;
+    (void)label;
+}
+#endif

@@ -847,3 +847,23 @@ lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *gw,
         (const struct lgtd_lifx_runtime_info *)pkt, gw->last_pkt_at
     );
 }
+
+void
+lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
+                                    const struct lgtd_lifx_packet_header *hdr,
+                                    const struct lgtd_lifx_packet_label *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    char addr[LGTD_LIFX_ADDR_STRLEN];
+    lgtd_info(
+        "BULB_LABEL <-- [%s]:%hu - %s label=%.*s",
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        (int)sizeof(pkt->label), pkt->label
+    );
+
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr, lgtd_lifx_bulb_set_label, pkt->label
+    );
+}

@@ -52,7 +52,7 @@ Available methods
 .. function:: set_waveform(target, waveform, h, s, b, k, period, cycles, skew_ratio, transient)
 
    :param string waveform: One of ``SAW``, ``SINE``, ``HALF_SINE``,
-                           ``TRIANGLE``, ``PULSE``.
+                           ``TRIANGLE``, ``SQUARE``.
    :param float h: Hue from 0 to 360.
    :param float s: Saturation from 0 to 1.
    :param float b: Brightness from 0 to 1.
@@ -63,6 +63,23 @@ Available methods
    :param bool transient: if true the target will keep the color it has at the
                           end of the waveform, otherwise it will revert back to
                           its original state.
+
+   The meaning of the ``skew_ratio`` argument depends on the type of waveform:
+
+   +---------------+-----------------------------------------------------------+
+   | ``SAW``       | Should be 0.5.                                            |
+   +---------------+-----------------------------------------------------------+
+   | ``SINE``      | Defines the peak point of the function, 0.5 gives you a   |
+   |               | sine and 1 or 0 will give you cosine. Ignored by firmware |
+   |               | 1.1.                                                      |
+   +---------------+-----------------------------------------------------------+
+   | ``HALF_SINE`` | Should be 0.5.                                            |
+   +---------------+-----------------------------------------------------------+
+   | ``TRIANGLE``  | Defines the peak point of the function like ``SINE``.     |
+   |               | Ignored by firmware 1.1.                                  |
+   +---------------+-----------------------------------------------------------+
+   | ``SQUARE``    | Ratio of a cycle the targets are set to the given color.  |
+   +---------------+-----------------------------------------------------------+
 
 .. function:: get_light_state(target)
 

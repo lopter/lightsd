@@ -27,9 +27,9 @@ main(void)
         errx(1, "Expected WAVEFORM_TRIANGLE");
     }
 
-    rv = lgtd_lifx_wire_waveform_string_id_to_type("PULSE", 5);
-    if (rv != LGTD_LIFX_WAVEFORM_PULSE) {
-        errx(1, "Expected WAVEFORM_PULSE");
+    rv = lgtd_lifx_wire_waveform_string_id_to_type("SQUARE", 6);
+    if (rv != LGTD_LIFX_WAVEFORM_SQUARE) {
+        errx(1, "Expected WAVEFORM_SQUARE");
     }
 
     rv = lgtd_lifx_wire_waveform_string_id_to_type("TEST", 4);

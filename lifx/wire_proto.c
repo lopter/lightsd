@@ -444,7 +444,7 @@ const struct lgtd_lifx_waveform_string_id lgtd_lifx_waveform_table[] = {
     WAVEFORM_ENTRY("SINE"),
     WAVEFORM_ENTRY("HALF_SINE"),
     WAVEFORM_ENTRY("TRIANGLE"),
-    WAVEFORM_ENTRY("PULSE"),
+    WAVEFORM_ENTRY("SQUARE"),
     WAVEFORM_ENTRY("INVALID")
 };
 

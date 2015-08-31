@@ -70,59 +70,64 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
     struct lgtd_client *client = ctx;
 
     struct evbuffer *input = bufferevent_get_input(bev);
-    size_t bufsz = evbuffer_get_contiguous_space(input);
+    size_t nbytes = evbuffer_get_contiguous_space(input);
     // Get the actual pointer to the beginning of the evbuf:
-    const char *buf = (char *)evbuffer_pullup(input, bufsz);
-    jsmnerr_t rv;
+    const char *buf = (char *)evbuffer_pullup(input, nbytes);
 
-retry_after_pullup:
-    rv = jsmn_parse(
-        &client->jsmn_ctx,
-        buf,
-        bufsz,
-        client->jsmn_tokens,
-        LGTD_ARRAY_SIZE(client->jsmn_tokens)
-    );
-    switch (rv) {
-    case JSMN_ERROR_NOMEM:
-        lgtd_warnx(
-            "dropping client [%s]:%hu: request too big, not "
-            "enough parser tokens", client->ip_addr, client->port
+    do {
+        jsmn_init(&client->jsmn_ctx);
+        jsmnerr_t rv = jsmn_parse(
+            &client->jsmn_ctx,
+            buf,
+            nbytes,
+            client->jsmn_tokens,
+            LGTD_ARRAY_SIZE(client->jsmn_tokens)
         );
-        lgtd_client_close(client);
-        break;
-    case JSMN_ERROR_INVAL:
-        lgtd_warnx(
-            "dropping client [%s]:%hu: invalid json",
-            client->ip_addr, client->port
-        );
-        // TODO: consume remaining data and send a proper error instead of
-        // closing the connection:
-        lgtd_client_close(client);
-        break;
-    case JSMN_ERROR_PART:
-        if (evbuffer_get_length(input) > LGTD_CLIENT_MAX_REQUEST_BUF_SIZE) {
+        switch (rv) {
+        case JSMN_ERROR_NOMEM:
+        case JSMN_ERROR_INVAL:
             lgtd_warnx(
-                "dropping client [%s]:%hu: request too big",
+                "client [%s]:%hu: request too big or invalid",
                 client->ip_addr, client->port
             );
-            lgtd_client_close(client);
+            evbuffer_drain(input, nbytes);
             break;
-        } else if (bufsz >= evbuffer_get_length(input)) {
-            break; // We pulled up everything already, wait for more data
+        case JSMN_ERROR_PART:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
+        case 0:
+#pragma GCC diagnostic pop
+            (void)0;
+            size_t buflen = evbuffer_get_length(input);
+            if (buflen > LGTD_CLIENT_MAX_REQUEST_BUF_SIZE) {
+                lgtd_warnx(
+                    "client [%s]:%hu: request too big or invalid",
+                    client->ip_addr, client->port
+                );
+                evbuffer_drain(input, buflen);
+            } else if (nbytes == buflen) {
+                return; // We pulled up everything already, wait for more data
+            }
+            break;
+        default:
+            client->json = buf;
+            lgtd_jsonrpc_dispatch_request(client, rv);
+            client->json = NULL;
+            size_t request_size = client->jsmn_tokens[0].end;
+            evbuffer_drain(input, request_size);
+            if (request_size < nbytes) {
+                buf += request_size;
+                nbytes -= request_size;
+                // FIXME: instead of calling jsmn_parse again, return the number
+                // of tokens consumed from jsonrpc and make this case a loop.
+                continue;
+            }
+            break;
         }
         // pullup and resume parsing:
         buf = (char *)evbuffer_pullup(input, -1);
-        bufsz = evbuffer_get_length(input);
-        goto retry_after_pullup;
-    default:
-        client->json = buf;
-        lgtd_jsonrpc_dispatch_request(client, rv);
-        client->json = NULL;
-        evbuffer_drain(input, bufsz);
-        jsmn_init(&client->jsmn_ctx);
-        break;
-    }
+        nbytes = evbuffer_get_contiguous_space(input);
+    } while (nbytes);
 }
 
 static void
@@ -216,7 +221,6 @@ lgtd_client_open(evutil_socket_t peer, const struct sockaddr_storage *peer_addr)
     );
     lgtd_sockaddrtoa(peer_addr, client->ip_addr, sizeof(client->ip_addr));
     client->port = lgtd_sockaddrport(peer_addr);
-    jsmn_init(&client->jsmn_ctx);
     bufferevent_enable(client->io, EV_READ|EV_WRITE|EV_TIMEOUT);
 
     LIST_INSERT_HEAD(&lgtd_clients, client, link);
@@ -232,6 +236,4 @@ lgtd_client_open_from_pipe(struct lgtd_client *pipe_client)
     assert(pipe_client);
 
     memset(pipe_client, 0, sizeof(*pipe_client));
-
-    jsmn_init(&pipe_client->jsmn_ctx);
 }

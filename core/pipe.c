@@ -94,7 +94,7 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
 
         if (!drain) {
         next_request:
-            (void)0;
+            jsmn_init(&pipe->client.jsmn_ctx);
             const char *buf = (char *)evbuffer_pullup(pipe->read_buf, -1);
             ssize_t bufsz = evbuffer_get_length(pipe->read_buf);
             jsmnerr_t rv = jsmn_parse(
@@ -127,7 +127,6 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
                 lgtd_jsonrpc_dispatch_request(&pipe->client, ntokens);
 
                 pipe->client.json = NULL;
-                jsmn_init(&pipe->client.jsmn_ctx);
                 int request_size = pipe->client.jsmn_tokens[0].end;
                 evbuffer_drain(pipe->read_buf, request_size);
                 if (request_size < bufsz) {
@@ -141,7 +140,6 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
             ssize_t bufsz = evbuffer_get_length(pipe->read_buf);
             evbuffer_drain(pipe->read_buf, bufsz);
             drain = false;
-            jsmn_init(&pipe->client.jsmn_ctx);
         }
     }
 

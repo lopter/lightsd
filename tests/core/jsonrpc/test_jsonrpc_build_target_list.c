@@ -53,14 +53,18 @@ main(void)
     test_params("[\"on\", 12345, \"6789\"]", expected_1);
 
     const char *expected_2[] = {"#tower", NULL};
-    test_params("#tower", expected_2);
+    test_params("\"#tower\"", expected_2);
 
     test_params("{\"key\": 42}", NULL);
 
-    test_params("null", NULL);
-
     const char *expected_3[] = {NULL};
     test_params("[]", expected_3);
+
+    test_params("[\"on\", {\"lol\": \"wut\"}, \"6789\"]", NULL);
+
+    // and make sure nothing blows up on plain invalid json/parameters
+    // (jsmn_parse will return a negative value):
+    test_params("null", NULL);
 
     return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <event2/buffer.h>
+#include <event2/bufferevent.h>
 #include <event2/event.h>
 
 #define MOCK_EVENT_NEW_EVENT_PTR ((void *)0xdadadada)
@@ -57,6 +58,15 @@ evbuffer_read(struct evbuffer *buffer, evutil_socket_t fd, int howmuch)
     (void)buffer;
     (void)fd;
     return howmuch;
+}
+#endif
+
+#ifndef MOCKED_EVBUFFER_GET_CONTIGUOUS_SPACE
+size_t
+evbuffer_get_contiguous_space(const struct evbuffer *buf)
+{
+    (void)buf;
+    return 0;
 }
 #endif
 
@@ -130,6 +140,73 @@ int
 evutil_make_socket_nonblocking(evutil_socket_t fd)
 {
     (void)fd;
+    return 0;
+}
+#endif
+
+#ifndef MOCKED_BUFFEREVENT_GET_INPUT
+struct evbuffer *
+bufferevent_get_input(struct bufferevent *bufev)
+{
+    (void)bufev;
+    return NULL;
+}
+#endif
+
+#ifndef MOCKED_BUFFEREVENT_ENABLE
+int
+bufferevent_enable(struct bufferevent *bufev, short event)
+{
+    (void)bufev;
+    (void)event;
+    return 0;
+}
+#endif
+
+#ifndef MOCKED_BUFFEREVENT_FREE
+void
+bufferevent_free(struct bufferevent *bufev)
+{
+    (void)bufev;
+}
+#endif
+
+#ifndef MOCKED_BUFFEREVENT_SETCB
+void
+bufferevent_setcb(struct bufferevent *bufev,
+                  bufferevent_data_cb readcb,
+                  bufferevent_data_cb writecb,
+                  bufferevent_event_cb eventcb,
+                  void *cbarg)
+{
+    (void)bufev;
+    (void)readcb;
+    (void)writecb;
+    (void)eventcb;
+    (void)cbarg;
+}
+#endif
+
+#ifndef MOCKED_BUFFEREVENT_SOCKET_NEW
+struct bufferevent *
+bufferevent_socket_new(struct event_base *base, evutil_socket_t fd, int options)
+{
+    (void)base;
+    (void)fd;
+    (void)options;
+    return NULL;
+}
+#endif
+
+#ifndef MOCKED_BUFFEREVENT_WRITE
+int
+bufferevent_write(struct bufferevent *bufev,
+                  const void *data,
+                  size_t size)
+{
+    (void)bufev;
+    (void)data;
+    (void)size;
     return 0;
 }
 #endif

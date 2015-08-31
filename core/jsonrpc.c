@@ -1152,7 +1152,7 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
             methods[i].name, &client->json[request.method->start], methods[i].namelen
         );
         if (!diff) {
-            int params_count = request.params->size;
+            int params_count = request.params ? request.params->size : 0;
             if (params_count != methods[i].params_count) {
                 lgtd_jsonrpc_send_error(
                     client, LGTD_JSONRPC_INVALID_PARAMS,

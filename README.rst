@@ -33,8 +33,8 @@ following commands through a JSON-RPC_ interface:
 - set_label;
 - tag/untag (group/ungroup bulbs together).
 
-The JSON-RPC interface works on top of TCP/IPv4/v6, Unix sockets (coming up) or
-over a command pipe (named pipe, see mkfifo(1)).
+The JSON-RPC interface works on top of TCP/IPv4/v6 or over a command pipe (named
+pipe, see mkfifo(1)).
 
 lightsd can target single or multiple bulbs at once:
 
@@ -48,12 +48,6 @@ lightsd works and is developed against LIFX firmwares 1.1, 1.5 and 2.0.
 
 .. _JSON-RPC: http://www.jsonrpc.org/specification
 
-Developpers
------------
-
-Feel free to reach out via email or irc (kalessin on freenode). As the project
-name implies, I'm fairly interested in other smart bulbs.
-
 Requirements
 ------------
 
@@ -65,44 +59,59 @@ dependencies:
 - CMake ≥ 2.8;
 - libevent ≥ 2.0.19.
 
+Those dependencies can be installed on your system using your package manager or
+brew_ on Mac OS X.
+
 lightsd optionally depends on libbsd ≥ 0.5.0 on platforms missing
 ``setproctitle`` (pretty much any non-BSD system, including Mac OS X).
 
 lightsd is actively developed and tested from Arch Linux, Debian and Mac OS X;
 both for 32/64 bits and little/big endian architectures.
 
+.. _brew: http://brew.sh/
+
 Build instructions
 ------------------
 
-Clone this repository and then:
+From a terminal prompt, clone the repository and run those commands:
 
 ::
 
-   .../lightsd$ mkdir build && cd build
-   .../lightsd/build$ cmake ..
-   .../lightsd/build$ make -j5
+   …/lightsd$ mkdir build && cd build
+   …/lightsd/build$ cmake ..
+   …/lightsd/build$ make -j5 lightsd
 
-Finally, to start lightsd with the jsonrpc interface listening on localhost
-port 1234 and a command pipe named lightsd.cmd:
+To start lightsd with the jsonrpc interface listening on localhost port 1234 and
+a command pipe named lightsd.cmd:
 
 ::
 
-   .../lightsd/build$ core/lightsd -v info -l ::1:1234 -c lightsd.cmd
+   …lightsd/build$ core/lightsd -l ::1:1234 -c lightsd.cmd
 
-lightsd forks in the background by default, display running processes and check
-how we are doing:
+This repository contains a small client that you can use to manipulate your
+bulbs through lightsd. The client is written in `Python 3`_, Mac OS X and Linux
+usually have it installed by default. From a new terminal prompt, cd to the root
+of the repository and run it using:
+
+::
+
+   …/lightsd$ examples/lightsc.py
+
+You can exit the lightsd.py using ^D (ctrl + d). Use ^C to stop lightsd.
+
+lightsd can daemonize itself using the ``-d`` option:
+
+::
+
+   …/lightsd/build$ core/lightsd -d -l ::1:1234 -c lightsd.cmd
+
+Check how lightsd is running:
 
 ::
 
    ps aux | grep lightsd
 
-You can stop lightsd with:
-
-::
-
-   pkill lightsd
-
-Use the ``-f`` option to run lightsd in the foreground.
+.. _Python 3: https://www.python.org/
 
 Known issues
 ------------
@@ -126,5 +135,11 @@ can restart lightsd if it crashes. Otherwise, please feel free to report crashes
 to me.
 
 .. _Supervisor: http://www.supervisord.org/
+
+Developpers
+-----------
+
+Feel free to reach out via email or irc (kalessin on freenode, insist if I don't
+reply). As the project name implies, I'm fairly interested in other smart bulbs.
 
 .. vim: set tw=80 spelllang=en spell:

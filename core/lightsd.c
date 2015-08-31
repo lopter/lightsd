@@ -55,7 +55,7 @@
 struct lgtd_opts lgtd_opts = {
     .foreground = false,
     .log_timestamps = true,
-    .verbosity = LGTD_DEBUG
+    .verbosity = LGTD_INFO
 }; 
 
 struct event_base *lgtd_ev_base = NULL;

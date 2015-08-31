@@ -53,7 +53,7 @@
 #include "lightsd.h"
 
 struct lgtd_opts lgtd_opts = {
-    .foreground = false,
+    .foreground = true,
     .log_timestamps = true,
     .verbosity = LGTD_INFO
 }; 
@@ -137,14 +137,17 @@ static void
 lgtd_usage(const char *progname)
 {
     printf(
-        "Usage: %s ...\n\n"
-        "  [-l,--listen addr:port [+]]\n"
-        "  [-c,--comand-pipe /command/fifo [+]]\n"
-        "  [-f,--foreground]\n"
-        "  [-t,--no-timestamps]\n"
-        "  [-h,--help]\n"
-        "  [-V,--version]\n"
-        "  [-v,--verbosity debug|info|warning|error]\n",
+"Usage: %s ...\n\n"
+"  [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP "
+"                                       at this address (can be repeated).\n"
+"  [-c,--comand-pipe /command/fifo [+]] Open a JSON-RPC command pipe a this "
+"                                       location (can be repeated).\n"
+"  [-f,--foreground]                    Stay in the foreground (default).\n"
+"  [-d,--daemonize]                     Fork in the background.\n"
+"  [-t,--no-timestamps]                 Disable timestamps in logs.\n"
+"  [-h,--help]                          Display this.\n"
+"  [-V,--version]                       Display version and build information.\n"
+"  [-v,--verbosity debug|info|warning|error]\n",
         progname
     );
     lgtd_cleanup();
@@ -163,13 +166,14 @@ main(int argc, char *argv[], char *envp[])
         {"listen",          required_argument, NULL, 'l'},
         {"command-pipe",    required_argument, NULL, 'c'},
         {"foreground",      no_argument,       NULL, 'f'},
+        {"daemonize",       no_argument,       NULL, 'd'},
         {"no-timestamps",   no_argument,       NULL, 't'},
         {"help",            no_argument,       NULL, 'h'},
         {"verbosity",       required_argument, NULL, 'v'},
         {"version",         no_argument,       NULL, 'V'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "l:c:fthv:V";
+    const char short_opts[] = "l:c:fdthv:V";
 
     if (argc == 1) {
         lgtd_usage(argv[0]);
@@ -198,6 +202,8 @@ main(int argc, char *argv[], char *envp[])
         case 'f':
             lgtd_opts.foreground = true;
             break;
+        case 'd':
+            lgtd_opts.foreground = false;
         case 't':
             lgtd_opts.log_timestamps = false;
             break;

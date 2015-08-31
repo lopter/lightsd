@@ -330,3 +330,11 @@ lgtd_lifx_bulb_set_label(struct lgtd_lifx_bulb *bulb,
 
     memcpy(bulb->state.label, label, LGTD_LIFX_LABEL_SIZE);
 }
+
+void
+lgtd_lifx_bulb_set_ambient_light(struct lgtd_lifx_bulb *bulb, float illuminance)
+{
+    assert(bulb);
+
+    bulb->ambient_light = illuminance;
+}

@@ -116,6 +116,8 @@ enum lgtd_lifx_flags {
 enum { LGTD_LIFX_MAX_PACKET_SIZE = 4096 };
 
 enum lgtd_lifx_packet_type {
+    // Device
+    LGTD_LIFX_SET_SITE = 0x01,
     LGTD_LIFX_GET_PAN_GATEWAY = 0x02,
     LGTD_LIFX_PAN_GATEWAY = 0x03,
     LGTD_LIFX_GET_TIME = 0x04,
@@ -155,18 +157,32 @@ enum lgtd_lifx_packet_type {
     LGTD_LIFX_ACK = 0x2d,
     LGTD_LIFX_ECHO_REQUEST = 0x3a,
     LGTD_LIFX_ECHO_RESPONSE = 0x3b,
+    // Light
     LGTD_LIFX_GET_LIGHT_STATE = 0x65,
     LGTD_LIFX_SET_LIGHT_COLOR = 0x66,
     LGTD_LIFX_SET_WAVEFORM = 0x67,
     LGTD_LIFX_SET_DIM_ABSOLUTE = 0x68,
     LGTD_LIFX_SET_DIM_RELATIVE = 0x69,
     LGTD_LIFX_LIGHT_STATUS = 0x6b,
+    // Wan
+    LGTD_LIFX_CONNECT_PLAIN = 0xc9,
+    LGTD_LIFX_CONNECT_KEY = 0xca,
+    LGTD_LIFX_STATE_CONNECT = 0xcb,
+    LGTD_LIFX_SUB = 0xcc,
+    LGTD_LIFX_UNSUB = 0xcd,
+    LGTD_LIFX_STATE_SUB = 0xcd,
+    // Wifi
     LGTD_LIFX_GET_WIFI_STATE = 0x12d,
     LGTD_LIFX_SET_WIFI_STATE = 0x12e,
     LGTD_LIFX_WIFI_STATE = 0x12f,
     LGTD_LIFX_GET_ACCESS_POINTS = 0x130,
     LGTD_LIFX_SET_ACCESS_POINTS = 0x131,
     LGTD_LIFX_ACCESS_POINT = 0x132,
+    // Sensor
+    LGTD_LIFX_GET_AMBIENT_LIGHT = 0x191,
+    LGTD_LIFX_STATE_AMBIENT_LIGHT = 0x192,
+    LGTD_LIFX_GET_DIMMER_VOLTAGE = 0x193,
+    LGTD_LIFX_STATE_DIMMER_VOLTAGE = 0x194
 };
 
 enum { LGTD_LIFX_LABEL_SIZE = 32 };
@@ -278,6 +294,11 @@ struct lgtd_lifx_packet_runtime_info {
     uint64le_t  uptime;
     uint64le_t  downtime;
 };
+
+struct lgtd_lifx_packet_ambient_light {
+    floatle_t illuminance; // lux
+};
+
 #pragma pack(pop)
 
 enum { LGTD_LIFX_VENDOR_ID = 1 };
@@ -394,3 +415,4 @@ void lgtd_lifx_wire_decode_ip_state(struct lgtd_lifx_packet_ip_state *);
 void lgtd_lifx_wire_decode_ip_firmware_info(struct lgtd_lifx_packet_ip_firmware_info *);
 void lgtd_lifx_wire_decode_product_info(struct lgtd_lifx_packet_product_info *);
 void lgtd_lifx_wire_decode_runtime_info(struct lgtd_lifx_packet_runtime_info *);
+void lgtd_lifx_wire_decode_ambient_light(struct lgtd_lifx_packet_ambient_light *);

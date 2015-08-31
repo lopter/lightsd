@@ -1,6 +1,7 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#include "mock_proto.h"
 #include "test_jsonrpc_utils.h"
 
 int
@@ -12,7 +13,8 @@ main(void)
         "{"
             "\"method\": \"power_on\","
             "\"id\": \"004daf12-0561-4fbc-bfdb-bfe69cfbf4b5\","
-            "\"params\": [\"*\"], \"jsonrpc\": \"2.0\""
+            "\"params\": [\"*\"],"
+            "\"jsonrpc\": \"2.0\""
         "},"
         "{"
             "\"method\": \"get_light_state\","

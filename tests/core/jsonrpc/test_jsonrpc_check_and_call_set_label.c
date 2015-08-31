@@ -1,9 +1,10 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#define MOCKED_LGTD_PROTO_SET_LABEL
+#include "mock_proto.h"
 #include "mock_gateway.h"
 
-#define MOCKED_LGTD_PROTO_SET_LABEL
 #include "test_jsonrpc_utils.h"
 
 static bool tag_called = false;

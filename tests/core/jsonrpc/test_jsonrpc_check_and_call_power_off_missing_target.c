@@ -1,8 +1,9 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#define MOCKED_LGTD_PROTO_POWER_OFF
+#include "mock_proto.h"
 
-#define LGTD_TESTING_POWER_OFF
 #include "test_jsonrpc_utils.h"
 
 static bool power_off_called = false;

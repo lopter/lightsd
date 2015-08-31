@@ -856,7 +856,7 @@ lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
     assert(gw && hdr && pkt);
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
-    lgtd_info(
+    lgtd_debug(
         "BULB_LABEL <-- [%s]:%hu - %s label=%.*s",
         gw->ip_addr, gw->port,
         LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
@@ -865,5 +865,26 @@ lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
 
     LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
         gw, hdr->target.device_addr, lgtd_lifx_bulb_set_label, pkt->label
+    );
+}
+
+void
+lgtd_lifx_gateway_handle_ambient_light(struct lgtd_lifx_gateway *gw,
+                                       const struct lgtd_lifx_packet_header *hdr,
+                                       const struct lgtd_lifx_packet_ambient_light *pkt)
+{
+    assert(gw && hdr && pkt);
+
+    char addr[LGTD_LIFX_ADDR_STRLEN];
+    lgtd_debug(
+        "AMBIENT_LIGHT <-- [%s]:%hu - %s ambient_light=%flx",
+        gw->ip_addr, gw->port,
+        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        pkt->illuminance
+    );
+
+    LGTD_LIFX_GATEWAY_SET_BULB_ATTR(
+        gw, hdr->target.device_addr,
+        lgtd_lifx_bulb_set_ambient_light, pkt->illuminance
     );
 }

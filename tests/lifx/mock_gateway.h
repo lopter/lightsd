@@ -191,3 +191,15 @@ lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
     (void)pkt;
 }
 #endif
+
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_AMBIENT_LIGHT
+void
+lgtd_lifx_gateway_handle_ambient_light(struct lgtd_lifx_gateway *gw,
+                                       const struct lgtd_lifx_packet_header *hdr,
+                                       const struct lgtd_lifx_packet_ambient_light *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif

@@ -313,6 +313,20 @@ lgtd_lifx_wire_load_packet_info_map(void)
             .decode = lgtd_lifx_wire_null_packet_encoder_decoder,
             .handle = HANDLER(lgtd_lifx_gateway_handle_bulb_label)
         },
+        {
+            REQUEST_ONLY,
+            NO_PAYLOAD,
+            .name = "GET_AMBIENT_LIGHT",
+            .type = LGTD_LIFX_GET_AMBIENT_LIGHT
+        },
+        {
+            RESPONSE_ONLY,
+            .name = "STATE_AMBIENT_LIGHT",
+            .type = LGTD_LIFX_STATE_AMBIENT_LIGHT,
+            .size = sizeof(struct lgtd_lifx_packet_ambient_light),
+            .decode = DECODER(lgtd_lifx_wire_decode_ambient_light),
+            .handle = HANDLER(lgtd_lifx_gateway_handle_ambient_light)
+        },
         // Unimplemented but "known" packets
         {
             UNIMPLEMENTED,
@@ -423,6 +437,16 @@ lgtd_lifx_wire_load_packet_info_map(void)
             UNIMPLEMENTED,
             .name = "ACCESS_POINT",
             .type = LGTD_LIFX_ACCESS_POINT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_DIMMER_VOLTAGE",
+            .type = LGTD_LIFX_GET_DIMMER_VOLTAGE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_DIMMER_VOLTAGE",
+            .type = LGTD_LIFX_STATE_DIMMER_VOLTAGE
         }
     };
 
@@ -718,4 +742,12 @@ lgtd_lifx_wire_decode_runtime_info(struct lgtd_lifx_packet_runtime_info *pkt)
     pkt->time = le64toh(pkt->time);
     pkt->uptime = le64toh(pkt->uptime);
     pkt->downtime = le64toh(pkt->downtime);
+}
+
+void
+lgtd_lifx_wire_decode_ambient_light(struct lgtd_lifx_packet_ambient_light *pkt)
+{
+    assert(pkt);
+
+    pkt->illuminance = lgtd_lifx_wire_lefloattoh(pkt->illuminance);
 }

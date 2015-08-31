@@ -89,6 +89,7 @@ struct lgtd_lifx_bulb {
     lgtd_time_mono_t                dirty_at;
     uint16_t                        expected_power_on;
     uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
+    float                           ambient_light; // lux
     const char                      *model;
     const char                      *vendor;
     struct lgtd_lifx_gateway        *gw;
@@ -143,3 +144,4 @@ void lgtd_lifx_bulb_set_runtime_info(struct lgtd_lifx_bulb *,
                                      lgtd_time_mono_t);
 void lgtd_lifx_bulb_set_label(struct lgtd_lifx_bulb *,
                               const char [LGTD_LIFX_LABEL_SIZE]);
+void lgtd_lifx_bulb_set_ambient_light(struct lgtd_lifx_bulb *, float);

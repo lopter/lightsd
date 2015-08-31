@@ -107,7 +107,7 @@ lgtd_lifx_watchdog_timeout_event_callback(evutil_socket_t socket,
     // gateways aren't bulbs themselves:
     struct lgtd_lifx_gateway *gw, *next_gw;
     LIST_FOREACH_SAFE(gw, &lgtd_lifx_gateways, link, next_gw) {
-        int gw_lag = now - gw->last_pkt_at;
+        int gw_lag = lgtd_lifx_gateway_latency(gw);
         if (gw_lag >= LGTD_LIFX_WATCHDOG_DEVICE_TIMEOUT_MSECS) {
             lgtd_info(
                 "closing bulb gateway [%s]:%hu that "

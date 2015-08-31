@@ -617,11 +617,16 @@ lgtd_jsonrpc_build_target_list(struct lgtd_proto_target_list *targets,
     assert(targets);
     assert(client);
     assert(target);
-    assert(target_ntokens >= 1);
+
+    if (target_ntokens < 1) {
+        return false;
+    }
 
     if (lgtd_jsonrpc_type_array(target, client->json)) {
         target_ntokens -= 1;
         target++;
+    } else if (target_ntokens != 1) {
+        return false;
     }
 
     for (int ti = target_ntokens; ti--;) {
@@ -1136,6 +1141,7 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
     }
 
     assert(request.method);
+    assert(request.request_ntokens);
 
     for (int i = 0; i != LGTD_ARRAY_SIZE(methods); i++) {
         int parsed_method_namelen = LGTD_JSONRPC_TOKEN_LEN(request.method);

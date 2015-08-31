@@ -1,5 +1,7 @@
 #pragma once
 
+#define MOCKED_BUFFEREVENT_WRITE
+
 static char client_write_buf[4096] = { 0 };
 static int client_write_buf_idx = 0;
 

@@ -14,11 +14,12 @@
 #define MOCKED_EVBUFFER_DRAIN
 #include "mock_event2.h"
 #include "mock_gateway.h"
+#define MOCKED_JSONRPC_DISPATCH_REQUEST
+#include "mock_jsonrpc.h"
 #include "mock_router.h"
 #include "mock_timer.h"
 
 #include "tests_utils.h"
-#define MOCKED_JSONRPC_DISPATCH_REQUEST
 #include "tests_pipe_utils.h"
 
 #define REQUEST_1 "{"                   \
@@ -119,13 +120,6 @@ evbuffer_drain(struct evbuffer *buf, size_t len)
         errx(1, "got unexpected buf %p (expected %p)", buf, (void *)2);
     }
 
-    jsmn_parser jsmn_ctx;
-    jsmn_init(&jsmn_ctx);
-    struct lgtd_command_pipe *pipe = SLIST_FIRST(&lgtd_command_pipes);
-    if (memcmp(&pipe->client.jsmn_ctx, &jsmn_ctx, sizeof(jsmn_ctx))) {
-        errx(1, "the client json parser context wasn't re-initialized");
-    }
-
     switch (evbuffer_drain_call_count) {
     case 0:
         if (len != sizeof(REQUEST_1) - 1) {
@@ -165,6 +159,13 @@ evbuffer_pullup(struct evbuffer *buf, ev_ssize_t size)
         errx(
             1, "got unexpected size %jd in pullup (expected -1)", (intmax_t)size
         );
+    }
+
+    jsmn_parser jsmn_ctx;
+    jsmn_init(&jsmn_ctx);
+    struct lgtd_command_pipe *pipe = SLIST_FIRST(&lgtd_command_pipes);
+    if (memcmp(&pipe->client.jsmn_ctx, &jsmn_ctx, sizeof(jsmn_ctx))) {
+        errx(1, "the client json parser context wasn't re-initialized");
     }
 
     int offset;

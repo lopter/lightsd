@@ -7,12 +7,14 @@
 int
 main(void)
 {
-    const char *json = "1234";
+    const char json[] = "[1234]";
     jsmntok_t tokens[8];
 
-    parse_json(tokens, LGTD_ARRAY_SIZE(tokens), json, sizeof(json));
+    int rv = parse_json(tokens, LGTD_ARRAY_SIZE(tokens), json, sizeof(json));
 
-    bool ok = lgtd_jsonrpc_type_integer(tokens, json);
+    printf("rv = %d\n", rv);
+
+    bool ok = lgtd_jsonrpc_type_integer(&tokens[1], json);
 
     if (!ok) {
         errx(1, "%s wasn't considered as a valid integer", json);

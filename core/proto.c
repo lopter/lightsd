@@ -221,7 +221,7 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
                     "}",
             bulb_addr, site_addr,
             bulb->gw->ip_addr, bulb->gw->port,
-            (uintmax_t)LGTD_LIFX_GATEWAY_LATENCY(bulb->gw)
+            (uintmax_t)lgtd_lifx_gateway_latency(bulb->gw)
         );
 
 #define PRINT_LIFX_FW_TIMESTAMPS(fw_info, built_at_buf, installed_at_buf)       \

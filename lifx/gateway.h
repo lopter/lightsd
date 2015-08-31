@@ -67,7 +67,6 @@ struct lgtd_lifx_gateway {
     lgtd_time_mono_t                last_req_at;
     lgtd_time_mono_t                next_req_at;
     lgtd_time_mono_t                last_pkt_at;
-#define LGTD_LIFX_GATEWAY_LATENCY(gw) ((gw)->last_pkt_at - (gw)->last_req_at)
     struct lgtd_lifx_message        pkt_ring[LGTD_LIFX_GATEWAY_PACKET_RING_SIZE];
 #define LGTD_LIFX_GATEWAY_INC_MESSAGE_RING_INDEX(idx)  do { \
     (idx) += 1;                                             \
@@ -102,6 +101,7 @@ void lgtd_lifx_gateway_close_all(void);
 void lgtd_lifx_gateway_remove_and_close_bulb(struct lgtd_lifx_gateway *, struct lgtd_lifx_bulb *);
 
 void lgtd_lifx_gateway_force_refresh(struct lgtd_lifx_gateway *);
+lgtd_time_mono_t lgtd_lifx_gateway_latency(const struct lgtd_lifx_gateway *);
 
 void lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *,
                                       const struct lgtd_lifx_packet_header *,

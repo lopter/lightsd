@@ -467,6 +467,17 @@ lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *gw,
     }
 }
 
+lgtd_time_mono_t
+lgtd_lifx_gateway_latency(const struct lgtd_lifx_gateway *gw)
+{
+    assert(gw);
+
+    if (gw->last_req_at < gw->last_pkt_at) { // this doesn't look right
+        return gw->last_pkt_at - gw->last_req_at;
+    }
+    return 0;
+}
+
 void
 lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *gw,
                                      const struct lgtd_lifx_packet_header *hdr,
@@ -528,15 +539,15 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
         }
     }
 
-    int latency = LGTD_LIFX_GATEWAY_LATENCY(gw);
+    lgtd_time_mono_t latency = lgtd_lifx_gateway_latency(gw);
     if (latency < LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
         if (!lgtd_timer_ispending(gw->refresh_timer)) {
             int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
             struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
             lgtd_timer_reschedule(gw->refresh_timer, &tv);
             lgtd_debug(
-                "[%s]:%hu latency is %dms, scheduling next GET_LIGHT_STATE in %dms",
-                gw->ip_addr, gw->port, latency, timeout
+                "[%s]:%hu latency is %jums, scheduling next GET_LIGHT_STATE in %dms",
+                gw->ip_addr, gw->port, (uintmax_t)latency, timeout
             );
         }
         return;
@@ -544,8 +555,8 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 
     if (!gw->pending_refresh_req) {
         lgtd_debug(
-            "[%s]:%hu latency is %dms, sending GET_LIGHT_STATE now",
-            gw->ip_addr, gw->port, latency
+            "[%s]:%hu latency is %jums, sending GET_LIGHT_STATE now",
+            gw->ip_addr, gw->port, (uintmax_t)latency
         );
         lgtd_lifx_gateway_send_get_all_light_state(gw);
     } else {

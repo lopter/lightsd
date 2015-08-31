@@ -9,6 +9,15 @@ struct lgtd_lifx_tag;
 struct lgtd_lifx_gateway_list lgtd_lifx_gateways =
     LIST_HEAD_INITIALIZER(&lgtd_lifx_gateways);
 
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_LATENCY
+lgtd_time_mono_t
+lgtd_lifx_gateway_latency(const struct lgtd_lifx_gateway *gw)
+{
+    (void)gw;
+    return 0;
+}
+#endif
+
 #ifndef MOCKED_LIFX_GATEWAY_SEND_TO_SITE
 bool
 lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,

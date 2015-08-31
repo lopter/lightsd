@@ -51,15 +51,27 @@ _lightsc_jq() {
     fi
 }
 
-lightsc() {
-    if [ $# -lt 2 ] ; then
-        echo >&2 "Usage: $0 METHOD PARAMS ..."
-        return 1
-    fi
-
+_lightsc_get_pipe() {
     local pipe=${COMMAND_PIPE:-/run/lightsd.cmd}
     if [ ! -p $pipe ] ; then
         echo >&2 "$pipe cannot be found, is lightsd running?"
+        exit 1
+    fi
+    echo $pipe
+}
+
+# Can be used to build batch request:
+#
+# tee $COMMAND_PIPE <<EOF
+# [
+#     $(lightsc_make_request set_light_from_hsbk ${*:-'"#tower"'} 37.469443 1.0 0.05 3500 600),
+#     $(lightsc_make_request set_light_from_hsbk ${*:-'["candle","fugu"]'} 47.469443 0.2 0.05 3500 600),
+#     $(lightsc_make_request power_on ${*:-'"#br"'})
+# ]
+# EOF
+lightsc_make_request() {
+    if [ $# -lt 2 ] ; then
+        echo >&2 "Usage: $0 METHOD PARAMS ..."
         return 1
     fi
 
@@ -69,7 +81,7 @@ lightsc() {
         params=$params,$target
     done
 
-    tee $pipe <<EOF |
+    cat <<EOF
 {
   "jsonrpc": "2.0",
   "method": "$method",
@@ -77,5 +89,13 @@ lightsc() {
   "id": `_lightsc_gen_request_id`
 }
 EOF
-_lightsc_jq
+}
+
+lightsc() {
+    if [ $# -lt 2 ] ; then
+        echo >&2 "Usage: $0 METHOD PARAMS ..."
+        return 1
+    fi
+
+    lightsc_make_request $* | tee `_lightsc_get_pipe` | _lightsc_jq
 }

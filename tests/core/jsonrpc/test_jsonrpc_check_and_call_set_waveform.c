@@ -1,8 +1,9 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#define MOCKED_LGTD_PROTO_SET_WAVEFORM
+#include "mock_proto.h"
 
-#define LGTD_TESTING_SET_WAVEFORM
 #include "test_jsonrpc_utils.h"
 
 static bool set_waveform_called = false;

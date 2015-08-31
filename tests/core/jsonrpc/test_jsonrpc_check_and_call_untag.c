@@ -1,9 +1,10 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#define MOCKED_LGTD_PROTO_UNTAG
+#include "mock_proto.h"
 #include "mock_gateway.h"
 
-#define MOCKED_LGTD_UNTAG
 #include "test_jsonrpc_utils.h"
 
 static bool untag_called = false;

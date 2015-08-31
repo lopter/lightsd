@@ -26,6 +26,7 @@ struct lgtd_jsonrpc_request {
     const jsmntok_t *params;
     int             params_ntokens;
     const jsmntok_t *id;
+    int             request_ntokens;
 };
 
 struct lgtd_jsonrpc_node {
@@ -45,7 +46,7 @@ struct lgtd_jsonrpc_node {
     *(const jsmntok_t **)(&((char *)(object))[value_offset]);
 
 #define LGTD_JSONRPC_SET_NTOKENS(object, ntokens_offset, ntokens) do {  \
-    *(int *)(&(((char *)(object))[ntokens_offset])) = (ntokens);          \
+    *(int *)(&(((char *)(object))[ntokens_offset])) = (ntokens);        \
 } while (0)
 
 #define LGTD_JSONRPC_NODE(key_, value_offset_, ntokens_offset_, fn_type_cmp, optional_)   { \

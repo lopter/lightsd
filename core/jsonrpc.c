@@ -163,6 +163,13 @@ lgtd_jsonrpc_type_array(const jsmntok_t *t, const char *json)
 }
 
 static bool
+lgtd_jsonrpc_type_object(const jsmntok_t *t, const char *json)
+{
+    (void)json;
+    return t->type == JSMN_OBJECT;
+}
+
+static bool
 lgtd_jsonrpc_type_object_or_array(const jsmntok_t *t, const char *json)
 {
     (void)json;
@@ -327,9 +334,9 @@ lgtd_jsonrpc_extract_values_from_schema_and_dict(void *output,
     }
 
     for (int ti = 1; ti < ntokens;) {
-        // make sure it's a key:
+        // make sure it's a key, otherwise we reached the end of the object:
         if (tokens[ti].type != JSMN_STRING) {
-            return false;
+            break;
         }
 
         int si = 0;
@@ -420,8 +427,8 @@ lgtd_jsonrpc_extract_values_from_schema_and_array(void *output,
         return false;
     }
 
-    int si, ti;
-    for (si = 0, ti = 1; si < schema_size && ti < ntokens; si++) {
+    int si, ti, objsize = tokens[0].size;
+    for (si = 0, ti = 1; si < schema_size && ti < ntokens && objsize--; si++) {
         if (!schema[si].type_cmp(&tokens[ti], json)) {
             lgtd_debug(
                 "jsonrpc client sent an invalid value for %s",
@@ -480,7 +487,7 @@ lgtd_jsonrpc_extract_and_validate_params_against_schema(void *output,
 static void
 lgtd_jsonrpc_write_id(struct lgtd_client *client)
 {
-    if (!client->current_request->id) {
+    if (!client->current_request || !client->current_request->id) {
         lgtd_client_write_string(client, "null");
         return;
     }
@@ -578,7 +585,7 @@ lgtd_jsonrpc_check_and_extract_request(struct lgtd_jsonrpc_request *request,
         )
     };
 
-    return lgtd_jsonrpc_extract_values_from_schema_and_dict(
+    bool ok = lgtd_jsonrpc_extract_values_from_schema_and_dict(
         request,
         request_schema,
         LGTD_ARRAY_SIZE(request_schema),
@@ -586,6 +593,19 @@ lgtd_jsonrpc_check_and_extract_request(struct lgtd_jsonrpc_request *request,
         ntokens,
         json
     );
+    if (!ok) {
+        return false;
+    }
+
+    request->request_ntokens = 1 + 2 + 2; // dict itself + jsonrpc + method
+    if (request->params) {
+        request->request_ntokens += 1 + request->params_ntokens;
+    }
+    if (request->id) {
+        request->request_ntokens += 2;
+    }
+
+    return true;
 }
 
 static bool
@@ -1055,8 +1075,10 @@ lgtd_jsonrpc_check_and_call_set_label(struct lgtd_client *client)
     );
 }
 
-void
-lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
+static int
+lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
+                          const jsmntok_t *tokens,
+                          int ntokens)
 {
     static const struct lgtd_jsonrpc_method methods[] = {
         LGTD_JSONRPC_METHOD(
@@ -1098,25 +1120,19 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
         )
     };
 
-    assert(client);
-    assert(parsed >= 0);
-
-    // TODO: batch requests
-
     struct lgtd_jsonrpc_request request;
     memset(&request, 0, sizeof(request));
     bool ok = lgtd_jsonrpc_check_and_extract_request(
-        &request,
-        client->jsmn_tokens,
-        parsed,
-        client->json
+        &request, tokens, ntokens, client->json
     );
     client->current_request = &request;
     if (!ok) {
         lgtd_jsonrpc_send_error(
             client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid request"
         );
-        return;
+        return lgtd_jsonrpc_consume_object_or_array(
+            tokens, 0, ntokens, client->json
+        );
     }
 
     assert(request.method);
@@ -1140,7 +1156,7 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
             }
             methods[i].method(client);
             client->current_request = NULL;
-            return;
+            return request.request_ntokens;
         }
     }
 
@@ -1149,4 +1165,48 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
     );
 error:
     client->current_request = NULL;
+    return request.request_ntokens;
+}
+
+void
+lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
+{
+    assert(client);
+    assert(parsed >= 0);
+
+    if (!parsed || !client->jsmn_tokens[0].size) {
+        lgtd_jsonrpc_send_error(
+            client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid request"
+        );
+        return;
+    }
+
+    if (!lgtd_jsonrpc_type_array(client->jsmn_tokens, client->json)) {
+        lgtd_jsonrpc_dispatch_one(client, client->jsmn_tokens, parsed);
+        return;
+    }
+
+    bool comma = false;
+    for (int ti = 1; ti < parsed;) {
+        const jsmntok_t *tok = &client->jsmn_tokens[ti];
+
+        lgtd_client_write_string(client, comma ? "," : "[");
+        comma = true;
+
+        if (lgtd_jsonrpc_type_object(tok, client->json)) {
+            ti += lgtd_jsonrpc_dispatch_one(client, tok, parsed - ti);
+        } else {
+            lgtd_jsonrpc_send_error(
+                client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid request"
+            );
+            if (lgtd_jsonrpc_type_array(tok, client->json)) {
+                ti = lgtd_jsonrpc_consume_object_or_array(
+                    client->jsmn_tokens, ti, parsed, client->json
+                );
+            } else {
+                ti++;
+            }
+        }
+    }
+    lgtd_client_write_string(client, "]");
 }

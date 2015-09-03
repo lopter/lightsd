@@ -46,6 +46,8 @@
 #include "stats.h"
 #include "lightsd.h"
 
+static bool lgtd_daemon_proctitle_initialized = false;
+
 bool
 lgtd_daemon_unleash(void)
 {
@@ -67,7 +69,7 @@ lgtd_daemon_unleash(void)
     }
     close(null);
 
-#define SUMMON()  do {        \
+#define SUMMON()  do {      \
     switch (fork()) {       \
         case 0:             \
             break;          \
@@ -92,6 +94,7 @@ lgtd_daemon_setup_proctitle(int argc, char *argv[], char *envp[])
 #if LGTD_HAVE_LIBBSD
     setproctitle_init(argc, argv, envp);
     lgtd_daemon_update_proctitle();
+    lgtd_daemon_proctitle_initialized = true;
 #else
     (void)argc;
     (void)argv;
@@ -102,6 +105,10 @@ lgtd_daemon_setup_proctitle(int argc, char *argv[], char *envp[])
 void
 lgtd_daemon_update_proctitle(void)
 {
+    if (!lgtd_daemon_proctitle_initialized) {
+        return;
+    }
+
 #if LGTD_HAVE_PROCTITLE
     char title[LGTD_DAEMON_TITLE_SIZE] = { 0 };
     int i = 0;

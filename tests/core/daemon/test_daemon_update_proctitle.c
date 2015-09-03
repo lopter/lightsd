@@ -41,6 +41,8 @@ mock_setproctitle(const char *fmt, ...)
 int
 main(void)
 {
+    lgtd_daemon_proctitle_initialized = true;
+
     expected = "bulbs(found=0, on=0); clients(connected=0)";
     lgtd_daemon_update_proctitle();
     if (setproctitle_call_count != 1) {

@@ -138,16 +138,19 @@ lgtd_usage(const char *progname)
 {
     printf(
 "Usage: %s ...\n\n"
-"  [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP "
+"  [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP \n"
 "                                       at this address (can be repeated).\n"
-"  [-c,--comand-pipe /command/fifo [+]] Open a JSON-RPC command pipe a this "
-"                                       location (can be repeated).\n"
+"  [-c,--comand-pipe /command/fifo [+]] Open an unidirectional JSON-RPC \n"
+"                                       command pipe at this location (can \n"
+"                                       be repeated).\n"
 "  [-f,--foreground]                    Stay in the foreground (default).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
 "  [-t,--no-timestamps]                 Disable timestamps in logs.\n"
 "  [-h,--help]                          Display this.\n"
 "  [-V,--version]                       Display version and build information.\n"
-"  [-v,--verbosity debug|info|warning|error]\n",
+"  [-v,--verbosity debug|info|warning|error]\n"
+"\nor,\n\n"
+"  [--install-prefix]                   Display the install prefix for lightsd.\n",
         progname
     );
     lgtd_cleanup();
@@ -171,6 +174,7 @@ main(int argc, char *argv[], char *envp[])
         {"help",            no_argument,       NULL, 'h'},
         {"verbosity",       required_argument, NULL, 'v'},
         {"version",         no_argument,       NULL, 'V'},
+        {"install-prefix",  no_argument,       NULL, 'p'},
         {NULL,              0,                 NULL, 0}
     };
     const char short_opts[] = "l:c:fdthv:V";
@@ -224,7 +228,14 @@ main(int argc, char *argv[], char *envp[])
             }
             break;
         case 'V':
-            printf("lightsd v%s\n", LGTD_VERSION);
+            printf("lightsd %s\n", LGTD_VERSION);
+            return 0;
+        case 'p':
+            printf(
+                "%s%s\n", LGTD_INSTALL_PREFIX, LGTD_INSTALL_PREFIX[
+                    LGTD_ARRAY_SIZE(LGTD_INSTALL_PREFIX) - 1
+                ] != '/' ?  "/" : ""
+            );
             return 0;
         default:
             lgtd_usage(argv[0]);

@@ -74,6 +74,7 @@ struct lgtd_opts {
 
 extern struct lgtd_opts lgtd_opts;
 extern struct event_base *lgtd_ev_base;
+extern const char *lgtd_progname;
 
 char *lgtd_iee8023mactoa(const uint8_t *addr, char *buf, int buflen);
 #define LGTD_IEEE8023MACTOA(addr, buf) \

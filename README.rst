@@ -44,7 +44,7 @@ lightsd can target single or multiple bulbs at once:
 - broadcast;
 - composite (list of targets);
 
-lightsd works and is developed against LIFX firmwares 1.1, 1.5 and 2.0.
+lightsd works and is developed against LIFX firmwares 1.1, 1.5, 2.0 and 2.1.
 
 .. _JSON-RPC: http://www.jsonrpc.org/specification
 
@@ -56,17 +56,20 @@ should be quite easy, but isn't really the focus) and on any kind of hardware
 including embedded devices. Hence why lightsd is written in C with reasonable
 dependencies:
 
-- CMake ≥ 2.8;
-- libevent ≥ 2.0.19.
-
-Those dependencies can be installed on your system using your package manager or
-brew_ on Mac OS X.
+- libevent ≥ 2.0.19 (released May 2012);
+- CMake ≥ 2.8.11 (released May 2013): only if you want to build lightsd from its
+  sources.
 
 lightsd optionally depends on libbsd ≥ 0.5.0 on platforms missing
 ``setproctitle`` (pretty much any non-BSD system, including Mac OS X).
 
 lightsd is actively developed and tested from Arch Linux, Debian and Mac OS X;
 both for 32/64 bits and little/big endian architectures.
+
+Installation
+------------
+
+TBD.
 
 .. _brew: http://brew.sh/
 

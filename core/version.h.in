@@ -35,3 +35,5 @@ const char LGTD_VERSION[] = (
     "proctitle_support: @HAVE_PROCTITLE@\n\n"
     "Copyright (c) 2014, 2015, Louis Opter <kalessin@kalessin.fr>"
 );
+
+const char LGTD_INSTALL_PREFIX[] = "@CMAKE_INSTALL_PREFIX@";

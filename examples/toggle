@@ -1,5 +1,5 @@
 #!/bin/sh
 
-. `lightsd --install-prefix`/share/lightsd/lightsc.sh
+. `lightsd --prefix`/share/lightsd/lightsc.sh
 
 lightsc power_toggle ${*:-'"*"'}

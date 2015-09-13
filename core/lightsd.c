@@ -150,7 +150,7 @@ lgtd_usage(const char *progname)
 "  [-V,--version]                       Display version and build information.\n"
 "  [-v,--verbosity debug|info|warning|error]\n"
 "\nor,\n\n"
-"  [--install-prefix]                   Display the install prefix for lightsd.\n",
+"  --prefix                             Display the install prefix for lightsd.\n",
         progname
     );
     lgtd_cleanup();
@@ -174,7 +174,7 @@ main(int argc, char *argv[], char *envp[])
         {"help",            no_argument,       NULL, 'h'},
         {"verbosity",       required_argument, NULL, 'v'},
         {"version",         no_argument,       NULL, 'V'},
-        {"install-prefix",  no_argument,       NULL, 'p'},
+        {"prefix",          no_argument,       NULL, 'p'},
         {NULL,              0,                 NULL, 0}
     };
     const char short_opts[] = "l:c:fdthv:V";

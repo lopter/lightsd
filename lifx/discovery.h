@@ -17,15 +17,15 @@
 
 #pragma once
 
-enum lgtd_lifx_watchdog_constants {
-    LGTD_LIFX_WATCHDOG_INTERVAL_MSECS = 500,
-    LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS = 2000,
-    LGTD_LIFX_WATCHDOG_PASSIVE_DISCOVERY_INTERVAL_MSECS = 10000,
-    LGTD_LIFX_WATCHDOG_DEVICE_TIMEOUT_MSECS = 3000,
-    LGTD_LIFX_WATCHDOG_DEVICE_FORCE_REFRESH_MSECS = 2000
+enum lgtd_lifx_discovery_constants {
+    LGTD_LIFX_DISCOVERY_WATCHDOG_INTERVAL_MSECS = 500,
+    LGTD_LIFX_DISCOVERY_DEVICE_TIMEOUT_MSECS = 3000,
+    LGTD_LIFX_DISCOVERY_DEVICE_FORCE_REFRESH_MSECS = 2000,
+    LGTD_LIFX_DISCOVERY_ACTIVE_DISCOVERY_INTERVAL_MSECS = 2000,
+    LGTD_LIFX_DISCOVERY_PASSIVE_DISCOVERY_INTERVAL_MSECS = 10000,
 };
 
-bool lgtd_lifx_watchdog_setup(void);
-void lgtd_lifx_watchdog_start(void);
-void lgtd_lifx_watchdog_close(void);
-void lgtd_lifx_watchdog_start_discovery(void);
+bool lgtd_lifx_discovery_setup(void);
+void lgtd_lifx_discovery_close(void);
+void lgtd_lifx_discovery_start_watchdog(void);
+void lgtd_lifx_discovery_start(void);

@@ -154,14 +154,6 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
     lgtd_command_pipe_reset(pipe);
 }
 
-static mode_t
-lgtd_command_pipe_get_umask(void)
-{
-    mode_t mask = umask(0);
-    umask(mask);
-    return mask;
-}
-
 static bool
 _lgtd_command_pipe_open(const char *path)
 {
@@ -188,10 +180,9 @@ _lgtd_command_pipe_open(const char *path)
         if (errno != EEXIST) {
             goto error;
         }
-        mode &= ~lgtd_command_pipe_get_umask();
-        if (chmod(path, mode)) {
-            goto error;
-        }
+    }
+    if (chmod(path, mode)) {
+        goto error;
     }
 
     pipe->fd = open(path, O_RDONLY|O_NONBLOCK);

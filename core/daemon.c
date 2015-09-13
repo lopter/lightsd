@@ -16,10 +16,16 @@
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <sys/queue.h>
+#include <sys/socket.h>
 #include <sys/tree.h>
 #include <sys/types.h>
+#include <sys/un.h>
+#include <assert.h>
 #include <endian.h>
+#include <err.h>
 #include <fcntl.h>
+#include <grp.h>
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -178,4 +184,83 @@ lgtd_daemon_update_proctitle(void)
     PREFIX("clients(connected=%d)", LGTD_STATS_GET(clients));
 
     setproctitle("%s", title);
+}
+
+void
+lgtd_daemon_die_if_running_as_root_unless_requested(const char *requested_user)
+{
+    if (requested_user && !strcmp(requested_user, "root")) {
+        return;
+    }
+
+    if (geteuid() == 0 || getegid() == 0) {
+        lgtd_errx(
+            1,
+            "not running as root unless -u root is passed in; if you don't "
+            "understand why this very basic safety measure is in place and "
+            "use -u root then you deserve to be thrown under a bus, kthx bye."
+        );
+    }
+}
+
+void
+lgtd_daemon_drop_privileges(const char *user, const char *group)
+{
+    assert(user);
+
+    uid_t uid;
+    gid_t gid;
+
+    struct passwd *user_info = getpwnam(user);
+    if (!user_info) {
+        lgtd_err(1, "can't get user info for %s", user);
+    }
+    uid = user_info->pw_uid;
+
+    struct group *group_info;
+    if (group) {
+        group_info = getgrnam(group);
+    } else {
+        group_info = getgrgid(user_info->pw_gid);
+        group = group_info->gr_name;
+    }
+    if (!group_info) {
+        lgtd_err(1, "can't get group info for %s", group ? group : user);
+    }
+    gid = group_info->gr_gid;
+
+    struct lgtd_command_pipe *pipe;
+    SLIST_FOREACH(pipe, &lgtd_command_pipes, link) {
+        if (fchown(pipe->fd, uid, gid) == -1) {
+            lgtd_err(1, "can't chown %s to %s:%s", pipe->path, user, group);
+        }
+    }
+
+    struct lgtd_listen *listener;
+    SLIST_FOREACH(listener, &lgtd_listeners, link) {
+        if (listener->sockaddr->sa_family != AF_UNIX) {
+            continue;
+        }
+
+        const char *path = ((struct sockaddr_un *)listener->sockaddr)->sun_path;
+        if (chown(path, uid, gid) == -1) {
+            char addr[LGTD_SOCKADDR_STRLEN];
+            lgtd_err(
+                1, "can't chown %s to %s:%s",
+                LGTD_SOCKADDRTOA(listener->sockaddr, addr), user, group
+            );
+        }
+    }
+
+    if (setgid(gid) == -1) {
+        lgtd_err(1, "can't change group to %s", group);
+    }
+
+    if (setgroups(1, &gid) == -1) {
+        lgtd_err(1, "can't change group to %s", group);
+    }
+
+    if (setuid(uid) == -1) {
+        lgtd_err(1, "can't change user to %s", user);
+    }
 }

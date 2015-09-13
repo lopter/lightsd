@@ -107,6 +107,8 @@ struct lgtd_opts {
     bool                foreground;
     bool                log_timestamps;
     enum lgtd_verbosity verbosity;
+    const char          *user;
+    const char          *group;
 };
 
 extern struct lgtd_opts lgtd_opts;

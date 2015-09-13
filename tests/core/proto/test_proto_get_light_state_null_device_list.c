@@ -48,10 +48,11 @@ lgtd_client_send_error(struct lgtd_client *client,
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
-    lgtd_proto_get_light_state(&client, targets);
+    lgtd_proto_get_light_state(client, targets);
 
     if (!send_error_called) {
         lgtd_errx(1, "lgtd_client_send_error hasn't been called");

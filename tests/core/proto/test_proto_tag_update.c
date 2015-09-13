@@ -247,11 +247,12 @@ setup_devices(void)
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
 
     setup_devices();
 
-    lgtd_proto_tag(&client, FAKE_TARGET_LIST, "dub");
+    lgtd_proto_tag(client, FAKE_TARGET_LIST, "dub");
 
     const char expected[] = "true";
     if (client_write_buf_idx != sizeof(expected) - 1) {

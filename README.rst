@@ -33,8 +33,8 @@ following commands through a JSON-RPC_ interface:
 - set_label;
 - tag/untag (group/ungroup bulbs together).
 
-The JSON-RPC interface works on top of TCP/IPv4/v6 or over a command pipe (named
-pipe, see mkfifo(1)).
+The JSON-RPC interface works on top of TCP/IPv4/v6, Unix sockets, or over a
+command pipe (named pipe, see `mkfifo(1)`_).
 
 lightsd can target single or multiple bulbs at once:
 
@@ -47,6 +47,7 @@ lightsd can target single or multiple bulbs at once:
 lightsd works and is developed against LIFX firmwares 1.1, 1.5, 2.0 and 2.1.
 
 .. _JSON-RPC: http://www.jsonrpc.org/specification
+.. _mkfifo(1): http://www.openbsd.org/cgi-bin/man.cgi?query=mkfifo
 
 Requirements
 ------------

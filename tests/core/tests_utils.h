@@ -1,5 +1,7 @@
 #pragma once
 
+struct bufferevent;
+
 static inline bool
 lgtd_tests_lifx_header_has_flags(const struct lgtd_lifx_packet_header *hdr,
                                  int flags)
@@ -40,4 +42,5 @@ struct lgtd_lifx_tag *lgtd_tests_insert_mock_tag(const char *);
 struct lgtd_lifx_site *lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *,
                                                 struct lgtd_lifx_gateway *,
                                                 int);
-struct lgtd_listen *lgtd_tests_insert_mock_listener(const char *addr, const char *port);
+struct lgtd_listen *lgtd_tests_insert_mock_listener(const char *, uint16_t);
+struct lgtd_client *lgtd_tests_insert_mock_client(struct bufferevent *);

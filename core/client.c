@@ -50,6 +50,7 @@ lgtd_client_close(struct lgtd_client *client)
 
     LIST_REMOVE(client, link);
     bufferevent_free(client->io);
+    free(client->addr);
     free(client);
 }
 
@@ -69,6 +70,9 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
 
     struct lgtd_client *client = ctx;
 
+    char addr[LGTD_SOCKADDR_STRLEN];
+    LGTD_SOCKADDRTOA(client->addr, addr);
+
     struct evbuffer *input = bufferevent_get_input(bev);
     size_t nbytes = evbuffer_get_contiguous_space(input);
     // Get the actual pointer to the beginning of the evbuf:
@@ -86,10 +90,7 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
         switch (rv) {
         case JSMN_ERROR_NOMEM:
         case JSMN_ERROR_INVAL:
-            lgtd_warnx(
-                "client [%s]:%hu: request too big or invalid",
-                client->ip_addr, client->port
-            );
+            lgtd_warnx("client %s: request too big or invalid", addr);
             evbuffer_drain(input, nbytes);
             break;
         case JSMN_ERROR_PART:
@@ -100,10 +101,7 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
             (void)0;
             size_t buflen = evbuffer_get_length(input);
             if (buflen > LGTD_CLIENT_MAX_REQUEST_BUF_SIZE) {
-                lgtd_warnx(
-                    "client [%s]:%hu: request too big or invalid",
-                    client->ip_addr, client->port
-                );
+                lgtd_warnx("client %s: request too big or invalid", addr);
                 evbuffer_drain(input, buflen);
             } else if (nbytes == buflen) {
                 return; // We pulled up everything already, wait for more data
@@ -139,10 +137,10 @@ lgtd_client_event_callback(struct bufferevent *bev, short events, void *ctx)
     struct lgtd_client *client = ctx;
 
     if (events & (BEV_EVENT_ERROR|BEV_EVENT_EOF)) {
-        lgtd_info(
-            "lost connection with client [%s]:%hu",
-            client->ip_addr, client->port
-        );
+        char addr[LGTD_SOCKADDR_STRLEN];
+        lgtd_info("lost connection with client %s", LGTD_SOCKADDRTOA(
+            client->addr, addr
+        ));
         lgtd_client_close(client);
     }
 }
@@ -197,21 +195,29 @@ lgtd_client_send_error(struct lgtd_client *client,
 }
 
 struct lgtd_client *
-lgtd_client_open(evutil_socket_t peer, const struct sockaddr_storage *peer_addr)
+lgtd_client_open(evutil_socket_t peer, const struct sockaddr *addr, int addrlen)
 {
     assert(peer != -1);
-    assert(peer_addr);
+    assert(addr);
 
     struct lgtd_client *client = calloc(1, sizeof(*client));
     if (!client) {
         return NULL;
     }
+
     client->io = bufferevent_socket_new(
         lgtd_ev_base, peer, BEV_OPT_CLOSE_ON_FREE
     );
     if (!client->io) {
-        return NULL;
+        goto error;
     }
+
+    client->addr = calloc(1, addrlen);
+    if (!client->addr) {
+        goto error;
+    }
+    memcpy(client->addr, addr, addrlen);
+
     bufferevent_setcb(
         client->io,
         lgtd_client_read_callback,
@@ -219,15 +225,23 @@ lgtd_client_open(evutil_socket_t peer, const struct sockaddr_storage *peer_addr)
         lgtd_client_event_callback,
         client
     );
-    lgtd_sockaddrtoa(peer_addr, client->ip_addr, sizeof(client->ip_addr));
-    client->port = lgtd_sockaddrport(peer_addr);
-    bufferevent_enable(client->io, EV_READ|EV_WRITE|EV_TIMEOUT);
+    if (bufferevent_enable(client->io, EV_READ|EV_WRITE|EV_TIMEOUT) == -1) {
+        goto error;
+    }
 
     LIST_INSERT_HEAD(&lgtd_clients, client, link);
 
     LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(clients, 1);
 
     return client;
+
+error:
+    if (client->io) {
+        bufferevent_free(client->io);
+    }
+    free(client->addr);
+    free(client);
+    return NULL;
 }
 
 void

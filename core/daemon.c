@@ -102,6 +102,22 @@ lgtd_daemon_setup_proctitle(int argc, char *argv[], char *envp[])
 #endif
 }
 
+static char *
+lgtd_daemon_update_proctitle_format_sockaddr(const struct sockaddr *sa,
+                                             char *buf,
+                                             int buflen)
+{
+    assert(sa);
+    assert(buf);
+    assert(buflen > 0);
+
+    if (sa->sa_family == AF_UNIX) {
+        return ((struct sockaddr_un *)sa)->sun_path;
+    }
+
+    return lgtd_sockaddrtoa(sa, buf, buflen);
+}
+
 void
 lgtd_daemon_update_proctitle(void)
 {
@@ -135,9 +151,13 @@ lgtd_daemon_update_proctitle(void)
     }                                                         \
 } while (0)
 
+    char addr[LGTD_SOCKADDR_STRLEN];
     LOOP(
         SLIST, &lgtd_listeners, struct lgtd_listen,
-        "listening_on", "%s:[%s]", it->addr, it->port
+        "listening_on", "%s",
+        lgtd_daemon_update_proctitle_format_sockaddr(
+            it->sockaddr, addr, sizeof(addr)
+        )
     );
 
     LOOP(

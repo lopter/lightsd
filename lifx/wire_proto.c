@@ -89,10 +89,9 @@ lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
     bool tagged = hdr->protocol & LGTD_LIFX_PROTOCOL_TAGGED;
     unsigned int protocol = hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
     lgtd_info(
-        "%s <-- [%s]:%hu - (Unimplemented, header info: "
+        "%s <-- %s - (Unimplemented, header info: "
         "addressable=%d, tagged=%d, protocol=%d)",
-        pkt_info->name, gw->ip_addr, gw->port,
-        addressable, tagged, protocol
+        pkt_info->name, gw->peeraddr, addressable, tagged, protocol
     );
 }
 

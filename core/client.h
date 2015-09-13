@@ -33,8 +33,7 @@ enum lgtd_client_error_code {
 struct lgtd_client {
     LIST_ENTRY(lgtd_client)     link;
     struct bufferevent          *io;
-    char                        ip_addr[INET6_ADDRSTRLEN];
-    uint16_t                    port;
+    struct sockaddr             *addr;
     jsmn_parser                 jsmn_ctx;
     jsmntok_t                   jsmn_tokens[LGTD_CLIENT_JSMN_TOKENS_NUM];
     const char                  *json;
@@ -42,7 +41,7 @@ struct lgtd_client {
 };
 LIST_HEAD(lgtd_client_list, lgtd_client);
 
-struct lgtd_client *lgtd_client_open(evutil_socket_t, const struct sockaddr_storage *);
+struct lgtd_client *lgtd_client_open(evutil_socket_t, const struct sockaddr *, int);
 void lgtd_client_open_from_pipe(struct lgtd_client *);
 void lgtd_client_close_all(void);
 

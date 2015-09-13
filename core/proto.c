@@ -195,6 +195,9 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
         return;
     }
 
+    char client_ip_addr[LGTD_SOCKADDR_STRLEN];
+    LGTD_SOCKADDRTOA(client->addr, client_ip_addr);
+
     lgtd_client_start_send_response(client);
     lgtd_client_write_string(client, "[");
     struct lgtd_router_device *device;
@@ -216,11 +219,10 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
                     "\"addr\":\"%s\","
                     "\"gateway\":{"
                         "\"site\":\"%s\","
-                        "\"url\":\"tcp://[%s]:%hu\","
+                        "\"url\":\"tcp://%s\","
                         "\"latency\":%ju"
                     "}",
-            bulb_addr, site_addr,
-            bulb->gw->ip_addr, bulb->gw->port,
+            bulb_addr, site_addr, bulb->gw->peeraddr,
             (uintmax_t)lgtd_lifx_gateway_latency(bulb->gw)
         );
 
@@ -347,8 +349,8 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
         if (i >= (int)sizeof(buf)) {
             lgtd_warnx(
                 "can't send state of bulb %s (%s) to client "
-                "[%s]:%hu: output buffer to small",
-                bulb->state.label, bulb_addr, client->ip_addr, client->port
+                "%s: output buffer to small",
+                bulb->state.label, bulb_addr, client_ip_addr
             );
             continue;
         }
@@ -365,9 +367,9 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
             } else {
                 lgtd_warnx(
                     "tag_id %d on bulb %.*s (%s) doesn't "
-                    "exist on gw [%s]:%hu (site %s)",
+                    "exist on gw %s (site %s)",
                     tag_id, (int)sizeof(bulb->state.label), bulb->state.label,
-                    bulb_addr, bulb->gw->ip_addr, bulb->gw->port, site_addr
+                    bulb_addr, bulb->gw->peeraddr, site_addr
                 );
             }
         }
@@ -439,8 +441,8 @@ lgtd_proto_tag(struct lgtd_client *client,
             goto error_site_alloc;
         }
         lgtd_info(
-            "created tag [%s] with id %d on gw [%s]:%hu",
-            tag_label, tag_id, site->gw->ip_addr, site->gw->port
+            "created tag [%s] with id %d on gw %s",
+            tag_label, tag_id, site->gw->peeraddr
         );
     }
 

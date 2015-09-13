@@ -21,8 +21,8 @@ struct evconnlistener;
 
 struct lgtd_listen {
     SLIST_ENTRY(lgtd_listen)    link;
-    const char                  *addr;
-    const char                  *port;
+    ev_socklen_t                addrlen;
+    struct sockaddr             *sockaddr;
     struct evconnlistener       *evlistener;
 };
 SLIST_HEAD(lgtd_listen_list, lgtd_listen);
@@ -30,4 +30,5 @@ SLIST_HEAD(lgtd_listen_list, lgtd_listen);
 extern struct lgtd_listen_list lgtd_listeners;
 
 bool lgtd_listen_open(const char *, const char *);
+bool lgtd_listen_unix_open(const char *);
 void lgtd_listen_close_all(void);

@@ -76,19 +76,19 @@ main(void)
     }
 
     expected = (
-        "listening_on(foobar.com:[1234]); "
+        "listening_on([::ffff:127.0.0.1]:1234); "
         "lifx_gateways(found=1); "
         "bulbs(found=2, on=0); "
         "clients(connected=0)"
     );
-    lgtd_tests_insert_mock_listener("foobar.com", "1234");
+    lgtd_tests_insert_mock_listener("127.0.0.1", 1234);
     lgtd_daemon_update_proctitle();
     if (setproctitle_call_count != 5) {
         errx(1, "setproctitle should have been called");
     }
 
     expected = (
-        "listening_on(foobar.com:[1234]); "
+        "listening_on([::ffff:127.0.0.1]:1234); "
         "lifx_gateways(found=1); "
         "bulbs(found=2, on=1); "
         "clients(connected=0)"
@@ -99,7 +99,7 @@ main(void)
     }
 
     expected = (
-        "listening_on(foobar.com:[1234]); "
+        "listening_on([::ffff:127.0.0.1]:1234); "
         "lifx_gateways(found=1); "
         "bulbs(found=2, on=1); "
         "clients(connected=1)"

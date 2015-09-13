@@ -66,10 +66,11 @@ lgtd_client_send_error(struct lgtd_client *client,
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
-    lgtd_proto_power_toggle(&client, targets);
+    lgtd_proto_power_toggle(client, targets);
 
     if (client_send_error_call_count != 1) {
         errx(1, "lgtd_client_send_error called %d times (expected 1)",

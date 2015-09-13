@@ -69,9 +69,10 @@ main(void)
     struct lgtd_proto_target_list *targets;
     targets = lgtd_tests_build_target_list("*", NULL);
 
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
 
-    lgtd_proto_set_label(&client, targets, "test");
+    lgtd_proto_set_label(client, targets, "test");
 
     if (!router_send_call_count) {
         errx(1, "lgtd_router_send wasn't called");

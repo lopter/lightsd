@@ -78,9 +78,10 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
 
     char site[LGTD_LIFX_ADDR_STRLEN];
     lgtd_info(
-        "connection with gateway bulb [%s]:%hu (site %s) closed",
-        gw->ip_addr, gw->port, LGTD_IEEE8023MACTOA(gw->site.as_array, site)
+        "connection with gateway bulb %s (site %s) closed",
+        gw->peeraddr, LGTD_IEEE8023MACTOA(gw->site.as_array, site)
     );
+    free(gw->peer);
     free(gw);
 }
 
@@ -112,9 +113,7 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
     struct lgtd_lifx_gateway *gw = (struct lgtd_lifx_gateway *)ctx;
 
     if (events & EV_TIMEOUT) {  // Not sure how that could happen in UDP but eh.
-        lgtd_warn(
-            "lost connection with gateway bulb [%s]:%hu", gw->ip_addr, gw->port
-        );
+        lgtd_warn("lost connection with gateway bulb %s", gw->peeraddr);
         lgtd_lifx_gateway_close(gw);
         if (!lgtd_lifx_broadcast_discovery()) {
             lgtd_err(1, "can't start auto discovery");
@@ -129,7 +128,7 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
         int to_write = gw->pkt_ring[gw->pkt_ring_tail].size;
         int nbytes = evbuffer_write_atmost(gw->write_buf, gw->socket, to_write);
         if (nbytes == -1 && errno != EAGAIN) {
-            lgtd_warn("can't write to [%s]:%hu", gw->ip_addr, gw->port);
+            lgtd_warn("can't write to %s", gw->peeraddr);
             lgtd_lifx_gateway_close(gw);
             if (!lgtd_lifx_broadcast_discovery()) {
                 lgtd_err(1, "can't start auto discovery");
@@ -270,8 +269,8 @@ lgtd_lifx_gateway_get_or_open_bulb(struct lgtd_lifx_gateway *gw,
             SLIST_INSERT_HEAD(&gw->bulbs, bulb, link_by_gw);
             char addr[LGTD_LIFX_ADDR_STRLEN];
             lgtd_info(
-                "bulb %s on [%s]:%hu",
-                LGTD_IEEE8023MACTOA(bulb->addr, addr), gw->ip_addr, gw->port
+                "bulb %s on %s",
+                LGTD_IEEE8023MACTOA(bulb->addr, addr), gw->peeraddr
             );
         }
     }
@@ -279,7 +278,7 @@ lgtd_lifx_gateway_get_or_open_bulb(struct lgtd_lifx_gateway *gw,
 }
 
 struct lgtd_lifx_gateway *
-lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
+lgtd_lifx_gateway_open(const struct sockaddr *peer,
                        ev_socklen_t addrlen,
                        const uint8_t *site,
                        lgtd_time_mono_t received_at)
@@ -292,12 +291,12 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
         lgtd_warn("can't allocate a new gateway bulb");
         return false;
     }
-    gw->socket = socket(peer->ss_family, SOCK_DGRAM, IPPROTO_UDP);
+    gw->socket = socket(peer->sa_family, SOCK_DGRAM, IPPROTO_UDP);
     if (gw->socket == -1) {
         lgtd_warn("can't open a new socket");
         goto error_socket;
     }
-    if (connect(gw->socket, (const struct sockaddr *)peer, addrlen) == -1
+    if (connect(gw->socket, peer, addrlen) == -1
         || evutil_make_socket_nonblocking(gw->socket) == -1) {
         lgtd_warn("can't open a new socket");
         goto error_connect;
@@ -312,13 +311,16 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
     );
     gw->write_buf = evbuffer_new();
     if (!gw->write_ev || !gw->write_buf) {
-        lgtd_warn("can't allocate a new gateway bulb");
+        goto error_allocate;
+    }
+    gw->peer = malloc(addrlen);
+    if (!gw->peer) {
         goto error_allocate;
     }
 
-    memcpy(&gw->peer, peer, sizeof(gw->peer));
-    lgtd_sockaddrtoa(peer, gw->ip_addr, sizeof(gw->ip_addr));
-    gw->port = lgtd_sockaddrport(peer);
+    memcpy(gw->peer, peer, addrlen);
+    gw->peerlen = addrlen;
+    LGTD_SOCKADDRTOA(gw->peer, gw->peeraddr);
     memcpy(gw->site.as_array, site, sizeof(gw->site.as_array));
     gw->last_req_at = received_at;
     gw->next_req_at = received_at;
@@ -338,9 +340,8 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
 
     char site_addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_info(
-        "gateway for site %s at [%s]:%hu",
-        LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr),
-        gw->ip_addr, gw->port
+        "gateway for site %s at %s",
+        LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr), gw->peeraddr
     );
     LIST_INSERT_HEAD(&lgtd_lifx_gateways, gw, link);
 
@@ -353,6 +354,7 @@ lgtd_lifx_gateway_open(const struct sockaddr_storage *peer,
     return gw;
 
 error_allocate:
+    lgtd_warn("can't allocate a new gateway bulb");
     if (gw->write_ev) {
         event_free(gw->write_ev);
     }
@@ -362,19 +364,21 @@ error_allocate:
 error_connect:
     evutil_closesocket(gw->socket);
 error_socket:
+    free(gw->peer);
     free(gw);
     return NULL;
 }
 
 struct lgtd_lifx_gateway *
-lgtd_lifx_gateway_get(const struct sockaddr_storage *peer)
+lgtd_lifx_gateway_get(const struct sockaddr *peer, ev_socklen_t peerlen)
 {
     assert(peer);
 
     struct lgtd_lifx_gateway *gw, *next_gw;
     LIST_FOREACH_SAFE(gw, &lgtd_lifx_gateways, link, next_gw) {
-        if (peer->ss_family == gw->peer.ss_family
-            && !memcmp(&gw->peer, peer, sizeof(*peer))) {
+        if (peer->sa_family == gw->peer->sa_family
+            && peerlen == gw->peerlen
+            && !memcmp(gw->peer, peer, peerlen)) {
             return gw;
         }
     }
@@ -406,8 +410,8 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
 
     if (gw->pkt_ring_full) {
         lgtd_warnx(
-            "dropping packet type %s: packet queue on [%s]:%hu is full",
-            pkt_info->name, gw->ip_addr, gw->port
+            "dropping packet type %s: packet queue on %s is full",
+            pkt_info->name, gw->peeraddr
         );
         return;
     }
@@ -441,9 +445,9 @@ lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *gw,
             gw->tag_refcounts[tag_id]++;
         } else {
             lgtd_warnx(
-                "reached refcount limit (%u) for tag [%s] (%d) on gw [%s]:%hu",
+                "reached refcount limit (%u) for tag [%s] (%d) on gw %s",
                 UINT8_MAX, gw->tags[tag_id] ? gw->tags[tag_id]->label : NULL,
-                tag_id, gw->ip_addr, gw->port
+                tag_id, gw->peeraddr
             );
         }
     }
@@ -453,9 +457,9 @@ lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *gw,
         if (--gw->tag_refcounts[tag_id] == 0) {
             char site[LGTD_LIFX_ADDR_STRLEN];
             lgtd_info(
-                "deleting unused tag [%s] (%d) from gw [%s]:%hu (site %s)",
+                "deleting unused tag [%s] (%d) from gw %s (site %s)",
                 gw->tags[tag_id] ? gw->tags[tag_id]->label : NULL,
-                tag_id, gw->ip_addr, gw->port,
+                tag_id, gw->peeraddr,
                 LGTD_IEEE8023MACTOA(gw->site.as_array, site)
             );
             struct lgtd_lifx_packet_tag_labels pkt = {
@@ -487,8 +491,8 @@ lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN], site[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "SET_PAN_GATEWAY <-- [%s]:%hu - %s site=%s, service_type=%d",
-        gw->ip_addr, gw->port,
+        "SET_PAN_GATEWAY <-- %s - %s site=%s, service_type=%d",
+        gw->peeraddr,
         LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         LGTD_IEEE8023MACTOA(hdr->site, site), pkt->service_type
     );
@@ -503,11 +507,10 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "SET_LIGHT_STATE <-- [%s]:%hu - %s "
+        "SET_LIGHT_STATE <-- %s - %s "
         "hue=%#hx, saturation=%#hx, brightness=%#hx, "
         "kelvin=%d, dim=%#hx, power=%#hx, label=%.*s, tags=%#jx",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         pkt->hue, pkt->saturation, pkt->brightness, pkt->kelvin,
         pkt->dim, pkt->power, LGTD_LIFX_LABEL_SIZE, pkt->label,
         (uintmax_t)pkt->tags
@@ -546,8 +549,8 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
             struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
             lgtd_timer_reschedule(gw->refresh_timer, &tv);
             lgtd_debug(
-                "[%s]:%hu latency is %jums, scheduling next GET_LIGHT_STATE in %dms",
-                gw->ip_addr, gw->port, (uintmax_t)latency, timeout
+                "%s latency is %jums, scheduling next GET_LIGHT_STATE in %dms",
+                gw->peeraddr, (uintmax_t)latency, timeout
             );
         }
         return;
@@ -555,14 +558,14 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 
     if (!gw->pending_refresh_req) {
         lgtd_debug(
-            "[%s]:%hu latency is %jums, sending GET_LIGHT_STATE now",
-            gw->ip_addr, gw->port, (uintmax_t)latency
+            "%s latency is %jums, sending GET_LIGHT_STATE now",
+            gw->peeraddr, (uintmax_t)latency
         );
         lgtd_lifx_gateway_send_get_all_light_state(gw);
     } else {
         lgtd_debug(
-            "[%s]:%hu GET_LIGHT_STATE for all bulbs on this gw has already "
-            "been enqueued", gw->ip_addr, gw->port
+            "%s GET_LIGHT_STATE for all bulbs on this gw has already "
+            "been enqueued", gw->peeraddr
         );
     }
 }
@@ -576,8 +579,7 @@ lgtd_lifx_gateway_handle_power_state(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "SET_POWER_STATE <-- [%s]:%hu - %s power=%#hx",
-        gw->ip_addr, gw->port,
+        "SET_POWER_STATE <-- %s - %s power=%#hx", gw->peeraddr,
         LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr), pkt->power
     );
 
@@ -620,8 +622,8 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
         tag_id = lgtd_lifx_wire_bitscan64_forward(~gw->tag_ids);
         if (tag_id == -1) {
             lgtd_warnx(
-                "no tag_id left for new tag [%s] on gw [%s]:%hu (site %s)",
-                tag_label, gw->ip_addr, gw->port, site
+                "no tag_id left for new tag [%s] on gw %s (site %s)",
+                tag_label, gw->peeraddr, site
             );
             return -1;
         }
@@ -638,8 +640,8 @@ lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *gw,
             return -1;
         }
         lgtd_debug(
-            "tag_id %d allocated for tag [%s] on gw [%s]:%hu (site %s)",
-            tag_id, tag_label, gw->ip_addr, gw->port, site
+            "tag_id %d allocated for tag [%s] on gw %s (site %s)",
+            tag_id, tag_label, gw->peeraddr, site
         );
         gw->tag_ids |= LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
         gw->tags[tag_id] = tag;
@@ -658,10 +660,9 @@ lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *gw, int tag_id)
     if (gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id)) {
         char site[LGTD_LIFX_ADDR_STRLEN];
         lgtd_debug(
-            "tag_id %d deallocated for tag [%s] on gw [%s]:%hu (site %s)",
+            "tag_id %d deallocated for tag [%s] on gw %s (site %s)",
             tag_id, gw->tags[tag_id]->label,
-            gw->ip_addr, gw->port,
-            LGTD_IEEE8023MACTOA(gw->site.as_array, site)
+            gw->peeraddr, LGTD_IEEE8023MACTOA(gw->site.as_array, site)
         );
         lgtd_lifx_tagging_decref(gw->tags[tag_id], gw);
         gw->tag_ids &= ~LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id);
@@ -678,9 +679,8 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "SET_TAG_LABELS <-- [%s]:%hu - %s label=%.*s, tags=%jx",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        "SET_TAG_LABELS <-- %s - %s label=%.*s, tags=%jx",
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         LGTD_LIFX_LABEL_SIZE, pkt->label, (uintmax_t)pkt->tags
     );
 
@@ -703,9 +703,8 @@ lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "SET_TAGS <-- [%s]:%hu - %s tags=%#jx",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        "SET_TAGS <-- %s - %s tags=%#jx",
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         (uintmax_t)pkt->tags
     );
 
@@ -718,10 +717,10 @@ lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
         if (!(gw->tag_ids & LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id))) {
             lgtd_warnx(
                 "trying to set unknown tag_id %d (%#jx) "
-                "on bulb %s (%.*s), gw [%s]:%hu (site %s)",
+                "on bulb %s (%.*s), gw %s (site %s)",
                 tag_id, LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id),
                 LGTD_IEEE8023MACTOA(b->addr, bulb_addr),
-                LGTD_LIFX_LABEL_SIZE, b->state.label, gw->ip_addr, gw->port,
+                LGTD_LIFX_LABEL_SIZE, b->state.label, gw->peeraddr,
                 LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr)
             );
         }
@@ -758,10 +757,9 @@ lgtd_lifx_gateway_handle_ip_state(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "%s <-- [%s]:%hu - %s "
+        "%s <-- %s - %s "
         "signal_strength=%f, rx_bytes=%u, tx_bytes=%u, temperature=%hu",
-        type, gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        type, gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         pkt->signal_strength, pkt->rx_bytes, pkt->tx_bytes, pkt->temperature
     );
 
@@ -799,10 +797,9 @@ lgtd_lifx_gateway_handle_ip_firmware_info(struct lgtd_lifx_gateway *gw,
 
     char built_at[64], installed_at[64], addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "%s <-- [%s]:%hu - %s "
+        "%s <-- %s - %s "
         "built_at=%s, installed_at=%s, version=%u",
-        type, gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        type, gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(pkt->built_at, built_at),
         LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(pkt->installed_at, installed_at),
         pkt->version
@@ -823,10 +820,9 @@ lgtd_lifx_gateway_handle_product_info(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "PRODUCT_INFO <-- [%s]:%hu - %s "
+        "PRODUCT_INFO <-- %s - %s "
         "vendor_id=%#x, product_id=%#x, version=%u",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         pkt->vendor_id, pkt->product_id, pkt->version
     );
 
@@ -845,9 +841,8 @@ lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *gw,
 
     char device_time[64], uptime[64], downtime[64], addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "PRODUCT_INFO <-- [%s]:%hu - %s time=%s, uptime=%s, downtime=%s",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        "PRODUCT_INFO <-- %s - %s time=%s, uptime=%s, downtime=%s",
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(pkt->time, device_time),
         LGTD_PRINT_DURATION(LGTD_NSECS_TO_SECS(pkt->uptime), uptime),
         LGTD_PRINT_DURATION(LGTD_NSECS_TO_SECS(pkt->downtime), downtime)
@@ -868,9 +863,8 @@ lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "BULB_LABEL <-- [%s]:%hu - %s label=%.*s",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        "BULB_LABEL <-- %s - %s label=%.*s",
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         (int)sizeof(pkt->label), pkt->label
     );
 
@@ -888,9 +882,8 @@ lgtd_lifx_gateway_handle_ambient_light(struct lgtd_lifx_gateway *gw,
 
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
-        "AMBIENT_LIGHT <-- [%s]:%hu - %s ambient_light=%flx",
-        gw->ip_addr, gw->port,
-        LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
+        "AMBIENT_LIGHT <-- %s - %s ambient_light=%flx",
+        gw->peeraddr, LGTD_IEEE8023MACTOA(hdr->target.device_addr, addr),
         pkt->illuminance
     );
 

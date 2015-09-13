@@ -34,7 +34,8 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
         SLIST_HEAD_INITIALIZER(&devices);
 
     static struct lgtd_lifx_gateway gw_bulb_1 = {
-        .bulbs = LIST_HEAD_INITIALIZER(&gw_bulb_1.bulbs)
+        .bulbs = LIST_HEAD_INITIALIZER(&gw_bulb_1.bulbs),
+        .peeraddr = "[::ffff:127.0.0.1]:1"
     };
     static struct lgtd_lifx_bulb bulb_1 = {
         .addr = { 1, 2, 3, 4, 5 },
@@ -57,7 +58,8 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
     struct lgtd_lifx_tag *gw_2_tag_3 = lgtd_tests_insert_mock_tag("wave~");
     static struct lgtd_lifx_gateway gw_bulb_2 = {
         .bulbs = LIST_HEAD_INITIALIZER(&gw_bulb_2.bulbs),
-        .tag_ids = 0x7
+        .tag_ids = 0x7,
+        .peeraddr = "[::ffff:127.0.0.1]:2"
     };
     lgtd_tests_add_tag_to_gw(gw_2_tag_1, &gw_bulb_2, 0);
     lgtd_tests_add_tag_to_gw(gw_2_tag_2, &gw_bulb_2, 1);
@@ -84,12 +86,13 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
     lgtd_opts.verbosity = LGTD_INFO;
 
-    lgtd_proto_get_light_state(&client, targets);
+    lgtd_proto_get_light_state(client, targets);
 
     const char expected[] = ("["
         "{"
@@ -97,7 +100,7 @@ main(void)
                 "\"addr\":\"05:04:03:02:01:00\","
                 "\"gateway\":{"
                     "\"site\":\"00:00:00:00:00:00\","
-                    "\"url\":\"tcp://[]:0\","
+                    "\"url\":\"tcp://[::ffff:127.0.0.1]:2\","
                     "\"latency\":0"
                 "},"
                 "\"mcu\":{\"firmware_version\":\"0.0\"},"
@@ -115,7 +118,7 @@ main(void)
                 "\"addr\":\"01:02:03:04:05:00\","
                 "\"gateway\":{"
                     "\"site\":\"00:00:00:00:00:00\","
-                    "\"url\":\"tcp://[]:0\","
+                    "\"url\":\"tcp://[::ffff:127.0.0.1]:1\","
                     "\"latency\":0"
                 "},"
                 "\"mcu\":{\"firmware_version\":\"0.0\"},"

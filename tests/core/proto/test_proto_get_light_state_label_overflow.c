@@ -37,7 +37,8 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
     }
 
     static struct lgtd_lifx_gateway gw_bulb_1 = {
-        .bulbs = LIST_HEAD_INITIALIZER(&gw_bulb_1.bulbs)
+        .bulbs = LIST_HEAD_INITIALIZER(&gw_bulb_1.bulbs),
+        .peeraddr = "[::ffff:127.0.0.1]:1"
     };
     static struct lgtd_lifx_bulb bulb_1 = {
         .addr = { 1, 2, 3, 4, 5 },
@@ -70,7 +71,8 @@ lgtd_router_targets_to_devices(const struct lgtd_proto_target_list *targets)
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
     lgtd_opts.verbosity = LGTD_INFO;
@@ -81,7 +83,7 @@ main(void)
                 "\"addr\":\"01:02:03:04:05:00\","
                 "\"gateway\":{"
                     "\"site\":\"00:00:00:00:00:00\","
-                    "\"url\":\"tcp://[]:0\","
+                    "\"url\":\"tcp://[::ffff:127.0.0.1]:1\","
                     "\"latency\":0"
                 "},"
                 "\"mcu\":{\"firmware_version\":\"0.0\"},"
@@ -98,7 +100,7 @@ main(void)
 
     reset_client_write_buf();
 
-    lgtd_proto_get_light_state(&client, targets);
+    lgtd_proto_get_light_state(client, targets);
 
     if (client_write_buf_idx != sizeof(expected_info) - 1) {
         lgtd_errx(

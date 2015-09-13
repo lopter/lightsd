@@ -136,13 +136,14 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
 
     struct lgtd_proto_target_list *targets = (void *)0x2a;
 
     tag_vapor = lgtd_tests_insert_mock_tag("vapor");
 
-    lgtd_proto_untag(&client, targets, "vapor");
+    lgtd_proto_untag(client, targets, "vapor");
 
     const char expected[] = "true";
 

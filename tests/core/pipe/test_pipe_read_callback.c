@@ -6,6 +6,7 @@
 
 #include "lifx/wire_proto.h"
 
+#include "mock_daemon.h"
 #define MOCKED_EVENT_NEW
 #define MOCKED_EVENT_DEL
 #define MOCKED_EVBUFFER_NEW
@@ -21,7 +22,6 @@
 #include "mock_timer.h"
 
 #include "tests_utils.h"
-#include "tests_pipe_utils.h"
 
 static unsigned char request[] = ("{"
     "\"jsonrpc\": \"2.0\","
@@ -139,13 +139,6 @@ evbuffer_pullup(struct evbuffer *buf, ev_ssize_t size)
         errx(
             1, "got unexpected size %jd in pullup (expected -1)", (intmax_t)size
         );
-    }
-
-    jsmn_parser jsmn_ctx;
-    jsmn_init(&jsmn_ctx);
-    struct lgtd_command_pipe *pipe = SLIST_FIRST(&lgtd_command_pipes);
-    if (memcmp(&pipe->client.jsmn_ctx, &jsmn_ctx, sizeof(jsmn_ctx))) {
-        errx(1, "the client json parser context wasn't re-initialized");
     }
 
     return &request[evbuffer_pullup_call_count++ ? sizeof(request) - 1 : 0];

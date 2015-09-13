@@ -172,6 +172,16 @@ _lgtd_command_pipe_open(const char *path)
         return false;
     }
 
+    struct stat sb;
+    if (stat(path, &sb) == -1) {
+        if (errno != ENOENT) {
+            goto error;
+        }
+    } else if ((sb.st_mode & S_IFMT) != S_IFIFO) {
+        errno = EEXIST;
+        goto error;
+    }
+
     pipe->path = path;
     pipe->fd = -1;
 

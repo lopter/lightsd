@@ -36,13 +36,8 @@
 #include "watchdog.h"
 #include "core/lightsd.h"
 
-static struct {
-    struct event *watchdog_interval_ev;
-    struct event *discovery_timeout_ev;
-} lgtd_lifx_watchdog_context = {
-    .watchdog_interval_ev = NULL,
-    .discovery_timeout_ev = NULL
-};
+static struct event *lgtd_watchdog_interval_ev = NULL;
+static struct event *lgtd_discovery_timeout_ev = NULL;
 
 static void
 lgtd_lifx_watchdog_discovery_timeout_event_callback(evutil_socket_t socket,
@@ -134,17 +129,17 @@ lgtd_lifx_watchdog_timeout_event_callback(evutil_socket_t socket,
 bool
 lgtd_lifx_watchdog_setup(void)
 {
-    assert(!lgtd_lifx_watchdog_context.watchdog_interval_ev);
-    assert(!lgtd_lifx_watchdog_context.discovery_timeout_ev);
+    assert(!lgtd_watchdog_interval_ev);
+    assert(!lgtd_discovery_timeout_ev);
 
-    lgtd_lifx_watchdog_context.discovery_timeout_ev = event_new(
+    lgtd_discovery_timeout_ev = event_new(
         lgtd_ev_base,
         -1,
         0,
         lgtd_lifx_watchdog_discovery_timeout_event_callback,
         NULL
     );
-    lgtd_lifx_watchdog_context.watchdog_interval_ev = event_new(
+    lgtd_watchdog_interval_ev = event_new(
         lgtd_ev_base,
         -1,
         EV_PERSIST,
@@ -152,8 +147,7 @@ lgtd_lifx_watchdog_setup(void)
         NULL
     );
 
-    if (lgtd_lifx_watchdog_context.discovery_timeout_ev
-        && lgtd_lifx_watchdog_context.watchdog_interval_ev) {
+    if (lgtd_discovery_timeout_ev && lgtd_watchdog_interval_ev) {
         return true;
     }
 
@@ -166,15 +160,15 @@ lgtd_lifx_watchdog_setup(void)
 void
 lgtd_lifx_watchdog_close(void)
 {
-    if (lgtd_lifx_watchdog_context.discovery_timeout_ev) {
-        event_del(lgtd_lifx_watchdog_context.discovery_timeout_ev);
-        event_free(lgtd_lifx_watchdog_context.discovery_timeout_ev);
-        lgtd_lifx_watchdog_context.discovery_timeout_ev = NULL;
+    if (lgtd_discovery_timeout_ev) {
+        event_del(lgtd_discovery_timeout_ev);
+        event_free(lgtd_discovery_timeout_ev);
+        lgtd_discovery_timeout_ev = NULL;
     }
-    if (lgtd_lifx_watchdog_context.watchdog_interval_ev) {
-        event_del(lgtd_lifx_watchdog_context.watchdog_interval_ev);
-        event_free(lgtd_lifx_watchdog_context.watchdog_interval_ev);
-        lgtd_lifx_watchdog_context.watchdog_interval_ev = NULL;
+    if (lgtd_watchdog_interval_ev) {
+        event_del(lgtd_watchdog_interval_ev);
+        event_free(lgtd_watchdog_interval_ev);
+        lgtd_watchdog_interval_ev = NULL;
     }
 }
 
@@ -185,14 +179,12 @@ lgtd_lifx_watchdog_start(void)
         !RB_EMPTY(&lgtd_lifx_bulbs_table) || !LIST_EMPTY(&lgtd_lifx_gateways)
     );
 
-    bool pending = evtimer_pending(
-        lgtd_lifx_watchdog_context.watchdog_interval_ev, NULL
-    );
+    bool pending = evtimer_pending(lgtd_watchdog_interval_ev, NULL);
     if (!pending) {
         struct timeval tv = LGTD_MSECS_TO_TIMEVAL(
             LGTD_LIFX_WATCHDOG_INTERVAL_MSECS
         );
-        if (event_add(lgtd_lifx_watchdog_context.watchdog_interval_ev, &tv)) {
+        if (event_add(lgtd_watchdog_interval_ev, &tv)) {
             lgtd_err(1, "can't start watchdog");
         }
         lgtd_debug("starting watchdog timer");
@@ -202,10 +194,9 @@ lgtd_lifx_watchdog_start(void)
 void
 lgtd_lifx_watchdog_start_discovery(void)
 {
-    assert(!evtimer_pending(
-        lgtd_lifx_watchdog_context.discovery_timeout_ev, NULL
-    ));
+    assert(!evtimer_pending(lgtd_discovery_timeout_ev, NULL));
 
-    lgtd_lifx_watchdog_discovery_timeout_event_callback(-1, 0, NULL);
+    lgtd_discovery_timeout = LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS;
+    lgtd_lifx_watchdog_lgtd_discovery_timeout_event_callback(-1, 0, NULL);
     lgtd_debug("starting discovery timer");
 }

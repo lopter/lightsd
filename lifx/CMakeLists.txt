@@ -9,8 +9,8 @@ ADD_LIBRARY(
     lifx
     broadcast.c
     bulb.c
+    discovery.c
     gateway.c
     tagging.c
-    watchdog.c
     wire_proto.c
 )

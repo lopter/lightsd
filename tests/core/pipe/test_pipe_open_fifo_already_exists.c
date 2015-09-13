@@ -6,6 +6,7 @@
 
 #include "lifx/wire_proto.h"
 
+#include "mock_daemon.h"
 #define MOCKED_EVUTIL_MAKE_SOCKET_NONBLOCKING
 #define MOCKED_EVENT_NEW
 #define MOCKED_EVBUFFER_NEW
@@ -17,8 +18,6 @@
 #include "mock_timer.h"
 
 #include "tests_utils.h"
-#define MOCKED_CLIENT_OPEN_FROM_PIPE
-#include "tests_pipe_utils.h"
 
 char *tmpdir = NULL;
 
@@ -101,18 +100,6 @@ event_add(struct event *ev, const struct timeval *timeout)
     event_add_call_count++;
 
     return 0;
-}
-
-static int client_open_from_pipe_call_count = 0;
-
-void
-lgtd_client_open_from_pipe(struct lgtd_client *pipe_client)
-{
-    if (!pipe_client) {
-        errx(1, "missing pipe_client");
-    }
-
-    client_open_from_pipe_call_count++;
 }
 
 int

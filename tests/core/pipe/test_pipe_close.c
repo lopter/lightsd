@@ -6,6 +6,7 @@
 
 #include "lifx/wire_proto.h"
 
+#include "mock_daemon.h"
 #define MOCKED_EVENT_NEW
 #define MOCKED_EVBUFFER_NEW
 #define MOCKED_EVENT_DEL
@@ -18,7 +19,6 @@
 #include "mock_timer.h"
 
 #include "tests_utils.h"
-#include "tests_pipe_utils.h"
 
 char *tmpdir = NULL;
 

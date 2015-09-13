@@ -53,6 +53,7 @@ lgtd_client_close(struct lgtd_client *client)
         bufferevent_free(client->io);
     }
     free(client->addr);
+    free(client->jsmn_tokens);
     free(client);
 }
 
@@ -80,15 +81,13 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
     // Get the actual pointer to the beginning of the evbuf:
     const char *buf = (char *)evbuffer_pullup(input, nbytes);
 
+    jsmntok_t *tokens = NULL;
+    int ntokens = 0;
     do {
-        jsmn_init(&client->jsmn_ctx);
-        jsmnerr_t rv = jsmn_parse(
-            &client->jsmn_ctx,
-            buf,
-            nbytes,
-            client->jsmn_tokens,
-            LGTD_ARRAY_SIZE(client->jsmn_tokens)
-        );
+        jsmn_parser jsmn_ctx;
+    parse_after_realloc:
+        jsmn_init(&jsmn_ctx);
+        jsmnerr_t rv = jsmn_parse(&jsmn_ctx, buf, nbytes, tokens, ntokens);
         switch (rv) {
         case JSMN_ERROR_NOMEM:
         case JSMN_ERROR_INVAL:
@@ -110,19 +109,30 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
             }
             break;
         default:
-            client->json = buf;
-            lgtd_jsonrpc_dispatch_request(client, rv);
-            client->json = NULL;
-            size_t request_size = client->jsmn_tokens[0].end;
-            evbuffer_drain(input, request_size);
-            if (request_size < nbytes) {
-                buf += request_size;
-                nbytes -= request_size;
-                // FIXME: instead of calling jsmn_parse again, return the number
-                // of tokens consumed from jsonrpc and make this case a loop.
-                continue;
+            ntokens = rv;
+            if (tokens) {
+                client->json = buf;
+                lgtd_jsonrpc_dispatch_request(client, ntokens);
+                client->json = NULL;
+                size_t request_size = tokens[0].end;
+                tokens = NULL;
+                evbuffer_drain(input, request_size);
+                if (request_size < nbytes) {
+                    buf += request_size;
+                    nbytes -= request_size;
+                    // FIXME: instead of calling jsmn_parse again, return the
+                    // number of tokens consumed from jsonrpc and make this
+                    // case a loop.
+                    continue;
+                }
+                break;
+            } else {
+                client->jsmn_tokens = reallocarray(
+                    client->jsmn_tokens, ntokens, sizeof(*tokens)
+                );
+                tokens = client->jsmn_tokens;
+                goto parse_after_realloc;
             }
-            break;
         }
         // pullup and resume parsing:
         buf = (char *)evbuffer_pullup(input, -1);

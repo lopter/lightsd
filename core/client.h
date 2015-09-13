@@ -17,8 +17,7 @@
 
 #pragma once
 
-enum { LGTD_CLIENT_JSMN_TOKENS_NUM = 96 };
-enum { LGTD_CLIENT_MAX_REQUEST_BUF_SIZE = 2048 };
+enum { LGTD_CLIENT_MAX_REQUEST_BUF_SIZE = 4096 };
 
 enum lgtd_client_error_code {
     LGTD_CLIENT_SUCCESS = LGTD_JSONRPC_SUCCESS,
@@ -34,15 +33,13 @@ struct lgtd_client {
     LIST_ENTRY(lgtd_client)     link;
     struct bufferevent          *io;
     struct sockaddr             *addr;
-    jsmn_parser                 jsmn_ctx;
-    jsmntok_t                   jsmn_tokens[LGTD_CLIENT_JSMN_TOKENS_NUM];
+    jsmntok_t                   *jsmn_tokens;
     const char                  *json;
     struct lgtd_jsonrpc_request *current_request;
 };
 LIST_HEAD(lgtd_client_list, lgtd_client);
 
 struct lgtd_client *lgtd_client_open(evutil_socket_t, const struct sockaddr *, int);
-void lgtd_client_open_from_pipe(struct lgtd_client *);
 void lgtd_client_close_all(void);
 
 void lgtd_client_write_string(struct lgtd_client *, const char *);

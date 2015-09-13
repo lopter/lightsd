@@ -52,6 +52,7 @@ _lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
     SLIST_REMOVE(&lgtd_command_pipes, pipe, lgtd_command_pipe, link);
     evbuffer_free(pipe->read_buf);
     event_free(pipe->read_ev);
+    free(pipe->client.jsmn_tokens);
     free(pipe);
 }
 
@@ -93,17 +94,16 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
         }
 
         if (!drain) {
+            jsmntok_t *tokens = NULL;
+            int ntokens = 0;
+            jsmn_parser jsmn_ctx;
         next_request:
-            jsmn_init(&pipe->client.jsmn_ctx);
+            (void)0;
             const char *buf = (char *)evbuffer_pullup(pipe->read_buf, -1);
             ssize_t bufsz = evbuffer_get_length(pipe->read_buf);
-            jsmnerr_t rv = jsmn_parse(
-                &pipe->client.jsmn_ctx,
-                buf,
-                bufsz,
-                pipe->client.jsmn_tokens,
-                LGTD_ARRAY_SIZE(pipe->client.jsmn_tokens)
-            );
+        parse_after_realloc:
+            jsmn_init(&jsmn_ctx);
+            jsmnerr_t rv = jsmn_parse(&jsmn_ctx, buf, bufsz, tokens, ntokens);
             switch (rv) {
             case JSMN_ERROR_NOMEM:
             case JSMN_ERROR_INVAL:
@@ -122,17 +122,25 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
                 }
                 break;
             default:
-                pipe->client.json = buf;
-                int ntokens = rv;
-                lgtd_jsonrpc_dispatch_request(&pipe->client, ntokens);
-
-                pipe->client.json = NULL;
-                int request_size = pipe->client.jsmn_tokens[0].end;
-                evbuffer_drain(pipe->read_buf, request_size);
-                if (request_size < bufsz) {
-                    goto next_request;
+                ntokens = rv;
+                if (tokens) {
+                    pipe->client.json = buf;
+                    lgtd_jsonrpc_dispatch_request(&pipe->client, ntokens);
+                    pipe->client.json = NULL;
+                    int request_size = tokens[0].end;
+                    tokens = NULL;
+                    evbuffer_drain(pipe->read_buf, request_size);
+                    if (request_size >= bufsz) {
+                        break;
+                    }
+                } else {
+                    pipe->client.jsmn_tokens = reallocarray(
+                        pipe->client.jsmn_tokens, ntokens, sizeof(*tokens)
+                    );
+                    tokens = pipe->client.jsmn_tokens;
+                    goto parse_after_realloc;
                 }
-                break;
+                goto next_request;
             }
         }
 
@@ -172,7 +180,6 @@ _lgtd_command_pipe_open(const char *path)
         return false;
     }
 
-    lgtd_client_open_from_pipe(&pipe->client);
     pipe->path = path;
     pipe->fd = -1;
 

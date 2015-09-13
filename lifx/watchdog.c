@@ -110,17 +110,15 @@ lgtd_lifx_watchdog_timeout_event_callback(evutil_socket_t socket,
         int gw_lag = lgtd_lifx_gateway_latency(gw);
         if (gw_lag >= LGTD_LIFX_WATCHDOG_DEVICE_TIMEOUT_MSECS) {
             lgtd_info(
-                "closing bulb gateway [%s]:%hu that "
-                "hasn't received traffic for %dms",
-                gw->ip_addr, gw->port,
-                gw_lag
+                "closing bulb gateway %s that hasn't received traffic for %dms",
+                gw->peeraddr, gw_lag
             );
             lgtd_lifx_gateway_close(gw);
             start_discovery = true;
         } else if (gw_lag >= LGTD_LIFX_WATCHDOG_DEVICE_FORCE_REFRESH_MSECS) {
             lgtd_info(
-                "no update on bulb gateway [%s]:%hu for %dms, forcing refresh",
-                gw->ip_addr, gw->port, gw_lag
+                "no update on bulb gateway %s for %dms, forcing refresh",
+                gw->peeraddr, gw_lag
             );
             lgtd_lifx_gateway_force_refresh(gw);
         }

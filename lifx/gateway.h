@@ -47,10 +47,10 @@ struct lgtd_lifx_gateway {
     // packet doesn't include the device address in the header (i.e: site and
     // device_addr have the same value) so we have no choice but to use the
     // remote ip address to identify a gateway:
-    struct sockaddr_storage         peer;
-    uint8_t                         addr[LGTD_LIFX_ADDR_LENGTH];
-    char                            ip_addr[INET6_ADDRSTRLEN];
-    uint16_t                        port;
+    struct sockaddr                 *peer;
+    ev_socklen_t                    peerlen;
+    // XXX consider having a constants.h file:
+    char                            peeraddr[128];
     // TODO: just use an integer and rename it to site_id:
     union {
         uint8_t                     as_array[LGTD_LIFX_ADDR_LENGTH];
@@ -90,8 +90,8 @@ extern struct lgtd_lifx_gateway_list lgtd_lifx_gateways;
     (bulb_fn)(b, __VA_ARGS__);                                              \
 } while (0)
 
-struct lgtd_lifx_gateway *lgtd_lifx_gateway_get(const struct sockaddr_storage *);
-struct lgtd_lifx_gateway *lgtd_lifx_gateway_open(const struct sockaddr_storage *,
+struct lgtd_lifx_gateway *lgtd_lifx_gateway_get(const struct sockaddr *, ev_socklen_t);
+struct lgtd_lifx_gateway *lgtd_lifx_gateway_open(const struct sockaddr *,
                                                  ev_socklen_t,
                                                  const uint8_t *,
                                                  lgtd_time_mono_t);

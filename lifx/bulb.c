@@ -197,12 +197,11 @@ lgtd_lifx_bulb_close(struct lgtd_lifx_bulb *bulb)
     RB_REMOVE(lgtd_lifx_bulb_map, &lgtd_lifx_bulbs_table, bulb);
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_info(
-        "closed bulb \"%.*s\" (%s) on [%s]:%hu",
+        "closed bulb \"%.*s\" (%s) on %s",
         LGTD_LIFX_LABEL_SIZE,
         bulb->state.label,
         LGTD_IEEE8023MACTOA(bulb->addr, addr),
-        bulb->gw->ip_addr,
-        bulb->gw->port
+        bulb->gw->peeraddr
     );
     free(bulb);
 }

@@ -66,6 +66,10 @@ enum lgtd_verbosity {
 
 enum { LGTD_ERROR_MSG_BUFSIZE = 2048 };
 
+// FIXME: introspect sizeof(sockaddr_un.sun_path) with CMake to generate a
+// reasonable value for that:
+enum { LGTD_SOCKADDR_STRLEN = 128 };
+
 struct lgtd_opts {
     bool                foreground;
     bool                log_timestamps;
@@ -79,8 +83,9 @@ extern const char *lgtd_progname;
 char *lgtd_iee8023mactoa(const uint8_t *addr, char *buf, int buflen);
 #define LGTD_IEEE8023MACTOA(addr, buf) \
     lgtd_iee8023mactoa((addr), (buf), sizeof(buf))
-void lgtd_sockaddrtoa(const struct sockaddr_storage *, char *buf, int buflen);
-short lgtd_sockaddrport(const struct sockaddr_storage *);
+char *lgtd_sockaddrtoa(const struct sockaddr *, char *buf, int buflen);
+#define LGTD_SOCKADDRTOA(addr, buf) \
+    lgtd_sockaddrtoa((addr), (buf), sizeof(buf))
 
 char *lgtd_print_duration(uint64_t, char *, int);
 #define LGTD_PRINT_DURATION(secs, arr) \

@@ -3,16 +3,17 @@ INCLUDE_DIRECTORIES(
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-ADD_LIBRARY(
+ADD_CORE_LIBRARY(
     test_core_client STATIC
     ${LIGHTSD_SOURCE_DIR}/core/jsmn.c
     ${LIGHTSD_SOURCE_DIR}/core/log.c
     ${LIGHTSD_SOURCE_DIR}/core/stats.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
+    ${LIGHTSD_SOURCE_DIR}/lifx/tagging.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
 )
-
-TARGET_LINK_LIBRARIES(test_core_client ${TIME_MONOTONIC_LIBRARY})
 
 FUNCTION(ADD_CLIENT_TEST TEST_SOURCE)
     ADD_TEST_FROM_C_SOURCES(${TEST_SOURCE} test_core_client)

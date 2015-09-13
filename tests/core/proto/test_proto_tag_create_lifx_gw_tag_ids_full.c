@@ -187,12 +187,12 @@ setup_devices(void)
 int
 main(void)
 {
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
 
     setup_devices();
 
-    lgtd_proto_tag(&client, FAKE_TARGET_LIST, "dub");
-
+    lgtd_proto_tag(client, FAKE_TARGET_LIST, "dub");
 
     if (gateway_send_to_site_called) {
         lgtd_errx(1, "SET_TAG_LABELS shouldn't have been sent");

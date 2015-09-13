@@ -15,8 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <sys/socket.h>
 #include <sys/tree.h>
 #include <sys/time.h>
+#include <sys/un.h>
 #include <arpa/inet.h>
 #include <assert.h>
 #include <endian.h>
@@ -27,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #if LGTD_HAVE_LIBBSD
@@ -88,23 +91,50 @@ lgtd_iee8023mactoa(const uint8_t *addr, char *buf, int buflen)
     return buf;
 }
 
-void
-lgtd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
+char *
+lgtd_sockaddrtoa(const struct sockaddr *peer, char *buf, int buflen)
 {
     assert(peer);
     assert(buf);
-    assert(buflen > 0);
+    assert(buflen > 1);
 
-    const char *printed;
-    if (peer->ss_family == AF_INET) {
+    const char *printed = NULL;
+    int i = 0;
+    switch (peer->sa_family) {
+    case AF_INET:
+        (void)0;
         const struct sockaddr_in *in_peer = (const struct sockaddr_in *)peer;
-        int i = 0;
-        LGTD_SNPRINTF_APPEND(buf, i, buflen, "::ffff:");
+        LGTD_SNPRINTF_APPEND(buf, i, buflen, "[::ffff:");
         printed = inet_ntop(AF_INET, &in_peer->sin_addr, &buf[i], buflen - i);
-    } else {
+        if (printed) {
+            i += strlen(printed);
+            LGTD_SNPRINTF_APPEND(
+                buf, i, buflen, "]:%hu", ntohs(in_peer->sin_port)
+            );
+        }
+        break;
+    case AF_INET6:
+        (void)0;
         const struct sockaddr_in6 *in6_peer = (const struct sockaddr_in6 *)peer;
-        printed = inet_ntop(AF_INET6, &in6_peer->sin6_addr, buf, buflen);
+        LGTD_SNPRINTF_APPEND(buf, i, buflen, "[");
+        printed = inet_ntop(AF_INET6, &in6_peer->sin6_addr, &buf[i], buflen - i);
+        if (printed) {
+            i += strlen(printed);
+            LGTD_SNPRINTF_APPEND(
+                buf, i, buflen, "]:%hu", ntohs(in6_peer->sin6_port)
+            );
+        }
+        break;
+    case AF_UNIX:
+        (void)0;
+        const struct sockaddr_un *un_path = (const struct sockaddr_un *)peer;
+        LGTD_SNPRINTF_APPEND(buf, i, buflen, "at %s", un_path->sun_path);
+        printed = buf;
+        break;
+    default:
+        break;
     }
+
     if (!printed) {
         buf[0] = 0;
         lgtd_warnx("not enough space to log an ip address");
@@ -112,6 +142,8 @@ lgtd_sockaddrtoa(const struct sockaddr_storage *peer, char *buf, int buflen)
         abort();
 #endif
     }
+
+    return buf;
 }
 
 char *

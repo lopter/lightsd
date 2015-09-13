@@ -16,8 +16,12 @@
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 #include <assert.h>
 #include <err.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,26 +43,38 @@ struct lgtd_listen_list lgtd_listeners =
 static void
 lgtd_listen_accept_new_client(struct evconnlistener *evlistener,
                               evutil_socket_t peer,
-                              struct sockaddr *peer_addr,
+                              struct sockaddr *addr,
                               int addrlen,
                               void *ctx)
 {
     (void)evlistener;
-    (void)addrlen;
-
     struct lgtd_listen *listener = ctx;
-    struct lgtd_client *client = lgtd_client_open(
-        peer, (struct sockaddr_storage *)peer_addr
-    );
-    if (client) {
-        lgtd_info(
-            "accepted new client [%s]:%hu", client->ip_addr, client->port
+
+    char bufserver[LGTD_SOCKADDR_STRLEN];
+    LGTD_SOCKADDRTOA(listener->sockaddr, bufserver);
+
+    struct lgtd_client *client = NULL;
+    if (addr->sa_family == AF_UNIX) {
+        struct sockaddr_storage sockname;
+        memset(&sockname, 0, sizeof(sockname));
+        ev_socklen_t socklen = sizeof(sockname);
+        getsockname(peer, (struct sockaddr *)&sockname, &socklen);
+        client = lgtd_client_open(peer, (struct sockaddr *)&sockname, socklen);
+    } else {
+        client = lgtd_client_open(peer, addr, addrlen);
+    }
+
+    if (!client) {
+        char bufclient[LGTD_SOCKADDR_STRLEN];
+        lgtd_warn(
+            "can't accept new client %s on %s",
+            LGTD_SOCKADDRTOA(client->addr, bufclient),
+            bufserver
         );
         return;
     }
-    lgtd_warn(
-        "can't accept new client on %s:%s", listener->addr, listener->port
-    );
+
+    lgtd_info("accepted new client %s", bufserver);
 }
 
 void
@@ -67,7 +83,14 @@ lgtd_listen_close_all(void)
     while (!SLIST_EMPTY(&lgtd_listeners)) {
         struct lgtd_listen *listener = SLIST_FIRST(&lgtd_listeners);
         SLIST_REMOVE_HEAD(&lgtd_listeners, link);
+        if (listener->sockaddr->sa_family == AF_UNIX) {
+            unlink(((struct sockaddr_un *)listener->sockaddr)->sun_path);
+        }
         evconnlistener_free(listener->evlistener);
+        char addr[LGTD_SOCKADDR_STRLEN];
+        LGTD_SOCKADDRTOA(listener->sockaddr, addr);
+        lgtd_info("closed socket %s", addr);
+        free(listener->sockaddr);
         free(listener);
     }
 
@@ -79,13 +102,6 @@ lgtd_listen_open(const char *addr, const char *port)
 {
     assert(addr);
     assert(port);
-
-    struct lgtd_listen *listener;
-    SLIST_FOREACH(listener, &lgtd_listeners, link) {
-        if (!strcmp(listener->addr, addr) && listener->port == port) {
-            return true;
-        }
-    }
 
     struct evutil_addrinfo *res = NULL, hints = {
         .ai_family = AF_UNSPEC,
@@ -102,11 +118,23 @@ lgtd_listen_open(const char *addr, const char *port)
         return false;
     }
 
+    struct lgtd_listen *listener;
     struct evconnlistener *evlistener;
     for (struct evutil_addrinfo *it = res; it; it = it->ai_next) {
+        SLIST_FOREACH(listener, &lgtd_listeners, link) {
+            if (listener->addrlen == it->ai_addrlen
+                && memcmp(listener->sockaddr, it->ai_addr, it->ai_addrlen)) {
+                goto done;
+            }
+        }
+
         evlistener = NULL;
         listener = calloc(1, sizeof(*listener));
         if (!listener) {
+            goto error;
+        }
+        listener->sockaddr = calloc(1, it->ai_addrlen);
+        if (!listener->sockaddr) {
             goto error;
         }
         evlistener = evconnlistener_new_bind(
@@ -121,9 +149,11 @@ lgtd_listen_open(const char *addr, const char *port)
         if (!evlistener) {
             goto error;
         }
+
         listener->evlistener = evlistener;
-        listener->addr = addr;
-        listener->port = port;
+        listener->addrlen = it->ai_addrlen;
+        memcpy(listener->sockaddr, it->ai_addr, it->ai_addrlen);
+
         SLIST_INSERT_HEAD(&lgtd_listeners, listener, link);
         lgtd_info(
             "listening on %s:%s (%s)",
@@ -131,18 +161,118 @@ lgtd_listen_open(const char *addr, const char *port)
         );
     }
 
-    evutil_freeaddrinfo(res);
-
     lgtd_daemon_update_proctitle();
 
+done:
+    evutil_freeaddrinfo(res);
     return true;
 
 error:
     lgtd_warn("can't listen on %s:%s", addr, port);
-    if (evlistener) {
-        evconnlistener_free(evlistener);
+    if (listener) {
+        if (listener->evlistener) {
+            evconnlistener_free(evlistener);
+        }
+        free(listener->sockaddr);
+        free(listener);
+    }
+    evutil_freeaddrinfo(res);
+    return false;
+}
+
+bool
+lgtd_listen_unix_open(const char *path)
+{
+    assert(path);
+
+    static const int maxpathlen =
+        sizeof(struct sockaddr_un) - offsetof(struct sockaddr_un, sun_path);
+    int pathlen = strlen(path);
+    if (pathlen > maxpathlen) {
+        lgtd_warnx(
+            "%s (%d bytes) is too long, your system only supports paths up to "
+            "%d bytes", path, pathlen, maxpathlen
+        );
+        return false;
+    }
+
+    struct lgtd_listen *listener;
+    SLIST_FOREACH(listener, &lgtd_listeners, link) {
+        if (listener->addrlen == sizeof(struct sockaddr_un)) {
+            struct sockaddr_un *sockaddr;
+            sockaddr = (struct sockaddr_un *)listener->sockaddr;
+            if (!strcmp(sockaddr->sun_path, path)) {
+                return true;
+            }
+        }
+    }
+
+    evutil_socket_t fd = -1;
+
+    listener = calloc(1, sizeof(*listener));
+    if (!listener) {
+        goto error;
+    }
+
+    struct sockaddr_un *sockpath = calloc(1, sizeof(*sockpath));
+    if (!sockpath) {
+        goto error;
+    }
+    sockpath->sun_family = AF_UNIX;
+    memcpy(sockpath->sun_path, path, pathlen);
+    listener->sockaddr = (struct sockaddr *)sockpath;
+    listener->addrlen = sizeof(*sockpath);
+
+    fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (fd == -1) {
+        goto error;
+    }
+
+    if (evutil_make_socket_nonblocking(fd) == -1) {
+        goto error;
+    }
+
+    struct stat sb;
+    if (stat(path, &sb) == -1) {
+        if (errno != ENOENT) {
+            goto error;
+        }
+    } else if ((sb.st_mode & S_IFMT) == S_IFSOCK) {
+        lgtd_warnx("removing existing unix socket: %s", path);
+        if (unlink(path) == -1 && errno != ENOENT) {
+            goto error;
+        }
+    } else {
+        errno = EEXIST;
+        goto error;
+    }
+
+    if (bind(fd, (struct sockaddr *)sockpath, sizeof(*sockpath)) == -1) {
+        goto error;
+    }
+
+    listener->evlistener = evconnlistener_new(
+        lgtd_ev_base,
+        lgtd_listen_accept_new_client,
+        listener,
+        LEV_OPT_CLOSE_ON_FREE,
+        -1,
+        fd
+    );
+    if (!listener->evlistener) {
+        goto error;
+    }
+
+    SLIST_INSERT_HEAD(&lgtd_listeners, listener, link);
+    lgtd_info("unix socket ready at %s", path);
+
+    return true;
+
+error:
+    lgtd_warn("can't open unix socket at %s", path);
+    if (fd != -1) {
+        close(fd);
     }
     free(listener);
-    evutil_freeaddrinfo(res);
     return false;
 }

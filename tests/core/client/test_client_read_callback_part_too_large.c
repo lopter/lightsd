@@ -184,9 +184,10 @@ main(void)
         );
     }
 
-    struct lgtd_client client = { .io = FAKE_BUFFEREVENT };
+    struct lgtd_client *client;
+    client = lgtd_tests_insert_mock_client(FAKE_BUFFEREVENT);
 
-    lgtd_client_read_callback(FAKE_BUFFEREVENT, &client);
+    lgtd_client_read_callback(FAKE_BUFFEREVENT, client);
 
     if (!evbuffer_get_contiguous_space_call_count) {
         errx(1, "evbuffer_get_contiguous_space not called");

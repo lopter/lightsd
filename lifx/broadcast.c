@@ -88,29 +88,23 @@ lgtd_lifx_broadcast_handle_read(void)
 
         lgtd_time_mono_t received_at = lgtd_time_monotonic_msecs();
         char peer_addr[INET6_ADDRSTRLEN];
-        lgtd_sockaddrtoa(&peer, peer_addr, sizeof(peer_addr));
-        short peer_port = lgtd_sockaddrport(&peer);
+        LGTD_SOCKADDRTOA((const struct sockaddr *)&peer, peer_addr);
 
         if (nbytes < LGTD_LIFX_PACKET_HEADER_SIZE) {
-            lgtd_warnx(
-                "broadcast packet too short from [%s]:%hu", peer_addr, peer_port
-            );
+            lgtd_warnx("broadcast packet too short from %s", peer_addr);
             return false;
         }
 
         lgtd_lifx_wire_decode_header(&read.hdr);
         if (read.hdr.size != nbytes) {
-            lgtd_warnx(
-                "incomplete broadcast packet from [%s]:%hu",
-                peer_addr, peer_port
-            );
+            lgtd_warnx("incomplete broadcast packet from %s", peer_addr);
             return false;
         }
         int proto_version = read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
         if (proto_version != LGTD_LIFX_PROTOCOL_V1) {
             lgtd_warnx(
-                "unsupported protocol %d from [%s]:%hu",
-                read.hdr.protocol & 0x0fff, peer_addr, peer_port
+                "unsupported protocol %d from %s",
+                read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK, peer_addr
             );
         }
         if (read.hdr.packet_type == LGTD_LIFX_GET_PAN_GATEWAY) {
@@ -121,22 +115,23 @@ lgtd_lifx_broadcast_handle_read(void)
             lgtd_lifx_wire_get_packet_info(read.hdr.packet_type);
         if (!pkt_info) {
             lgtd_warnx(
-                "received unknown packet %#x from [%s]:%hu",
-                read.hdr.packet_type, peer_addr, peer_port
+                "received unknown packet %#x from %s",
+                read.hdr.packet_type, peer_addr
             );
             continue;
         }
         if (!(read.hdr.protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE)) {
             lgtd_warnx(
-                "received non-addressable packet %s from [%s]:%hu",
-                pkt_info->name, peer_addr, peer_port
+                "received non-addressable packet %s from %s",
+                pkt_info->name, peer_addr
             );
             continue;
         }
-        struct lgtd_lifx_gateway *gw = lgtd_lifx_gateway_get(&peer);
+        struct lgtd_lifx_gateway *gw;
+        gw = lgtd_lifx_gateway_get((struct sockaddr *)&peer, addrlen);
         if (!gw && read.hdr.packet_type == LGTD_LIFX_PAN_GATEWAY) {
             gw = lgtd_lifx_gateway_open(
-                &peer, addrlen, read.hdr.site, received_at
+                (struct sockaddr *)&peer, addrlen, read.hdr.site, received_at
             );
             if (!gw) {
                 lgtd_err(1, "can't allocate gateway");
@@ -148,9 +143,7 @@ lgtd_lifx_broadcast_handle_read(void)
             pkt_info->decode(pkt);
             pkt_info->handle(gw, &read.hdr, pkt);
         } else {
-            lgtd_warnx(
-                "got packet from unknown gateway [%s]:%hu", peer_addr, peer_port
-            );
+            lgtd_warnx("got packet from unknown gateway %s", peer_addr);
         }
     }
 }

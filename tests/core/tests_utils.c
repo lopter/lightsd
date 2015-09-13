@@ -1,6 +1,7 @@
 #include <sys/queue.h>
 #include <sys/tree.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <assert.h>
 #include <dirent.h>
 #include <endian.h>
@@ -30,6 +31,7 @@
 #include "lifx/bulb.h"
 #include "lifx/gateway.h"
 #include "tests_utils.h"
+#include "core/lightsd.h"
 
 struct lgtd_listen_list lgtd_listeners =
     SLIST_HEAD_INITIALIZER(&lgtd_listeners);
@@ -41,6 +43,17 @@ lgtd_tests_insert_mock_gateway(int id)
 
     gw->socket = id;
     gw->site.as_array[0] = id;
+
+#if 0
+    struct sockaddr_in in_addr = {
+        .sin_family = AF_INET,
+        .sin_addr.s_addr = inet_addr("127.0.0.1"),
+        .sin_port = htons(id)
+    };
+    gw->peer = calloc(1, sizeof(in_addr));
+    memcpy(gw->peeraddr, &in_addr, sizeof(in_addr));
+    gw->peerlen = sizeof(in_addr);
+#endif
 
     LIST_INSERT_HEAD(&lgtd_lifx_gateways, gw, link);
 
@@ -124,14 +137,42 @@ lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *tag,
 }
 
 struct lgtd_listen *
-lgtd_tests_insert_mock_listener(const char *addr, const char *port)
+lgtd_tests_insert_mock_listener(const char *ipv4, uint16_t port)
 {
     struct lgtd_listen *listener = calloc(1, sizeof(*listener));
-    listener->addr = addr;
-    listener->port = port;
+    struct sockaddr_in in_addr;
+    memset(&in_addr, 0, sizeof(in_addr));
+    in_addr.sin_family = AF_INET;
+    in_addr.sin_addr.s_addr = inet_addr(ipv4);
+    in_addr.sin_port = htons(port);
+    listener->sockaddr = calloc(1, sizeof(in_addr));
+    memcpy(listener->sockaddr, &in_addr, sizeof(in_addr));
+    listener->addrlen = sizeof(in_addr);
     SLIST_INSERT_HEAD(&lgtd_listeners, listener, link);
 
     return listener;
+}
+
+static struct sockaddr *
+lgtd_tests_make_sockaddr(int family, const char *addr, size_t addrlen)
+{
+    struct sockaddr *sa = calloc(1, sizeof(struct sockaddr_storage));
+    sa->sa_family = family;
+    memcpy(sa->sa_data, addr, LGTD_MIN(
+        sizeof(*sa) - offsetof(struct sockaddr, sa_data), addrlen
+    ));
+    return sa;
+}
+
+struct lgtd_client *
+lgtd_tests_insert_mock_client(struct bufferevent *io)
+{
+    struct lgtd_client *client = calloc(1, sizeof(*client));
+    client->io = io;
+    client->addr = lgtd_tests_make_sockaddr(
+        AF_UNIX, "/toto.sock", sizeof("/toto.sock")
+    );
+    return client;
 }
 
 char *

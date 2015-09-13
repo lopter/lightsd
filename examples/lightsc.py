@@ -33,15 +33,25 @@ import contextlib
 import json
 import socket
 import sys
+import urllib.parse
 import uuid
 
 
 class LightsClient:
 
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self._socket = socket.create_connection((host, port))
+    def __init__(self, url):
+        self.url = url
+
+        parts = urllib.parse.urlparse(args.url)
+
+        if parts.scheme == "unix":
+            self._socket = socket.socket(socket.AF_UNIX)
+            self._socket.connect(parts.path)
+        elif parts.scheme == "tcp":
+            self._socket = socket.create_connection((parts.hostname, parts.port))
+        else:
+            raise ValueError("Unsupported url {}".format(url))
+
         self._pipeline = []
         self._batch = False
 
@@ -191,8 +201,8 @@ def _drop_to_shell(lightsc):
     middle = "d073d502e530"  # noqa
 
     banner = (
-        "Connected to {}:{}, use the variable c to interact with your "
-        "bulbs:\n\n>>> r = c.get_light_state(\"*\")".format(c.host, c.port)
+        "Connected to {}, use the variable c to interact with your "
+        "bulbs:\n\n>>> r = c.get_light_state(\"*\")".format(c.url)
     )
 
     try:
@@ -213,18 +223,19 @@ if __name__ == "__main__":
         description="lightsc.py is an interactive lightsd Python client"
     )
     parser.add_argument(
-        "host", type=str, help="The hostname or ip where lightsd is running"
-    )
-    parser.add_argument(
-        "port", type=int, help="The port on which lightsd is listening on"
+        "url", type=str,
+        help="How to connect to lightsd (e.g: "
+             "unix:///run/lightsd.sock or tcp://[::1]:1234)"
     )
     args = parser.parse_args()
+
     try:
-        _drop_to_shell(LightsClient(args.host, args.port))
-    except socket.error as ex:
+        with LightsClient(args.url) as client:
+            _drop_to_shell(client)
+    except Exception as ex:
         print(
-            "Couldn't connect to lightsd@{}:{}, is it running? "
-            "({})".format(args.host, args.port, ex.strerror),
+            "Couldn't connect to {}, is lightsd running? "
+            "({})".format(args.url, ex),
             file=sys.stderr
         )
         sys.exit(1)

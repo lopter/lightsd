@@ -76,20 +76,6 @@ lgtd_cleanup(void)
 #endif
 }
 
-short
-lgtd_sockaddrport(const struct sockaddr_storage *peer)
-{
-    assert(peer);
-
-    if (peer->ss_family == AF_INET) {
-        const struct sockaddr_in *in_peer = (const struct sockaddr_in *)peer;
-        return ntohs(in_peer->sin_port);
-    } else {
-        const struct sockaddr_in6 *in6_peer = (const struct sockaddr_in6 *)peer;
-        return ntohs(in6_peer->sin6_port);
-    }
-}
-
 static void
 lgtd_signal_event_callback(int signum, short events, void *ctx)
 {
@@ -143,6 +129,8 @@ lgtd_usage(const char *progname)
 "  [-c,--comand-pipe /command/fifo [+]] Open an unidirectional JSON-RPC \n"
 "                                       command pipe at this location (can \n"
 "                                       be repeated).\n"
+"  [-s,--socket /unix/socket [+]]       Open an Unix socket at this location \n"
+"                                       (can be repeated).\n"
 "  [-f,--foreground]                    Stay in the foreground (default).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
 "  [-t,--no-timestamps]                 Disable timestamps in logs.\n"
@@ -168,6 +156,7 @@ main(int argc, char *argv[], char *envp[])
     static const struct option long_opts[] = {
         {"listen",          required_argument, NULL, 'l'},
         {"command-pipe",    required_argument, NULL, 'c'},
+        {"socket",          required_argument, NULL, 's'},
         {"foreground",      no_argument,       NULL, 'f'},
         {"daemonize",       no_argument,       NULL, 'd'},
         {"no-timestamps",   no_argument,       NULL, 't'},
@@ -177,7 +166,7 @@ main(int argc, char *argv[], char *envp[])
         {"prefix",          no_argument,       NULL, 'p'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "l:c:fdthv:V";
+    const char short_opts[] = "l:c:s:fdthv:V";
 
     if (argc == 1) {
         lgtd_usage(argv[0]);
@@ -200,6 +189,11 @@ main(int argc, char *argv[], char *envp[])
             break;
         case 'c':
             if (!lgtd_command_pipe_open(optarg)) {
+                exit(1);
+            }
+            break;
+        case 's':
+            if (!lgtd_listen_unix_open(optarg)) {
                 exit(1);
             }
             break;
@@ -229,6 +223,7 @@ main(int argc, char *argv[], char *envp[])
             break;
         case 'V':
             printf("lightsd %s\n", LGTD_VERSION);
+            lgtd_cleanup();
             return 0;
         case 'p':
             printf(

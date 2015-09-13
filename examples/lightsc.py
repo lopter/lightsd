@@ -31,7 +31,10 @@
 import argparse
 import contextlib
 import json
+import locale
+import os
 import socket
+import subprocess
 import sys
 import urllib.parse
 import uuid
@@ -219,6 +222,17 @@ def _drop_to_shell(lightsc):
     code.interact(banner=banner, local=locals())
 
 if __name__ == "__main__":
+    try:
+        lightsdrundir = subprocess.check_output(["lightsd", "--rundir"])
+    except Exception as ex:
+        print(
+            "Couldn't infer lightsd's runtime directory is lightsd installed? "
+            "({})".format(ex),
+            file=sys.stderr
+        )
+        sys.exit(1)
+    lightsdrundir = lightsdrundir.decode(locale.getpreferredencoding()).strip()
+
     parser = argparse.ArgumentParser(
         description="lightsc.py is an interactive lightsd Python client"
     )
@@ -226,11 +240,12 @@ if __name__ == "__main__":
         "-u", "--url", type=str,
         help="How to connect to lightsd (e.g: "
              "unix:///run/lightsd/socket or tcp://[::1]:1234)",
-        default="unix:///run/lightsd/socket",
+        default="unix://" + os.path.join(lightsdrundir, "socket")
     )
     args = parser.parse_args()
 
     try:
+        print("Connecting to lightsd@{}".format(args.url))
         with LightsClient(args.url) as client:
             _drop_to_shell(client)
     except Exception as ex:

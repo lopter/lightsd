@@ -143,7 +143,9 @@ lgtd_usage(const char *progname)
 "  [-V,--version]                       Display version and build information.\n"
 "  [-v,--verbosity debug|info|warning|error]\n"
 "\nor,\n\n"
-"  --prefix                             Display the install prefix for lightsd.\n",
+"  --prefix                             Display the install prefix for lightsd.\n"
+"\nor,\n\n"
+"  --rundir                             Display the runtime directory for lightsd.\n",
         progname
     );
     lgtd_cleanup();
@@ -171,6 +173,7 @@ main(int argc, char *argv[], char *envp[])
         {"verbosity",       required_argument, NULL, 'v'},
         {"version",         no_argument,       NULL, 'V'},
         {"prefix",          no_argument,       NULL, 'p'},
+        {"rundir",          no_argument,       NULL, 'r'},
         {NULL,              0,                 NULL, 0}
     };
     const char short_opts[] = "l:c:s:fdu:g:thv:V";
@@ -242,6 +245,13 @@ main(int argc, char *argv[], char *envp[])
             printf(
                 "%s%s\n", LGTD_INSTALL_PREFIX, LGTD_INSTALL_PREFIX[
                     LGTD_ARRAY_SIZE(LGTD_INSTALL_PREFIX) - 1
+                ] != '/' ?  "/" : ""
+            );
+            return 0;
+        case 'r':
+            printf(
+                "%s%s\n", LGTD_RUNTIME_DIRECTORY, LGTD_RUNTIME_DIRECTORY[
+                    LGTD_ARRAY_SIZE(LGTD_RUNTIME_DIRECTORY) - 1
                 ] != '/' ?  "/" : ""
             );
             return 0;

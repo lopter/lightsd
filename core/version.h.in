@@ -36,3 +36,5 @@ const char LGTD_VERSION[] = (
 );
 
 const char LGTD_INSTALL_PREFIX[] = "@CMAKE_INSTALL_PREFIX@";
+
+const char LGTD_RUNTIME_DIRECTORY[] = "@LGTD_RUNTIME_DIRECTORY@";

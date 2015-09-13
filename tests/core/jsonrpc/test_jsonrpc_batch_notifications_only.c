@@ -1,6 +1,7 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#define MOCKED_LGTD_PROTO_GET_LIGHT_STATE
 #define MOCKED_LGTD_PROTO_POWER_ON
 #include "mock_proto.h"
 #include "test_jsonrpc_utils.h"
@@ -27,6 +28,28 @@ lgtd_proto_power_on(struct lgtd_client *client,
     }
 }
 
+static int get_light_state_call_count = 0;
+
+void
+lgtd_proto_get_light_state(struct lgtd_client *client,
+                           const struct lgtd_proto_target_list *targets)
+{
+    if (!client) {
+        errx(1, "missing client!");
+    }
+
+    if (strcmp(SLIST_FIRST(targets)->target, "*")) {
+        errx(
+            1, "Invalid target [%s] (expected=[*])",
+            SLIST_FIRST(targets)->target
+        );
+    }
+
+    if (get_light_state_call_count++) {
+        errx(1, "proto_power_on should have been called once");
+    }
+}
+
 int
 main(void)
 {
@@ -34,13 +57,11 @@ main(void)
     const char json[] = ("["
         "{"
             "\"method\": \"power_on\","
-            "\"id\": \"004daf12-0561-4fbc-bfdb-bfe69cfbf4b5\","
             "\"params\": [\"*\"],"
             "\"jsonrpc\": \"2.0\""
         "},"
         "{"
-            "\"method\": \"la rache\","
-            "\"id\": \"1f7a32c8-6741-4ee7-bec1-8431c7d514dc\","
+            "\"method\": \"get_light_state\","
             "\"params\": [\"*\"],"
             "\"jsonrpc\": \"2.0\""
         "}"
@@ -56,14 +77,11 @@ main(void)
         errx(1, "power_on was never called");
     }
 
-    const char expected[] = ("["
-        "," // we mocked the first function
-        "{"
-            "\"jsonrpc\": \"2.0\", "
-            "\"id\": \"1f7a32c8-6741-4ee7-bec1-8431c7d514dc\", "
-            "\"error\": {\"code\": -32601, \"message\": \"Method not found\"}"
-        "}"
-    "]");
+    if (!get_light_state_call_count) {
+        errx(1, "get_light_state was never called");
+    }
+
+    const char expected[] = "";
     if (strcmp(expected, client_write_buf)) {
         errx(1, "got client buf %s (expected %s)", client_write_buf, expected);
     }

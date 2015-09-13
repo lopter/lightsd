@@ -49,7 +49,9 @@ lgtd_client_close(struct lgtd_client *client)
     LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(clients, -1);
 
     LIST_REMOVE(client, link);
-    bufferevent_free(client->io);
+    if (client->io) { // XXX: see ugly hack in lgtd_jsonrpc_dispatch_one
+        bufferevent_free(client->io);
+    }
     free(client->addr);
     free(client);
 }

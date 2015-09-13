@@ -19,6 +19,7 @@ lgtd_proto_power_on(struct lgtd_client *client,
 int
 main(void)
 {
+    jsmntok_t tokens[32];
     const char json[] = ("{"
         "\"jsonrpc\": \"2.0\","
         "\"method\": \"power_on\","
@@ -26,13 +27,10 @@ main(void)
     "}");
     struct lgtd_client client = { .json = json };
     int parsed = parse_json(
-        client.jsmn_tokens,
-        LGTD_ARRAY_SIZE(client.jsmn_tokens),
-        json,
-        sizeof(json)
+        tokens, LGTD_ARRAY_SIZE(tokens), json, sizeof(json)
     );
 
-    lgtd_jsonrpc_dispatch_one(&client, client.jsmn_tokens, parsed);
+    lgtd_jsonrpc_dispatch_one(&client, tokens, parsed, NULL);
 
     const char expected[] = ("{"
         "\"jsonrpc\": \"2.0\", "

@@ -31,6 +31,7 @@
 #include <event2/buffer.h>
 #include <event2/event.h>
 
+#include "daemon.h"
 #include "jsmn.h"
 #include "jsonrpc.h"
 #include "client.h"
@@ -166,6 +167,10 @@ _lgtd_command_pipe_open(const char *path)
         }
     }
 
+    if (!lgtd_daemon_makedirs(path)) {
+        return false;
+    }
+
     pipe = calloc(1, sizeof(*pipe));
     if (!pipe) {
         lgtd_warn("can't open command pipe %s", path);
@@ -177,7 +182,7 @@ _lgtd_command_pipe_open(const char *path)
         if (errno != ENOENT) {
             goto error;
         }
-    } else if ((sb.st_mode & S_IFMT) != S_IFIFO) {
+    } else if (!S_ISFIFO(sb.st_mode)) {
         errno = EEXIST;
         goto error;
     }

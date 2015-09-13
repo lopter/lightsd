@@ -223,9 +223,10 @@ if __name__ == "__main__":
         description="lightsc.py is an interactive lightsd Python client"
     )
     parser.add_argument(
-        "url", type=str,
+        "-u", "--url", type=str,
         help="How to connect to lightsd (e.g: "
-             "unix:///run/lightsd.sock or tcp://[::1]:1234)"
+             "unix:///run/lightsd/socket or tcp://[::1]:1234)",
+        default="unix:///run/lightsd/socket",
     )
     args = parser.parse_args()
 

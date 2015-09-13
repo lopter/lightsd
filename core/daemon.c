@@ -19,12 +19,15 @@
 #include <sys/socket.h>
 #include <sys/tree.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/un.h>
 #include <assert.h>
 #include <endian.h>
 #include <err.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
+#include <libgen.h>
 #include <pwd.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -263,4 +266,65 @@ lgtd_daemon_drop_privileges(const char *user, const char *group)
     if (setuid(uid) == -1) {
         lgtd_err(1, "can't change user to %s", user);
     }
+}
+
+static bool
+_lgtd_daemon_makedirs(const char *fp)
+{
+    char *fpsave = NULL, *next = NULL;
+
+    fpsave = strdup(fp);
+    if (!fpsave) {
+        goto err;
+    }
+    next = strdup(dirname(fpsave));
+    if (!next) {
+        goto err;
+    }
+
+    if (!strcmp(next, fp)) {
+        goto done;
+    }
+
+    bool ok = _lgtd_daemon_makedirs(next);
+    if (!ok) {
+        goto err;
+    }
+
+    struct stat sb;
+    if (stat(next, &sb) == -1) {
+        if (errno == ENOENT) {
+            mode_t mode = S_IWUSR|S_IRUSR|S_IXUSR
+                         |S_IRGRP|S_IXGRP|S_IWGRP
+                         |S_IXOTH|S_IROTH;
+            if (mkdir(next, mode) == 0) {
+                goto done;
+            }
+        }
+        goto err;
+    } else if (!S_ISDIR(sb.st_mode)) {
+        errno = ENOTDIR;
+        goto err;
+    }
+
+done:
+    free(fpsave);
+    free(next);
+    return true;
+
+err:
+    free(fpsave);
+    free(next);
+    return false;
+}
+
+bool
+lgtd_daemon_makedirs(const char *filepath)
+{
+    if (!_lgtd_daemon_makedirs(filepath)) {
+        lgtd_warn("can't create parent directories for %s", filepath);
+        return false;
+    }
+
+    return true;
 }

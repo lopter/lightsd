@@ -207,6 +207,10 @@ lgtd_listen_unix_open(const char *path)
         }
     }
 
+    if (!lgtd_daemon_makedirs(path)) {
+        return false;
+    }
+
     evutil_socket_t fd = -1;
 
     listener = calloc(1, sizeof(*listener));
@@ -237,7 +241,7 @@ lgtd_listen_unix_open(const char *path)
         if (errno != ENOENT) {
             goto error;
         }
-    } else if ((sb.st_mode & S_IFMT) == S_IFSOCK) {
+    } else if (S_ISSOCK(sb.st_mode)) {
         lgtd_warnx("removing existing unix socket: %s", path);
         if (unlink(path) == -1 && errno != ENOENT) {
             goto error;

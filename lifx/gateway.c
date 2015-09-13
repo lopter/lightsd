@@ -245,6 +245,15 @@ lgtd_lifx_gateway_refresh_callback(struct lgtd_timer *timer,
     (void)timer;
     struct lgtd_lifx_gateway *gw = ctx.as_ptr;
     lgtd_lifx_gateway_send_get_all_light_state(gw);
+
+    struct timeval tv = LGTD_MSECS_TO_TIMEVAL(
+        LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS
+    );
+    lgtd_timer_reschedule(gw->refresh_timer, &tv);
+    lgtd_debug(
+        "scheduling next GET_LIGHT_STATE on %s in %dms",
+        gw->peeraddr, LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS
+    );
 }
 
 void
@@ -544,15 +553,13 @@ lgtd_lifx_gateway_handle_light_status(struct lgtd_lifx_gateway *gw,
 
     lgtd_time_mono_t latency = lgtd_lifx_gateway_latency(gw);
     if (latency < LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS) {
-        if (!lgtd_timer_ispending(gw->refresh_timer)) {
-            int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
-            struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
-            lgtd_timer_reschedule(gw->refresh_timer, &tv);
-            lgtd_debug(
-                "%s latency is %jums, scheduling next GET_LIGHT_STATE in %dms",
-                gw->peeraddr, (uintmax_t)latency, timeout
-            );
-        }
+        int timeout = LGTD_LIFX_GATEWAY_MIN_REFRESH_INTERVAL_MSECS - latency;
+        struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
+        lgtd_timer_reschedule(gw->refresh_timer, &tv);
+        lgtd_debug(
+            "%s latency is %jums, re-scheduling next GET_LIGHT_STATE in %dms",
+            gw->peeraddr, (uintmax_t)latency, timeout
+        );
         return;
     }
 

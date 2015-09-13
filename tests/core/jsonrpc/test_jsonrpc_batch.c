@@ -53,6 +53,7 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
 int
 main(void)
 {
+    jsmntok_t tokens[32];
     const char json[] = ("["
         "{"
             "\"method\": \"power_on\","
@@ -67,12 +68,9 @@ main(void)
             "\"jsonrpc\": \"2.0\""
         "}"
     "]");
-    struct lgtd_client client = { .json = json };
+    struct lgtd_client client = { .json = json, .jsmn_tokens = tokens };
     int parsed = parse_json(
-        client.jsmn_tokens,
-        LGTD_ARRAY_SIZE(client.jsmn_tokens),
-        json,
-        sizeof(json)
+        tokens, LGTD_ARRAY_SIZE(tokens), json, sizeof(json)
     );
 
     lgtd_jsonrpc_dispatch_request(&client, parsed);

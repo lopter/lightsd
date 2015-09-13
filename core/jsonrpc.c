@@ -1080,10 +1080,26 @@ lgtd_jsonrpc_check_and_call_set_label(struct lgtd_client *client)
     );
 }
 
+static void
+lgtd_jsonrpc_batch_prepare_next_part(struct lgtd_client *client,
+                                     const int *batch_sent)
+{
+    assert(client);
+
+    if (batch_sent) {
+        if (*batch_sent == 1) {
+            lgtd_client_write_string(client, "[");
+        } else if (*batch_sent) {
+            lgtd_client_write_string(client, ",");
+        }
+    }
+}
+
 static int
 lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
                           const jsmntok_t *tokens,
-                          int ntokens)
+                          int ntokens,
+                          int *batch_sent)
 {
     static const struct lgtd_jsonrpc_method methods[] = {
         LGTD_JSONRPC_METHOD(
@@ -1125,6 +1141,13 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
         )
     };
 
+    if (batch_sent) {
+        ++*batch_sent;
+    }
+
+    enum lgtd_jsonrpc_error_code error_code;
+    const char *error_msg;
+
     struct lgtd_jsonrpc_request request;
     memset(&request, 0, sizeof(request));
     bool ok = lgtd_jsonrpc_check_and_extract_request(
@@ -1132,12 +1155,12 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
     );
     client->current_request = &request;
     if (!ok) {
-        lgtd_jsonrpc_send_error(
-            client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid request"
-        );
-        return lgtd_jsonrpc_consume_object_or_array(
+        error_code = LGTD_JSONRPC_INVALID_REQUEST;
+        error_msg = "Invalid request";
+        request.request_ntokens = lgtd_jsonrpc_consume_object_or_array(
             tokens, 0, ntokens, client->json
         );
+        goto error;
     }
 
     assert(request.method);
@@ -1154,22 +1177,40 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
         if (!diff) {
             int params_count = request.params ? request.params->size : 0;
             if (params_count != methods[i].params_count) {
-                lgtd_jsonrpc_send_error(
-                    client, LGTD_JSONRPC_INVALID_PARAMS,
-                    "Invalid number of parameters"
-                );
+                error_code = LGTD_JSONRPC_INVALID_PARAMS;
+                error_msg = "Invalid number of parameters";
                 goto error;
             }
+            struct bufferevent *client_io = NULL; // keep compilers happy...
+            if (!request.id) {
+                // Ugly hack to behave correctly on jsonrpc notifications, it's
+                // not worth doing it properly right now. It is especially ugly
+                // since we can't properly close that client now (but we don't
+                // do that in lgtd_proto and signals are deferred with the
+                // event loop).
+                client_io = client->io;
+                client->io = NULL;
+                if (batch_sent) {
+                    --*batch_sent;
+                }
+            } else {
+                lgtd_jsonrpc_batch_prepare_next_part(client, batch_sent);
+            }
             methods[i].method(client);
+            if (!request.id) {
+                client->io = client_io;
+            }
             client->current_request = NULL;
             return request.request_ntokens;
         }
     }
 
-    lgtd_jsonrpc_send_error(
-        client, LGTD_JSONRPC_METHOD_NOT_FOUND, "Method not found"
-    );
+    error_code = LGTD_JSONRPC_METHOD_NOT_FOUND;
+    error_msg = "Method not found";
+
 error:
+    lgtd_jsonrpc_batch_prepare_next_part(client, batch_sent);
+    lgtd_jsonrpc_send_error(client, error_code, error_msg);
     client->current_request = NULL;
     return request.request_ntokens;
 }
@@ -1188,20 +1229,21 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
     }
 
     if (!lgtd_jsonrpc_type_array(client->jsmn_tokens, client->json)) {
-        lgtd_jsonrpc_dispatch_one(client, client->jsmn_tokens, parsed);
+        lgtd_jsonrpc_dispatch_one(client, client->jsmn_tokens, parsed, NULL);
         return;
     }
 
-    bool comma = false;
+    int batch_sent = 0;
     for (int ti = 1; ti < parsed;) {
         const jsmntok_t *tok = &client->jsmn_tokens[ti];
 
-        lgtd_client_write_string(client, comma ? "," : "[");
-        comma = true;
-
         if (lgtd_jsonrpc_type_object(tok, client->json)) {
-            ti += lgtd_jsonrpc_dispatch_one(client, tok, parsed - ti);
+            ti += lgtd_jsonrpc_dispatch_one(
+                client, tok, parsed - ti, &batch_sent
+            );
         } else {
+            batch_sent++;
+            lgtd_jsonrpc_batch_prepare_next_part(client, &batch_sent);
             lgtd_jsonrpc_send_error(
                 client, LGTD_JSONRPC_INVALID_REQUEST, "Invalid request"
             );
@@ -1214,5 +1256,8 @@ lgtd_jsonrpc_dispatch_request(struct lgtd_client *client, int parsed)
             }
         }
     }
-    lgtd_client_write_string(client, "]");
+
+    if (batch_sent) {
+        lgtd_client_write_string(client, "]");
+    }
 }

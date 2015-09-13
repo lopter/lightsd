@@ -17,7 +17,7 @@
 
 #pragma once
 
-enum { LGTD_CLIENT_JSMN_TOKENS_NUM = 48 };
+enum { LGTD_CLIENT_JSMN_TOKENS_NUM = 96 };
 enum { LGTD_CLIENT_MAX_REQUEST_BUF_SIZE = 2048 };
 
 enum lgtd_client_error_code {

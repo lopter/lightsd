@@ -107,7 +107,7 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
             switch (rv) {
             case JSMN_ERROR_NOMEM:
             case JSMN_ERROR_INVAL:
-                lgtd_warnx("pipe %s: request too big or invalid", pipe->path);
+                lgtd_warnx("pipe %s: request too big or invalid: %s", pipe->path, buf);
                 // ignore what's left
                 drain = true;
                 break;

@@ -27,10 +27,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#if LGTD_HAVE_LIBBSD
-#include <bsd/bsd.h>
-#endif
-
 #include <event2/util.h>
 
 #include "time_monotonic.h"
@@ -91,14 +87,16 @@ lgtd_daemon_unleash(void)
 void
 lgtd_daemon_setup_proctitle(int argc, char *argv[], char *envp[])
 {
-#if LGTD_HAVE_LIBBSD
-    setproctitle_init(argc, argv, envp);
-    lgtd_daemon_update_proctitle();
-    lgtd_daemon_proctitle_initialized = true;
-#else
+#if LGTD_HAVE_SETPROCTITLE
     (void)argc;
     (void)argv;
     (void)envp;
+#else
+    void setproctitle_init(int argc, char *argv[], char *envp[]);
+
+    setproctitle_init(argc, argv, envp);
+    lgtd_daemon_update_proctitle();
+    lgtd_daemon_proctitle_initialized = true;
 #endif
 }
 
@@ -125,7 +123,10 @@ lgtd_daemon_update_proctitle(void)
         return;
     }
 
-#if LGTD_HAVE_PROCTITLE
+#if !LGTD_HAVE_SETPROCTITLE
+    void setproctitle(const char *fmt, ...);
+#endif
+
     char title[LGTD_DAEMON_TITLE_SIZE] = { 0 };
     int i = 0;
 
@@ -177,5 +178,4 @@ lgtd_daemon_update_proctitle(void)
     PREFIX("clients(connected=%d)", LGTD_STATS_GET(clients));
 
     setproctitle("%s", title);
-#endif
 }

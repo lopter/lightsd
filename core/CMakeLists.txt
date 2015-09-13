@@ -22,6 +22,7 @@ ADD_EXECUTABLE(
     pipe.c
     proto.c
     router.c
+    setproctitle.c
     stats.c
     timer.c
 )
@@ -32,9 +33,5 @@ TARGET_LINK_LIBRARIES(
     ${EVENT2_CORE_LIBRARY}
     ${TIME_MONOTONIC_LIBRARY}
 )
-
-IF (HAVE_LIBBSD)
-    TARGET_LINK_LIBRARIES(lightsd ${LIBBSD_LIBRARY})
-ENDIF (HAVE_LIBBSD)
 
 INSTALL(TARGETS lightsd RUNTIME DESTINATION bin)

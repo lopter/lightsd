@@ -32,10 +32,6 @@
 #include <string.h>
 #include <time.h>
 
-#if LGTD_HAVE_LIBBSD
-#include <bsd/unistd.h>
-#endif
-
 #include <event2/event.h>
 
 #include "lifx/wire_proto.h"
@@ -233,6 +229,6 @@ lgtd_libevent_log(int severity, const char *msg)
     case EVENT_LOG_MSG:     lgtd_info("%s", msg);  break;
     case EVENT_LOG_WARN:    lgtd_warnx("%s", msg)  break;
     case EVENT_LOG_ERR:     lgtd_warnx("%s", msg); break;
-    default:                                        break;
+    default:                                       break;
     }
 }

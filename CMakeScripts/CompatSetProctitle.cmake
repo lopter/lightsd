@@ -1,20 +1,59 @@
-IF (NOT HAVE_PROCTITLE)
-    SET(CMAKE_REQUIRED_QUIET TRUE)
-    SET(HAVE_PROCTITLE 0 CACHE INTERNAL "setproctitle found in libbsd")
-    SET(HAVE_LIBBSD 0 CACHE INTERNAL "libbsd found")
-    MESSAGE(STATUS "Looking for setproctitle")
-    CHECK_FUNCTION_EXISTS("setproctitle" HAVE_PROCTITLE)
-    IF (NOT HAVE_PROCTITLE)
-        MESSAGE(STATUS "Looking for setproctitle - not found, falling back on libbsd")
-        FIND_PACKAGE(LibBSD)
-        IF (NOT LibBSD_FOUND)
-            MESSAGE(STATUS "Couldn't find setproctitle, no fancy report in the process list")
-        ELSE ()
-            SET(HAVE_PROCTITLE 1 CACHE INTERNAL "setproctitle found in libbsd")
-            SET(HAVE_LIBBSD 1 CACHE INTERNAL "libbsd found")
+IF (DEFINED HAVE_SETPROCTITLE)
+    IF (HAVE_SETPROCTITLE EQUAL 0)
+        IF (HAVE_CLEARENV)
+            ADD_DEFINITIONS("-DHAVE_CLEARENV=1")
         ENDIF ()
-    ELSE ()
-        SET(HAVE_PROCTITLE 1 CACHE INTERNAL "setproctitle found on the system")
+        IF (HAVE_GETEXECNAME)
+            ADD_DEFINITIONS("-DHAVE_GETEXECNAME=1")
+        ENDIF ()
+        IF (HAVE___PROGNAME)
+            ADD_DEFINITIONS("-DHAVE___PROGNAME=1")
+        ENDIF ()
+        IF (HAVE_HAVE_PROGRAM_INVOCATION_SHORT_NAME)
+            ADD_DEFINITIONS("-DHAVE_HAVE_PROGRAM_INVOCATION_SHORT_NAME=1")
+        ENDIF ()
     ENDIF ()
-    UNSET(CMAKE_REQUIRED_QUIET)
+    RETURN()
+ENDIF ()
+
+MESSAGE(STATUS "Looking for setproctitle")
+
+SET(CMAKE_REQUIRED_QUIET TRUE)
+CHECK_FUNCTION_EXISTS("setproctitle" HAVE_SETPROCTITLE)
+UNSET(CMAKE_REQUIRED_QUIET)
+IF (HAVE_SETPROCTITLE)
+    MESSAGE(
+        STATUS
+        "Looking for setproctitle - found"
+    )
+    SET(HAVE_SETPROCTITLE 1 CACHE INTERNAL "setproctitle found on the system")
+ELSE ()
+    MESSAGE(
+        STATUS
+        "Looking for setproctitle - not found, using built-in compatibilty file"
+    )
+    SET(
+        HAVE_SETPROCTITLE 0
+        CACHE INTERNAL
+        "setproctitle not found, using internal implementation"
+    )
+
+    CHECK_FUNCTION_EXISTS("clearenv" HAVE_CLEARENV)
+    CHECK_FUNCTION_EXISTS("getexecname" HAVE_GETEXECNAME)
+    CHECK_VARIABLE_EXISTS("__progname" HAVE___PROGNAME)
+    CHECK_VARIABLE_EXISTS(
+        "program_invocation_short_name" HAVE_PROGRAM_INVOCATION_SHORT_NAME
+    )
+    IF (HAVE_CLEARENV)
+        ADD_DEFINITIONS("-DHAVE_CLEARENV=1")
+    ENDIF ()
+    IF (HAVE_GETEXECNAME)
+        ADD_DEFINITIONS("-DHAVE_GETEXECNAME=1")
+    ENDIF ()
+    IF (HAVE___PROGNAME)
+        ADD_DEFINITIONS("-DHAVE___PROGNAME=1")
+    ENDIF ()
+    IF (HAVE_HAVE_PROGRAM_INVOCATION_SHORT_NAME)
+        ADD_DEFINITIONS("-DHAVE_HAVE_PROGRAM_INVOCATION_SHORT_NAME=1")
+    ENDIF ()
 ENDIF ()

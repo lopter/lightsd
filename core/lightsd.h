@@ -101,8 +101,6 @@ reallocarray(void *optr, size_t nmemb, size_t size)
     }
     return realloc(optr, size * nmemb);
 }
-#elif LGTD_HAVE_LIBBSD
-# include <bsd/bsd.h>
 #endif
 
 struct lgtd_opts {

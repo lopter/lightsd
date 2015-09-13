@@ -6,6 +6,7 @@ INCLUDE_DIRECTORIES(
 ADD_CORE_LIBRARY(
     test_core_daemon STATIC
     ${LIGHTSD_SOURCE_DIR}/core/log.c
+    ${LIGHTSD_SOURCE_DIR}/core/setproctitle.c
     ${LIGHTSD_SOURCE_DIR}/core/stats.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${LIGHTSD_SOURCE_DIR}/lifx/tagging.c

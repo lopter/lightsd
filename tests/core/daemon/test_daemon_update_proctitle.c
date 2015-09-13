@@ -1,7 +1,6 @@
 void mock_setproctitle(const char *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 
-#undef LGTD_HAVE_LIBBSD
 #undef LGTD_HAVE_PROCTITLE
 #define LGTD_HAVE_PROCTITLE 1
 #define setproctitle mock_setproctitle

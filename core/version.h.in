@@ -31,8 +31,7 @@
 
 const char LGTD_VERSION[] = (
     "@LIGHTSD_VERSION@\n\n"
-    "cflags: @CMAKE_C_FLAGS@\n"
-    "proctitle_support: @HAVE_PROCTITLE@\n\n"
+    "cflags: @CMAKE_C_FLAGS@\n\n"
     "Copyright (c) 2014, 2015, Louis Opter <kalessin@kalessin.fr>"
 );
 

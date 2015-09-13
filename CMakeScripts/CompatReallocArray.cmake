@@ -4,12 +4,6 @@ ENDIF ()
 
 MESSAGE(STATUS "Looking for reallocarray")
 
-IF (HAVE_LIBBSD)
-    MESSAGE(STATUS "Looking for reallocarray - found")
-    SET(HAVE_REALLOCARRAY 1 CACHE INTERNAL "reallocarray found in libbsd")
-    RETURN()
-ENDIF ()
-
 SET(CMAKE_REQUIRED_QUIET TRUE)
 CHECK_FUNCTION_EXISTS("reallocarray" HAVE_REALLOCARRAY)
 UNSET(CMAKE_REQUIRED_QUIET)

@@ -80,7 +80,7 @@ _lightsc_jq() {
 }
 
 _lightsc_get_pipe() {
-    local pipe=${COMMAND_PIPE:-/run/lightsd.cmd}
+    local pipe=${COMMAND_PIPE:-/run/lightsd/pipe}
     if [ ! -p $pipe ] ; then
         echo >&2 "$pipe cannot be found, is lightsd running?"
         exit 1

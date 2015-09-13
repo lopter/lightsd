@@ -3,7 +3,7 @@ Description=LIFX WiFi smart bulbs control service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/lightsd -v warning -f -u lightsd -s %t/lightsd.socket -c %t/lightsd.cmd
+ExecStart=/usr/bin/lightsd -t -v warning -f -u lightsd -s %t/lightsd/socket -c %t/lightsd/pipe
 Restart=on-failure
 
 [Install]

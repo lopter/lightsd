@@ -38,6 +38,8 @@
 
 static struct event *lgtd_watchdog_interval_ev = NULL;
 static struct event *lgtd_discovery_timeout_ev = NULL;
+static int lgtd_discovery_timeout =
+    LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS;
 
 static void
 lgtd_lifx_watchdog_discovery_timeout_event_callback(evutil_socket_t socket,
@@ -48,19 +50,26 @@ lgtd_lifx_watchdog_discovery_timeout_event_callback(evutil_socket_t socket,
     (void)events;
     (void)ctx;
 
-    int timeout = LGTD_LIFX_WATCHDOG_PASSIVE_DISCOVERY_INTERVAL_MSECS;
     if (LIST_EMPTY(&lgtd_lifx_gateways)) {
+        lgtd_discovery_timeout =
+            LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS;
         lgtd_debug(
             "discovery didn't returned anything in %dms, restarting it",
-            LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS
+            lgtd_discovery_timeout
         );
-        timeout = LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS;
     } else {
-        lgtd_debug("sending periodic discovery packet");
+        lgtd_discovery_timeout = LGTD_MIN(
+            lgtd_discovery_timeout * 2,
+            LGTD_LIFX_WATCHDOG_PASSIVE_DISCOVERY_INTERVAL_MSECS
+        );
+        lgtd_debug(
+            "sending periodic discovery packet, timeout=%d",
+            lgtd_discovery_timeout
+        );
     }
 
-    struct timeval tv = LGTD_MSECS_TO_TIMEVAL(timeout);
-    if (event_add(lgtd_lifx_watchdog_context.discovery_timeout_ev, &tv)
+    struct timeval tv = LGTD_MSECS_TO_TIMEVAL(lgtd_discovery_timeout);
+    if (event_add(lgtd_discovery_timeout_ev, &tv)
         || !lgtd_lifx_broadcast_discovery()) {
         lgtd_err(1, "can't start discovery");
     }
@@ -197,6 +206,6 @@ lgtd_lifx_watchdog_start_discovery(void)
     assert(!evtimer_pending(lgtd_discovery_timeout_ev, NULL));
 
     lgtd_discovery_timeout = LGTD_LIFX_WATCHDOG_ACTIVE_DISCOVERY_INTERVAL_MSECS;
-    lgtd_lifx_watchdog_lgtd_discovery_timeout_event_callback(-1, 0, NULL);
+    lgtd_lifx_watchdog_discovery_timeout_event_callback(-1, 0, NULL);
     lgtd_debug("starting discovery timer");
 }

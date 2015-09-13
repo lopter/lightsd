@@ -140,7 +140,6 @@ main(void)
 
     mode_t expected_mode;
     expected_mode = S_IFIFO|S_IWUSR|S_IRUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IWGRP;
-    expected_mode &= ~lgtd_command_pipe_get_umask();
     if (sb.st_mode != expected_mode) {
         errx(
             1, "unexpected mode %o (expected %o)",

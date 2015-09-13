@@ -55,7 +55,9 @@
 struct lgtd_opts lgtd_opts = {
     .foreground = true,
     .log_timestamps = true,
-    .verbosity = LGTD_INFO
+    .verbosity = LGTD_INFO,
+    .user = NULL,
+    .group = NULL
 }; 
 
 struct event_base *lgtd_ev_base = NULL;
@@ -124,15 +126,18 @@ lgtd_usage(const char *progname)
 {
     printf(
 "Usage: %s ...\n\n"
-"  [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP \n"
-"                                       at this address (can be repeated).\n"
-"  [-c,--comand-pipe /command/fifo [+]] Open an unidirectional JSON-RPC \n"
-"                                       command pipe at this location (can \n"
-"                                       be repeated).\n"
-"  [-s,--socket /unix/socket [+]]       Open an Unix socket at this location \n"
+"  [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP at\n"
+"                                       this address (can be repeated).\n"
+"  [-c,--comand-pipe /command/fifo [+]] Open an unidirectional JSON-RPC\n"
+"                                       command pipe at this location (can be\n"
+"                                       repeated).\n"
+"  [-s,--socket /unix/socket [+]]       Open an Unix socket at this location\n"
 "                                       (can be repeated).\n"
 "  [-f,--foreground]                    Stay in the foreground (default).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
+"  [-u,--user user]                     Drop privileges to this user (and the \n"
+"                                       group of this user if -g is missing)\n"
+"  [-g,--group group]                   Drop privileges to this group\n"
 "  [-t,--no-timestamps]                 Disable timestamps in logs.\n"
 "  [-h,--help]                          Display this.\n"
 "  [-V,--version]                       Display version and build information.\n"
@@ -159,6 +164,8 @@ main(int argc, char *argv[], char *envp[])
         {"socket",          required_argument, NULL, 's'},
         {"foreground",      no_argument,       NULL, 'f'},
         {"daemonize",       no_argument,       NULL, 'd'},
+        {"user",            required_argument, NULL, 'u'},
+        {"group",           required_argument, NULL, 'g'},
         {"no-timestamps",   no_argument,       NULL, 't'},
         {"help",            no_argument,       NULL, 'h'},
         {"verbosity",       required_argument, NULL, 'v'},
@@ -166,7 +173,7 @@ main(int argc, char *argv[], char *envp[])
         {"prefix",          no_argument,       NULL, 'p'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "l:c:s:fdthv:V";
+    const char short_opts[] = "l:c:s:fdu:g:thv:V";
 
     if (argc == 1) {
         lgtd_usage(argv[0]);
@@ -202,6 +209,12 @@ main(int argc, char *argv[], char *envp[])
             break;
         case 'd':
             lgtd_opts.foreground = false;
+        case 'u':
+            lgtd_opts.user = optarg;
+            break;
+        case 'g':
+            lgtd_opts.group = optarg;
+            break;
         case 't':
             lgtd_opts.log_timestamps = false;
             break;
@@ -239,6 +252,12 @@ main(int argc, char *argv[], char *envp[])
 
     argc -= optind;
     argv += optind;
+
+    if (lgtd_opts.user) {
+        lgtd_daemon_drop_privileges(lgtd_opts.user, lgtd_opts.group);
+    }
+
+    lgtd_daemon_die_if_running_as_root_unless_requested(lgtd_opts.user);
 
     lgtd_lifx_wire_load_packet_info_map();
     if (!lgtd_lifx_watchdog_setup() || !lgtd_lifx_broadcast_setup()) {

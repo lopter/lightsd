@@ -251,6 +251,11 @@ lgtd_listen_unix_open(const char *path)
         goto error;
     }
 
+    mode_t mode = S_IWUSR|S_IRUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IWGRP;
+    if (chmod(path, mode)) {
+        goto error;
+    }
+
     listener->evlistener = evconnlistener_new(
         lgtd_ev_base,
         lgtd_listen_accept_new_client,
@@ -273,6 +278,7 @@ error:
     if (fd != -1) {
         close(fd);
     }
+    unlink(path);
     free(listener);
     return false;
 }

@@ -95,3 +95,4 @@ INSTALL(
     REGEX ".*\\.sw.$" EXCLUDE
 )
 INSTALL(FILES share/lightsc.sh DESTINATION share/lightsd)
+INSTALL(FILES dist/lightsd.service DESTINATION lib/systemd/system)

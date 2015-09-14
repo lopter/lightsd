@@ -23,5 +23,7 @@ bool lgtd_daemon_unleash(void); // \_o<
 void lgtd_daemon_setup_proctitle(int, char *[], char *[]);
 void lgtd_daemon_update_proctitle(void);
 void lgtd_daemon_die_if_running_as_root_unless_requested(const char *);
-void lgtd_daemon_drop_privileges(const char *, const char *);
+void lgtd_daemon_set_user(const char *);
+void lgtd_daemon_set_group(const char *);
+void lgtd_daemon_drop_privileges(void);
 bool lgtd_daemon_makedirs(const char *);

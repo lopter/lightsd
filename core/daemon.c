@@ -52,6 +52,8 @@
 #include "lightsd.h"
 
 static bool lgtd_daemon_proctitle_initialized = false;
+static struct passwd *lgtd_user_info = NULL;
+static struct group *lgtd_group_info = NULL;
 
 bool
 lgtd_daemon_unleash(void)
@@ -207,34 +209,75 @@ lgtd_daemon_die_if_running_as_root_unless_requested(const char *requested_user)
 }
 
 void
-lgtd_daemon_drop_privileges(const char *user, const char *group)
+lgtd_daemon_set_user(const char *user)
 {
     assert(user);
 
-    uid_t uid;
-    gid_t gid;
+    static struct passwd user_info_storage;
 
     struct passwd *user_info = getpwnam(user);
     if (!user_info) {
         lgtd_err(1, "can't get user info for %s", user);
     }
-    uid = user_info->pw_uid;
+
+    lgtd_user_info = memcpy(&user_info_storage, user_info, sizeof(*user_info));
+}
+
+void
+lgtd_daemon_set_group(const char *group)
+{
+    assert(lgtd_user_info);
+
+    static struct group group_info_storage;
 
     struct group *group_info;
     if (group) {
         group_info = getgrnam(group);
     } else {
-        group_info = getgrgid(user_info->pw_gid);
+        group_info = getgrgid(lgtd_user_info->pw_gid);
         group = group_info->gr_name;
     }
     if (!group_info) {
-        lgtd_err(1, "can't get group info for %s", group ? group : user);
+        lgtd_err(
+            1, "can't get group info for %s",
+            group ? group : lgtd_user_info->pw_name
+        );
     }
-    gid = group_info->gr_gid;
+
+    lgtd_group_info = memcpy(
+        &group_info_storage, group_info, sizeof(*group_info)
+    );
+}
+
+static int
+lgtd_daemon_chown_dir_of(const char *filepath, uid_t uid, gid_t gid)
+{
+    char *fp = strdup(filepath);
+    if (!fp)  {
+        return -1;
+    }
+
+    char *dir = dirname(fp);
+    int rv = chown(dir, uid, gid);
+    free(fp);
+    return rv;
+}
+
+void
+lgtd_daemon_drop_privileges(void)
+{
+    assert(lgtd_user_info);
+    assert(lgtd_group_info);
+
+    uid_t uid = lgtd_user_info->pw_uid;
+    const char *user = lgtd_user_info->pw_name;
+    gid_t gid = lgtd_group_info->gr_gid;
+    const char *group = lgtd_group_info->gr_name;
 
     struct lgtd_command_pipe *pipe;
     SLIST_FOREACH(pipe, &lgtd_command_pipes, link) {
-        if (fchown(pipe->fd, uid, gid) == -1) {
+        if (lgtd_daemon_chown_dir_of(pipe->path, uid, gid) == -1
+            || fchown(pipe->fd, uid, gid) == -1) {
             lgtd_err(1, "can't chown %s to %s:%s", pipe->path, user, group);
         }
     }
@@ -246,12 +289,9 @@ lgtd_daemon_drop_privileges(const char *user, const char *group)
         }
 
         const char *path = ((struct sockaddr_un *)listener->sockaddr)->sun_path;
-        if (chown(path, uid, gid) == -1) {
-            char addr[LGTD_SOCKADDR_STRLEN];
-            lgtd_err(
-                1, "can't chown %s to %s:%s",
-                LGTD_SOCKADDRTOA(listener->sockaddr, addr), user, group
-            );
+        if (lgtd_daemon_chown_dir_of(path, uid, gid) == -1
+            || chown(path, uid, gid) == -1) {
+            lgtd_err(1, "can't chown %s to %s:%s", path, user, group);
         }
     }
 

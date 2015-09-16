@@ -49,6 +49,12 @@ lightsd works and is developed against LIFX firmwares 1.1, 1.5, 2.0 and 2.1.
 .. _JSON-RPC: http://www.jsonrpc.org/specification
 .. _mkfifo(1): http://www.openbsd.org/cgi-bin/man.cgi?query=mkfifo
 
+Documentation
+-------------
+
+Checkout http://lightsd.readthedocs.org/en/latest/ for installation instructions
+and a walk-through some examples.
+
 Requirements
 ------------
 

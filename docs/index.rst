@@ -1,9 +1,9 @@
 The lights daemon documentation
 ===============================
 
-Welcome! This is the documentation for lightsd: a small program that runs in the
-background, discovers smart bulbs [#bulbs]_ on your local network and let you
-control them easily.
+Welcome! This is the documentation for lightsd_: a small program that runs in
+the background, discovers smart bulbs [#bulbs]_ on your local network and let
+you control them easily.
 
 lightsd exposes a JSON-RPC_ interface over TCP IPv4/IPv6 [#tcp]_ and Unix
 sockets. The same interface can be exposed over a `named pipe`_: in that case
@@ -26,6 +26,7 @@ instructions:
 .. [#bulbs] Currently only LIFX_ WiFi smart bulbs are supported.
 .. [#tcp] And not over HTTP like most JSON-RPC implementations.
 
+.. _lightsd: https://github.com/lopter/lightsd
 .. _LIFX: http://www.lifx.co/
 .. _JSON-RPC: http://www.jsonrpc.org/specification
 .. _named pipe: http://www.openbsd.org/cgi-bin/man.cgi?query=mkfifo

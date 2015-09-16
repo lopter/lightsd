@@ -1,0 +1,5 @@
+#!/bin/sh
+
+. `lightsd --prefix`/share/lightsd/lightsc.sh
+
+lightsc set_waveform ${*:-'"*"'} '"SQUARE"' 0 1.0 0.6 3500 500 15 0.5 true

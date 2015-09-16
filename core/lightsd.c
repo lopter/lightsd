@@ -139,7 +139,7 @@ lgtd_usage(const char *progname)
 "                                       (can be repeated).\n"
 "  [-f,--foreground]                    Stay in the foreground (default).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
-"  [-u,--user user]                     Drop privileges to this user (and the \n"
+"  [-u,--user user]                     Drop privileges to this user (and the\n"
 "                                       group of this user if -g is missing).\n"
 "  [-g,--group group]                   Drop privileges to this group (-g requires\n"
 "                                       the -u option to be used).\n"
@@ -160,6 +160,9 @@ lgtd_usage(const char *progname)
 int
 main(int argc, char *argv[], char *envp[])
 {
+    char progname[32];
+    memcpy(progname, argv[0], LGTD_MIN(sizeof(progname), strlen(argv[0])));
+
     lgtd_daemon_setup_proctitle(argc, argv, envp);
 
     lgtd_configure_libevent();
@@ -184,7 +187,7 @@ main(int argc, char *argv[], char *envp[])
     const char short_opts[] = "l:c:s:fdu:g:thv:V";
 
     if (argc == 1) {
-        lgtd_usage(argv[0]);
+        lgtd_usage(progname);
     }
 
     for (int rv = getopt_long(argc, argv, short_opts, long_opts, NULL);
@@ -195,7 +198,7 @@ main(int argc, char *argv[], char *envp[])
             (void)0;
             char *sep = strrchr(optarg, ':');
             if (!sep || !sep[1]) {
-                lgtd_usage(argv[0]);
+                lgtd_usage(progname);
             }
             *sep = '\0';
             if (!lgtd_listen_open(optarg, sep + 1)) {
@@ -227,7 +230,7 @@ main(int argc, char *argv[], char *envp[])
             lgtd_opts.log_timestamps = false;
             break;
         case 'h':
-            lgtd_usage(argv[0]);
+            lgtd_usage(progname);
         case 'v':
             for (int i = 0;;) {
                 const char *verbose_levels[] = {
@@ -243,7 +246,7 @@ main(int argc, char *argv[], char *envp[])
             }
             break;
         case 'V':
-            printf("lightsd %s\n", LGTD_VERSION);
+            printf("%s %s\n", progname, LGTD_VERSION);
             lgtd_cleanup();
             return 0;
         case 'p':
@@ -261,7 +264,7 @@ main(int argc, char *argv[], char *envp[])
             );
             return 0;
         default:
-            lgtd_usage(argv[0]);
+            lgtd_usage(progname);
         }
     }
 

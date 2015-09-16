@@ -90,6 +90,14 @@ extern struct lgtd_lifx_gateway_list lgtd_lifx_gateways;
     (bulb_fn)(b, __VA_ARGS__);                                              \
 } while (0)
 
+static inline lgtd_time_mono_t
+lgtd_lifx_gateway_msecs_since_last_update(const struct lgtd_lifx_gateway *gw)
+{
+    assert(gw);
+
+    return lgtd_time_monotonic_msecs() - gw->last_pkt_at;
+}
+
 struct lgtd_lifx_gateway *lgtd_lifx_gateway_get(const struct sockaddr *, ev_socklen_t);
 struct lgtd_lifx_gateway *lgtd_lifx_gateway_open(const struct sockaddr *,
                                                  ev_socklen_t,

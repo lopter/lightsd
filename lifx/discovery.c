@@ -111,7 +111,11 @@ lgtd_lifx_discovery_watchdog_interval_callback(evutil_socket_t socket,
     // gateways aren't bulbs themselves:
     struct lgtd_lifx_gateway *gw, *next_gw;
     LIST_FOREACH_SAFE(gw, &lgtd_lifx_gateways, link, next_gw) {
-        int gw_lag = lgtd_lifx_gateway_latency(gw);
+        // The gateway latency is the difference during the last round-trip-time
+        // (RTT) and has been a PITA to get right (it's off sometimes). Anyway,
+        // here we are interested in a timeout: how much time elapsed since the
+        // last update, this is different than the last RTT.
+        int gw_lag = lgtd_lifx_gateway_msecs_since_last_update(gw);
         if (gw_lag >= LGTD_LIFX_DISCOVERY_DEVICE_TIMEOUT_MSECS) {
             lgtd_info(
                 "closing bulb gateway %s that hasn't received traffic for %dms",

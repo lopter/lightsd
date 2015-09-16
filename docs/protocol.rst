@@ -9,7 +9,9 @@ Targeting bulbs
 ---------------
 
 Commands that manipulate bulbs will take a *target* argument to define on which
-bulb(s) the operation should apply:
+bulb(s) the operation should apply. The target argument is either a string
+(identifying a target as explained in the following table), or an array of
+strings (targets).
 
 +-----------------------------+-----------------------------------------------+
 | ``*``                       | targets all bulbs                             |
@@ -23,12 +25,12 @@ bulb(s) the operation should apply:
 | ``[#TagName, 123f31a5]``    | composite target (JSON array)                 |
 +-----------------------------+-----------------------------------------------+
 
-A target is either a string, a hexadecimal number (without any prefix like 0x)
-or an array of targets.
-
 .. note::
 
    The maximum supported length for labels and tag names by LIFX bulbs is 32.
+   Anything beyond that will be ignored.
+
+.. _proto_methods:
 
 Available methods
 -----------------

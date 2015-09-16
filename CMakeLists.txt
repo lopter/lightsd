@@ -77,6 +77,7 @@ ENDIF ()
 IF (NOT LGTD_RUNTIME_DIRECTORY)
     SET(LGTD_RUNTIME_DIRECTORY "${LIGHTSD_BINARY_DIR}")
 ENDIF ()
+MESSAGE(STATUS "lightsd runtime directory: ${LGTD_RUNTIME_DIRECTORY}")
 
 INCLUDE_DIRECTORIES(
     ${LIGHTSD_BINARY_DIR}/compat
@@ -98,11 +99,5 @@ INSTALL(
     USE_SOURCE_PERMISSIONS
     REGEX ".*\\.sw.$" EXCLUDE
 )
-CONFIGURE_FILE(
-    share/lightsc.sh.in "${LIGHTSD_BINARY_DIR}/share/lightsc.sh" @ONLY
-)
-INSTALL(
-    FILES "${LIGHTSD_BINARY_DIR}/share/lightsc.sh"
-    DESTINATION share/lightsd
-)
+INSTALL(FILES share/lightsc.sh DESTINATION share/lightsd)
 INSTALL(FILES dist/lightsd.service DESTINATION lib/systemd/system)

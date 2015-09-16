@@ -28,26 +28,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# Here is an example script that dims bulbs to a warm orange:
-
-# #!/bin/sh
-#
-# # Optional (default value: /run/lightsd.cmd):
-# COMMAND_PIPE=/foo/bar/lightsd.cmd
-#
-# . /usr/lib/lightsd/lightsc.sh
-#
-# lightsc set_light_from_hsbk ${*:-'"*"'} 37.469443 1.0 0.05 3500 600
-
-# Here is how you could use it:
-#
-# - dim all the bulbs: orange
-# - dim the bulb named kitchen: orange '"kitchen"'
-# - dim the bulb named kitchen and the bulbs tagged bedroom:
-#   orange '["kitchen", "#bedroom"]'
-#
-# You can also load this file directly in your shell rc configuration file.
-#
 # NOTE: Keep in mind that arguments must be JSON, you will have to enclose
 #       tags and labels into double quotes '"likethis"'. Also keep in mind
 #       that the pipe is write-only you cannot read any result back.
@@ -79,8 +59,8 @@ _lightsc_jq() {
     fi
 }
 
-_lightsc_get_pipe() {
-    local pipe=${LIGHTSD_COMMAND_PIPE:-@LGTD_RUNTIME_DIRECTORY@/pipe}
+lightsc_get_pipe() {
+    local pipe=${LIGHTSD_COMMAND_PIPE:-`lightsd --rundir`/pipe}
     if [ ! -p $pipe ] ; then
         echo >&2 "$pipe cannot be found, is lightsd running?"
         exit 1
@@ -90,11 +70,11 @@ _lightsc_get_pipe() {
 
 # Can be used to build batch request:
 #
-# tee $COMMAND_PIPE <<EOF
+# tee `lightsc_get_pipe` <<EOF
 # [
+#     $(lightsc_make_request power_on ${*:-'"#br"'}),
 #     $(lightsc_make_request set_light_from_hsbk ${*:-'"#tower"'} 37.469443 1.0 0.05 3500 600),
-#     $(lightsc_make_request set_light_from_hsbk ${*:-'["candle","fugu"]'} 47.469443 0.2 0.05 3500 600),
-#     $(lightsc_make_request power_on ${*:-'"#br"'})
+#     $(lightsc_make_request set_light_from_hsbk ${*:-'["candle","fugu"]'} 47.469443 0.2 0.05 3500 600)
 # ]
 # EOF
 lightsc_make_request() {
@@ -125,5 +105,5 @@ lightsc() {
         return 1
     fi
 
-    lightsc_make_request $* | tee `_lightsc_get_pipe` | _lightsc_jq
+    lightsc_make_request $* | tee `lightsc_get_pipe` | _lightsc_jq
 }

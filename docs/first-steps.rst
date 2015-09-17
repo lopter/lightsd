@@ -187,17 +187,17 @@ current shell or shell script:
    By default lightsc will use `lightsd --rundir`/pipe but you can set that to
    your own value.
 
-.. function:: lightsc method ...
+.. describe:: lightsc method [arguments…]
 
    Call the given :ref:`method <proto_methods>` with the given arguments.
    lightsc display the generated JSON that was sent.
 
-.. function:: lightsc_get_pipe
+.. describe:: lightsc_get_pipe
 
    Equivalent to ``${LIGHTSD_COMMAND_PIPE:-`lightsd --rundir`/pipe}`` but also
    check if lightsd is running.
 
-.. function:: lightsc_make_request method ..
+.. describe:: lightsc_make_request method [arguments…]
 
    Like lightsc but display the generated json instead of sending it out to
    lightsd: with this and lightsc_get_pipe you can do batch requests:
@@ -258,6 +258,13 @@ Fetch the state of all your bulbs:
    bulbs = {b["label"]: b for b in c.get_light_state("*")["result"]}
 
 Check out :doc:`lightsd's protocol </protocol>` to see everything you can do.
+
+lightsc.py also accepts an url which lets you connect to any running lightsd,
+e.g:
+
+::
+
+   lightsc.py -u tcp://localhost:1234
 
 .. _lightsc.py: https://github.com/lopter/lightsd/blob/master/examples/lightsc.py
 

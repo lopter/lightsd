@@ -52,8 +52,9 @@ lightsd works and is developed against LIFX firmwares 1.1, 1.5, 2.0 and 2.1.
 Documentation
 -------------
 
-Checkout http://lightsd.readthedocs.org/en/latest/ for installation instructions
-and a walk-through some examples.
+lightsd is packaged for Mac OS X and Arch Linux with OpenWrt coming out later
+this year. Checkout http://lightsd.readthedocs.org/en/latest/ for installation
+instructions and a walk-through some interactive examples.
 
 Requirements
 ------------

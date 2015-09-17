@@ -65,6 +65,12 @@ Stop lightsd with:
 
    systemctl stop lightsd
 
+Enable lightsd at boot:
+
+::
+
+   systemctl enable lightsd
+
 Check how lightsd is running with:
 
 ::

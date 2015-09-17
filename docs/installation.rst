@@ -80,7 +80,7 @@ lightsd:
 
 ::
 
-   build-essential cmake libevent-dev
+   build-essential cmake libevent-dev git ca-certificates
 
 Please also install ipython if you want to follow the examples in the next
 section. On Debian and Ubuntu you would install the ``ipython3`` package.

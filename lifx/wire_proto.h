@@ -29,7 +29,7 @@ static inline floatle_t
 lgtd_lifx_wire_htolefloat(float f)
 {
     union { float f; uint32_t i; } u = { .f = f };
-    htole32(u.i);
+    u.i = htole32(u.i);
     return u.f;
 }
 
@@ -37,7 +37,7 @@ static inline floatle_t
 lgtd_lifx_wire_lefloattoh(float f)
 {
     union { float f; uint32_t i; } u = { .f = f };
-    le32toh(u.i);
+    u.i = le32toh(u.i);
     return u.f;
 }
 

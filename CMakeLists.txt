@@ -89,6 +89,9 @@ ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(lifx)
 # 2.8.11 is the first version with TARGET_INCLUDE_DIRECTORIES:
 IF (CMAKE_VERSION VERSION_GREATER 2.8.10)
+    CONFIGURE_FILE(
+        CTestCustom.cmake.in "${LIGHTSD_BINARY_DIR}/CTestCustom.cmake" @ONLY
+    )
     ADD_SUBDIRECTORY(tests)
 ELSE ()
     MESSAGE(

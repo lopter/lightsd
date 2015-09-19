@@ -66,6 +66,8 @@ lgtd_client_close_all(void)
     }
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
 static void
 lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
 {
@@ -95,10 +97,7 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
             evbuffer_drain(input, nbytes);
             break;
         case JSMN_ERROR_PART:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch"
         case 0:
-#pragma GCC diagnostic pop
             (void)0;
             size_t buflen = evbuffer_get_length(input);
             if (buflen > LGTD_CLIENT_MAX_REQUEST_BUF_SIZE) {
@@ -139,6 +138,7 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
         nbytes = evbuffer_get_contiguous_space(input);
     } while (nbytes);
 }
+#pragma GCC diagnostic pop
 
 static void
 lgtd_client_event_callback(struct bufferevent *bev, short events, void *ctx)

@@ -72,8 +72,8 @@ you have the following requirements installed:
 - libevent ≥ 2.0.19 (released May 2012);
 - CMake ≥ 2.8.9 (released August 2012).
 
-lightsd is developed and tested from Arch Linux, Debian and Mac OS X; both for
-32/64 bits and little/big endian architectures.
+lightsd is developed and tested from Arch Linux, Debian, OpenBSD and Mac OS X;
+both for 32/64 bits and little/big endian architectures.
 
 For Debian and Ubuntu you would need to install the following packages to build
 lightsd:

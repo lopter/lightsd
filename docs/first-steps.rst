@@ -92,7 +92,7 @@ Manually (other systems)
 Assuming you've just built :ref:`lightsd from the sources
 <build_instructions>`, lightsd will be in the ``core`` directory [#]_.
 
-The examples are communicating with lightsd through a pipe or an unix socket,
+The examples are communicating with lightsd through a pipe or an Unix socket,
 start lightsd with them:
 
 ::
@@ -179,8 +179,8 @@ Or, from the root of the repository:
 
    . share/lightsc.sh
 
-You can use the following things to send commands to your bulbs from your
-current shell or shell script:
+You can use the following variable and functions to send commands to your bulbs
+from your current shell or shell script:
 
 .. data:: LIGHTSD_COMMAND_PIPE
 
@@ -241,11 +241,10 @@ Or, from the root of the repository:
 
    examples/lightsc.py
 
-From there a ``c`` variable has been initialized for you, this a small object
-let you directly execute commands on your bulb:
+From there, a ``c`` variable has been initialized for you: this small object
+lets you directly execute commands on your bulb:
 
 For example toggle your lights again:
-
 
 .. code-block:: python
 

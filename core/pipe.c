@@ -68,6 +68,8 @@ lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
 
 static void lgtd_command_pipe_reset(struct lgtd_command_pipe *);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch"
 static void
 lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
 {
@@ -113,10 +115,7 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
                 drain = true;
                 break;
             case JSMN_ERROR_PART:
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch"
             case 0:
-#pragma GCC diagnostic pop
                 if (bufsz >= LGTD_CLIENT_MAX_REQUEST_BUF_SIZE) {
                     lgtd_warnx("pipe %s: request too big", pipe->path);
                     drain = true;
@@ -154,6 +153,7 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
 
     lgtd_command_pipe_reset(pipe);
 }
+#pragma GCC diagnostic pop
 
 static bool
 _lgtd_command_pipe_open(const char *path)

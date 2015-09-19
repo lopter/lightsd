@@ -725,7 +725,7 @@ lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
             lgtd_warnx(
                 "trying to set unknown tag_id %d (%#jx) "
                 "on bulb %s (%.*s), gw %s (site %s)",
-                tag_id, LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id),
+                tag_id, (uintmax_t)LGTD_LIFX_WIRE_TAG_ID_TO_VALUE(tag_id),
                 LGTD_IEEE8023MACTOA(b->addr, bulb_addr),
                 LGTD_LIFX_LABEL_SIZE, b->state.label, gw->peeraddr,
                 LGTD_IEEE8023MACTOA(gw->site.as_array, site_addr)

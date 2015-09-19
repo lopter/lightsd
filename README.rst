@@ -68,8 +68,8 @@ written in C with reasonable dependencies:
 - CMake ≥ 2.8.9 (released August 2012): only if you want to build lightsd from
   its sources.
 
-lightsd is actively developed and tested from Arch Linux, Debian and Mac OS X;
-both for 32/64 bits and little/big endian architectures.
+lightsd is actively developed and tested from Arch Linux, Debian, Mac OS X and
+OpenBSD; both for 32/64 bits and little/big endian architectures.
 
 Developers
 ----------

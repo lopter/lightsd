@@ -80,6 +80,7 @@ ENDIF ()
 MESSAGE(STATUS "lightsd runtime directory: ${LGTD_RUNTIME_DIRECTORY}")
 
 INCLUDE_DIRECTORIES(
+    ${EVENT2_INCLUDE_DIR}
     ${LIGHTSD_BINARY_DIR}/compat
     ${LIGHTSD_BINARY_DIR}/compat/generic
 )

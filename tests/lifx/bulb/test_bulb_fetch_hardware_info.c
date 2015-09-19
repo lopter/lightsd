@@ -28,6 +28,8 @@ static int get_version_sent = 0;
 static int get_mesh_firmware_state_sent = 0;
 static int get_wifi_firmware_state_sent = 0;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wswitch" // we don't test the whole enum
 void
 lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
                            enum lgtd_lifx_packet_type pkt_type,
@@ -44,8 +46,6 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
         errx(1, "got unexpected pkt");
     }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch" // we don't test the whole enum
     switch (pkt_type) {
     case LGTD_LIFX_GET_VERSION:
         get_version_sent++;
@@ -57,8 +57,8 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
         get_wifi_firmware_state_sent++;
         break;
     }
-#pragma GCC diagnostic pop
 }
+#pragma GCC diagnostic pop
 
 static void
 test_counters(int get_version, int mcu_fw_info, int wifi_fw_info)

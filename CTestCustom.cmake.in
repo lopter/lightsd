@@ -1,0 +1,3 @@
+IF (NOT @BIG_ENDIAN_SYSTEM@)
+    SET(CTEST_CUSTOM_TESTS_IGNORE test_wire_proto_float_endian_conversion)
+ENDIF ()

@@ -259,12 +259,18 @@ Fetch the state of all your bulbs:
 
 Check out :doc:`lightsd's protocol </protocol>` to see everything you can do.
 
-lightsc.py also accepts an url which lets you connect to any running lightsd,
-e.g:
+lightsc.py also accepts an url which lets you connect to anything running
+lightsd, e.g:
 
 ::
 
    lightsc.py -u tcp://localhost:1234
+
+Or, for an Unix socket:
+
+::
+
+    lightsc.py -u unix:///path/to/lightsd/socket
 
 .. _lightsc.py: https://github.com/lopter/lightsd/blob/master/examples/lightsc.py
 

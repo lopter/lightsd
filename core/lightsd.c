@@ -295,6 +295,10 @@ main(int argc, char *argv[], char *envp[])
 
     lgtd_lifx_discovery_start();
 
+    // update at least once: so that if no bulbs are discovered we still get a
+    // clear status line.
+    lgtd_daemon_update_proctitle();
+
     event_base_dispatch(lgtd_ev_base);
 
     lgtd_cleanup();

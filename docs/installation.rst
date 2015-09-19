@@ -70,7 +70,7 @@ lightsd should work on any slightly POSIX system (i.e: not Windows), make sure
 you have the following requirements installed:
 
 - libevent ≥ 2.0.19 (released May 2012);
-- CMake ≥ 2.8.11 (released May 2013).
+- CMake ≥ 2.8.9 (released August 2012).
 
 lightsd is developed and tested from Arch Linux, Debian and Mac OS X; both for
 32/64 bits and little/big endian architectures.

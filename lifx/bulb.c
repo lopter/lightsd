@@ -58,10 +58,11 @@ lgtd_lifx_bulb_get_model_name(uint32_t vendor_id, uint32_t product_id)
     switch (product_id) {
     case 0x1:
     case 0x2:
-        return "A21 (Original)";
+        return "A21 (Original 1000)";
     case 0x3:
         return "GU10 (Color 650)";
     case 0xa:
+    case 0xb:
         return "A19 (White 800)";
     default:
         return "Unknown";

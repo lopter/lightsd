@@ -65,8 +65,8 @@ and on any kind of hardware including embedded devices. Hence why lightsd is
 written in C with reasonable dependencies:
 
 - libevent ≥ 2.0.19 (released May 2012);
-- CMake ≥ 2.8.11 (released May 2013): only if you want to build lightsd from its
-  sources.
+- CMake ≥ 2.8.9 (released August 2012): only if you want to build lightsd from
+  its sources.
 
 lightsd is actively developed and tested from Arch Linux, Debian and Mac OS X;
 both for 32/64 bits and little/big endian architectures.

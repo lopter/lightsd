@@ -22,6 +22,7 @@ instructions:
    protocol
    known-issues
    developers
+   changelog
 
 .. [#bulbs] Currently only LIFX_ WiFi smart bulbs are supported.
 .. [#tcp] And not over HTTP like most JSON-RPC implementations.

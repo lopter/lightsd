@@ -9,7 +9,7 @@ Having to run a daemon to control your LIFX bulbs may seem a little bit backward
 but has some advantages:
 
 - no discovery delay ever, you get all the bulbs and their state right away;
-- lightsd is always in sync with the bulbs and always know their state;
+- lightsd is always in sync with the bulbs and always knows their state;
 - lightsd act as an abstraction layer and can expose new discovery mechanisms and
   an unified API across different kind of smart bulbs;
 - For those of you with a high paranoia factor, lightsd let you place your bulbs

@@ -160,8 +160,8 @@ lgtd_usage(const char *progname)
 int
 main(int argc, char *argv[], char *envp[])
 {
-    char progname[32];
-    memcpy(progname, argv[0], LGTD_MIN(sizeof(progname), strlen(argv[0])));
+    char progname[32] = { 0 };
+    memcpy(progname, argv[0], LGTD_MIN(sizeof(progname) - 1, strlen(argv[0])));
 
     lgtd_daemon_setup_proctitle(argc, argv, envp);
 

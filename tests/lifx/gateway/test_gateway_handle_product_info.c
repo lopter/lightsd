@@ -30,7 +30,7 @@ main(void)
         errx(1, "the product info weren't set correctly on the bulb");
     }
 
-    const char *expected_model = "GU10 (Color 650)";
+    const char *expected_model = "Color 650";
     if (strcmp(b->model, expected_model)) {
         errx(1, "model %s (expected %s)", b->model, expected_model);
     }

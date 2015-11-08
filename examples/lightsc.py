@@ -77,7 +77,7 @@ class LightsClient:
     def _execute_payload(self, payload):
         self._socket.send(json.dumps(payload).encode("utf-8"))
         # FIXME: proper read loop
-        response = self._socket.recv(8192).decode("utf-8")
+        response = self._socket.recv(64 * 1024).decode("utf-8")
         try:
             response = json.loads(response)
         except Exception:

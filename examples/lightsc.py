@@ -49,7 +49,8 @@ class LightsClient:
 
         if parts.scheme == "unix":
             self._socket = socket.socket(socket.AF_UNIX)
-            self._socket.connect(parts.path)
+            path = os.path.join(parts.netloc, parts.path).rstrip(os.path.sep)
+            self._socket.connect(path)
         elif parts.scheme == "tcp":
             self._socket = socket.create_connection((parts.hostname, parts.port))
         else:
@@ -227,11 +228,14 @@ if __name__ == "__main__":
     except Exception as ex:
         print(
             "Couldn't infer lightsd's runtime directory is lightsd installed? "
-            "({})".format(ex),
+            "({})\nTrying build/socket...".format(ex),
             file=sys.stderr
         )
-        sys.exit(1)
-    lightsdrundir = lightsdrundir.decode(locale.getpreferredencoding()).strip()
+        lightscdir = os.path.realpath(__file__).split(os.path.sep)[:-2]
+        lightsdrundir = os.path.join(*[os.path.sep] + lightscdir + ["build"])
+    else:
+        encoding = locale.getpreferredencoding()
+        lightsdrundir = lightsdrundir.decode(encoding).strip()
 
     parser = argparse.ArgumentParser(
         description="lightsc.py is an interactive lightsd Python client"

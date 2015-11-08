@@ -371,6 +371,35 @@ lgtd_daemon_makedirs(const char *filepath)
     return true;
 }
 
+bool
+lgtd_daemon_write_pidfile(const char *filepath)
+{
+    assert(filepath);
+
+    char pidstr[32];
+    int pidlen = snprintf(pidstr, sizeof(pidstr), "%ju", (uintmax_t)getpid());
+    int written = 0;
+
+    mode_t mode = S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH;
+    int fd = open(filepath, O_CREAT|O_WRONLY|O_TRUNC, mode);
+    if (fd == -1) {
+        return false;
+    }
+
+    if (lgtd_user_info && lgtd_group_info
+        && fchown(fd, lgtd_user_info->pw_uid, lgtd_group_info->gr_gid) == -1) {
+        lgtd_warn(
+            "can't chown %s to %s:%s",
+            filepath, lgtd_user_info->pw_name, lgtd_group_info->gr_name
+        );
+    }
+
+    written = write(fd, pidstr, (size_t)pidlen);
+
+    close(fd);
+    return written == pidlen;
+}
+
 int
 lgtd_daemon_syslog_facilitytoi(const char *facility)
 {

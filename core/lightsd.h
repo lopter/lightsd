@@ -114,6 +114,7 @@ struct lgtd_opts {
     bool                syslog;
     int                 syslog_facility;
     const char          *syslog_ident;
+    const char          *pidfile;
 };
 
 extern struct lgtd_opts lgtd_opts;

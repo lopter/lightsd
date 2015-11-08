@@ -1,0 +1,9 @@
+CONFIGURE_FILE(conf.py.in "${CMAKE_CURRENT_BINARY_DIR}/conf.py")
+
+ADD_CUSTOM_TARGET(
+    docs
+    COMMAND "${SPHINX_EXECUTABLE}" -v -W -b html -c "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" _build
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Building the documentation in ${CMAKE_CURRENT_BINARY_DIR}/_build with sphinx-build"
+    VERBATIM
+)

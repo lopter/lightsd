@@ -1,4 +1,3 @@
-#!/bin/sh
 # Copyright (c) 2015, Louis Opter <kalessin@kalessin.fr>
 # All rights reserved.
 #
@@ -107,3 +106,5 @@ lightsc() {
 
     lightsc_make_request $* | tee `lightsc_get_pipe` | _lightsc_jq
 }
+
+# vim: set expandtab ft=sh sts=4 sw=4:

@@ -155,7 +155,6 @@ lgtd_usage(const char *progname)
 "                                       repeated).\n"
 "  [-s,--socket /unix/socket]           Open an Unix socket at this location\n"
 "                                       (can be repeated).\n"
-"  [-f,--foreground]                    Stay in the foreground (default).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
 "  [-u,--user user]                     Drop privileges to this user (and the\n"
 "                                       group of this user if -g is missing).\n"

@@ -127,7 +127,6 @@ Command line options
                                           repeated).
      [-s,--socket /unix/socket [+]]       Open an Unix socket at this location
                                           (can be repeated).
-     [-f,--foreground]                    Stay in the foreground (default).
      [-d,--daemonize]                     Fork in the background.
      [-u,--user user]                     Drop privileges to this user (and the
                                           group of this user if -g is missing).

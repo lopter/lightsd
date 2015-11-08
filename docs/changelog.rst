@@ -1,6 +1,31 @@
 Changelog
 =========
 
+1.1.0 (2015-11-07)
+------------------
+
+.. note::
+
+   The ``-f`` (``--foreground``) option is being deprecated with this release
+   and isn't documented anymore, lightsd starts in the foreground by default and
+   this option is not necessary, please stop using it.
+
+New features
+~~~~~~~~~~~~
+
+- Add syslog support via the ``--syslog`` and ``--syslog-facility`` options
+  (closes :gh:`1`);
+- Debian & OpenWRT packaging and installation instructions.
+
+Fixes
+~~~~~
+
+- lightsc.sh: support OSes with openssl but without a base64 utility (closes
+  :gh:`3`);
+- lightsc.py: unix url support fixes and bump the receive buffer size to
+  accommodate people with many bulbs;
+- Add missing product ids/models.
+
 1.0.1 (2015-09-18)
 ------------------
 

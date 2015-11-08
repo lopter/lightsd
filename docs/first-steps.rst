@@ -184,7 +184,7 @@ Toggle your lights
 
 ::
 
-   `lightsd --prefix`/share/doc/lightsd/examples/toggle
+   `lightsd --prefix`/share/lightsd/examples/toggle
 
 Or, from the root of the repository:
 
@@ -264,7 +264,7 @@ bulbs. Start lightsc.py with:
 
 ::
 
-   `lightsd --prefix`/share/doc/lightsd/examples/lightsc.py
+   `lightsd --prefix`/share/lightsd/examples/lightsc.py
 
 Or, from the root of the repository:
 

@@ -2,6 +2,7 @@
 
 #define MOCKED_LGTD_LIFX_GATEWAY_UPDATE_TAG_REFCOUNTS
 #include "mock_gateway.h"
+#include "mock_log.h"
 #include "mock_router.h"
 #include "mock_timer.h"
 

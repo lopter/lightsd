@@ -13,6 +13,7 @@ CONFIGURE_FILE(version.h.in "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 ADD_EXECUTABLE(
     lightsd
     client.c
+    console.c
     daemon.c
     jsmn.c
     jsonrpc.c
@@ -25,6 +26,7 @@ ADD_EXECUTABLE(
     setproctitle.c
     stats.c
     timer.c
+    utils.c
 )
 
 TARGET_LINK_LIBRARIES(

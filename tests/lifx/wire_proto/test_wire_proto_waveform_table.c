@@ -2,6 +2,8 @@
 
 #include "mock_gateway.h"
 
+#include "mock_log.h"
+
 int
 main(void)
 {

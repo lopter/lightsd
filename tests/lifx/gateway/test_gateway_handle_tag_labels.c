@@ -3,6 +3,7 @@
 #include "gateway.c"
 
 #include "test_gateway_utils.h"
+#include "mock_log.h"
 #include "mock_timer.h"
 
 int

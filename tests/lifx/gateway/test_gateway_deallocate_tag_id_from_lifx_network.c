@@ -4,6 +4,7 @@
 
 #define MOCKED_LIFX_TAGGING_DECREF
 #include "test_gateway_utils.h"
+#include "mock_log.h"
 #include "mock_timer.h"
 
 static bool tagging_decref_called = false;

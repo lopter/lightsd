@@ -6,8 +6,8 @@ INCLUDE_DIRECTORIES(
 ADD_CORE_LIBRARY(
     test_core_jsonrpc STATIC
     ${LIGHTSD_SOURCE_DIR}/core/jsmn.c
-    ${LIGHTSD_SOURCE_DIR}/core/log.c
     ${LIGHTSD_SOURCE_DIR}/core/stats.c
+    ${LIGHTSD_SOURCE_DIR}/core/utils.c
     ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c

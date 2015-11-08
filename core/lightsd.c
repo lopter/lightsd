@@ -32,6 +32,7 @@
 #include <signal.h>
 #include <string.h>
 #include <strings.h>
+#include <syslog.h>
 
 #include <event2/event.h>
 #include <event2/event_struct.h>
@@ -61,10 +62,15 @@ struct lgtd_opts lgtd_opts = {
     .verbosity = LGTD_WARN,
 #endif
     .user = NULL,
-    .group = NULL
+    .group = NULL,
+    .syslog = false,
+    .syslog_facility = LOG_DAEMON,
+    .syslog_ident = "lightsd"
 }; 
 
 struct event_base *lgtd_ev_base = NULL;
+
+static int lgtd_last_signal_received = 0;
 
 void
 lgtd_cleanup(void)
@@ -87,12 +93,24 @@ lgtd_signal_event_callback(int signum, short events, void *ctx)
 {
     assert(ctx);
 
-    lgtd_info(
-        "received signal %d (%s), exiting...", signum, strsignal(signum)
-    );
+    // NOTE: syslog isn't signal safe, don't log anything in this function.
+
+    lgtd_last_signal_received = signum;
     event_del((struct event *)ctx);  // restore default behavior
     event_base_loopbreak(lgtd_ev_base);
     (void)events;
+}
+
+static void
+lgtd_libevent_log(int severity, const char *msg)
+{
+    switch (severity) {
+    case EVENT_LOG_DEBUG:   lgtd_debug("%s", msg); break;
+    case EVENT_LOG_MSG:     lgtd_info("%s", msg);  break;
+    case EVENT_LOG_WARN:    lgtd_warnx("%s", msg); break;
+    case EVENT_LOG_ERR:     lgtd_warnx("%s", msg); break;
+    default:                                       break;
+    }
 }
 
 static void
@@ -130,12 +148,12 @@ lgtd_usage(const char *progname)
 {
     printf(
 "Usage: %s ...\n\n"
-"  [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP at\n"
+"  [-l,--listen addr:port]              Listen for JSON-RPC commands over TCP at\n"
 "                                       this address (can be repeated).\n"
-"  [-c,--comand-pipe /command/fifo [+]] Open an unidirectional JSON-RPC\n"
+"  [-c,--comand-pipe /command/fifo]     Open an unidirectional JSON-RPC\n"
 "                                       command pipe at this location (can be\n"
 "                                       repeated).\n"
-"  [-s,--socket /unix/socket [+]]       Open an Unix socket at this location\n"
+"  [-s,--socket /unix/socket]           Open an Unix socket at this location\n"
 "                                       (can be repeated).\n"
 "  [-f,--foreground]                    Stay in the foreground (default).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
@@ -143,7 +161,13 @@ lgtd_usage(const char *progname)
 "                                       group of this user if -g is missing).\n"
 "  [-g,--group group]                   Drop privileges to this group (-g requires\n"
 "                                       the -u option to be used).\n"
-"  [-t,--no-timestamps]                 Disable timestamps in logs.\n"
+"  [-S,--syslog]                        Divert logging from the console to syslog.\n"
+"  [-F,--syslog-facility]               Facility to use with syslog (defaults to\n"
+"                                       daemon, other possible values are user and\n"
+"                                       local0-7, see syslog(3)).\n"
+"  [-I,--syslog-ident]                  Identifier to use with syslog (defaults to\n"
+"                                       lightsd).\n"
+"  [-t,--no-timestamps]                 Disable timestamps in the console logs.\n"
 "  [-h,--help]                          Display this.\n"
 "  [-V,--version]                       Display version and build information.\n"
 "  [-v,--verbosity debug|info|warning|error]\n"
@@ -176,6 +200,9 @@ main(int argc, char *argv[], char *envp[])
         {"daemonize",       no_argument,       NULL, 'd'},
         {"user",            required_argument, NULL, 'u'},
         {"group",           required_argument, NULL, 'g'},
+        {"syslog",          no_argument,       NULL, 'S'},
+        {"syslog-facility", required_argument, NULL, 'F'},
+        {"syslog-ident",    required_argument, NULL, 'I'},
         {"no-timestamps",   no_argument,       NULL, 't'},
         {"help",            no_argument,       NULL, 'h'},
         {"verbosity",       required_argument, NULL, 'v'},
@@ -184,7 +211,7 @@ main(int argc, char *argv[], char *envp[])
         {"rundir",          no_argument,       NULL, 'r'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "l:c:s:fdu:g:thv:V";
+    const char short_opts[] = "l:c:s:fdu:g:SF:I:thv:V";
 
     if (argc == 1) {
         lgtd_usage(progname);
@@ -225,6 +252,15 @@ main(int argc, char *argv[], char *envp[])
             break;
         case 'g':
             lgtd_opts.group = optarg;
+            break;
+        case 'S':
+            lgtd_opts.syslog = true;
+            break;
+        case 'F':
+            lgtd_opts.syslog_facility = lgtd_daemon_syslog_facilitytoi(optarg);
+            break;
+        case 'I':
+            lgtd_opts.syslog_ident = optarg;
             break;
         case 't':
             lgtd_opts.log_timestamps = false;
@@ -271,6 +307,10 @@ main(int argc, char *argv[], char *envp[])
     argc -= optind;
     argv += optind;
 
+    // Ideally we should parse the syslog relation options first and call that
+    // before anything can be logged:
+    lgtd_log_setup();
+
     if (lgtd_opts.user) {
         lgtd_daemon_set_user(lgtd_opts.user);
         lgtd_daemon_set_group(lgtd_opts.group);
@@ -300,6 +340,13 @@ main(int argc, char *argv[], char *envp[])
     lgtd_daemon_update_proctitle();
 
     event_base_dispatch(lgtd_ev_base);
+
+    if (lgtd_last_signal_received) {
+        lgtd_info(
+            "received signal %d (%s), exiting...",
+            lgtd_last_signal_received, strsignal(lgtd_last_signal_received)
+        );
+    }
 
     lgtd_cleanup();
 

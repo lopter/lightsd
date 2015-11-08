@@ -3,6 +3,7 @@
 #define MOCKED_EVBUFFER_WRITE_ATMOST
 #define MOCKED_EVBUFFER_GET_LENGTH
 #include "test_gateway_utils.h"
+#include "mock_log.h"
 #include "mock_timer.h"
 
 size_t

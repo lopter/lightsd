@@ -17,6 +17,7 @@
 #include "mock_gateway.h"
 #define MOCKED_JSONRPC_DISPATCH_REQUEST
 #include "mock_jsonrpc.h"
+#include "mock_log.h"
 #include "mock_router.h"
 #include "mock_timer.h"
 

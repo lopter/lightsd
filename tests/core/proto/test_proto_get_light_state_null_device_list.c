@@ -3,6 +3,7 @@
 #include "mock_client_buf.h"
 #include "mock_daemon.h"
 #include "mock_event2.h"
+#include "mock_log.h"
 #include "mock_timer.h"
 #include "tests_utils.h"
 

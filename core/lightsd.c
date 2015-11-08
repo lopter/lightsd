@@ -33,6 +33,7 @@
 #include <string.h>
 #include <strings.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include <event2/event.h>
 #include <event2/event_struct.h>
@@ -65,7 +66,8 @@ struct lgtd_opts lgtd_opts = {
     .group = NULL,
     .syslog = false,
     .syslog_facility = LOG_DAEMON,
-    .syslog_ident = "lightsd"
+    .syslog_ident = "lightsd",
+    .pidfile = NULL
 }; 
 
 struct event_base *lgtd_ev_base = NULL;
@@ -86,6 +88,9 @@ lgtd_cleanup(void)
 #if LIBEVENT_VERSION_NUMBER >= 0x02010100
     libevent_global_shutdown();
 #endif
+    if (lgtd_opts.pidfile) {
+        unlink(lgtd_opts.pidfile);
+    }
 }
 
 static void
@@ -150,12 +155,13 @@ lgtd_usage(const char *progname)
 "Usage: %s ...\n\n"
 "  [-l,--listen addr:port]              Listen for JSON-RPC commands over TCP at\n"
 "                                       this address (can be repeated).\n"
-"  [-c,--comand-pipe /command/fifo]     Open an unidirectional JSON-RPC\n"
+"  [-c,--command-pipe /command/fifo]    Open an unidirectional JSON-RPC\n"
 "                                       command pipe at this location (can be\n"
 "                                       repeated).\n"
 "  [-s,--socket /unix/socket]           Open an Unix socket at this location\n"
 "                                       (can be repeated).\n"
 "  [-d,--daemonize]                     Fork in the background.\n"
+"  [-p,--pidfile /path/to/pid.file]     Write lightsd's pid in the given file.\n"
 "  [-u,--user user]                     Drop privileges to this user (and the\n"
 "                                       group of this user if -g is missing).\n"
 "  [-g,--group group]                   Drop privileges to this group (-g requires\n"
@@ -197,6 +203,7 @@ main(int argc, char *argv[], char *envp[])
         {"socket",          required_argument, NULL, 's'},
         {"foreground",      no_argument,       NULL, 'f'},
         {"daemonize",       no_argument,       NULL, 'd'},
+        {"pidfile",         required_argument, NULL, 'p'},
         {"user",            required_argument, NULL, 'u'},
         {"group",           required_argument, NULL, 'g'},
         {"syslog",          no_argument,       NULL, 'S'},
@@ -206,11 +213,11 @@ main(int argc, char *argv[], char *envp[])
         {"help",            no_argument,       NULL, 'h'},
         {"verbosity",       required_argument, NULL, 'v'},
         {"version",         no_argument,       NULL, 'V'},
-        {"prefix",          no_argument,       NULL, 'p'},
+        {"prefix",          no_argument,       NULL, 'P'},
         {"rundir",          no_argument,       NULL, 'r'},
         {NULL,              0,                 NULL, 0}
     };
-    const char short_opts[] = "l:c:s:fdu:g:SF:I:thv:V";
+    const char short_opts[] = "l:c:s:fdp:u:g:SF:I:thv:V";
 
     if (argc == 1) {
         lgtd_usage(progname);
@@ -246,6 +253,10 @@ main(int argc, char *argv[], char *envp[])
             break;
         case 'd':
             lgtd_opts.foreground = false;
+            break;
+        case 'p':
+            lgtd_opts.pidfile = optarg;
+            break;
         case 'u':
             lgtd_opts.user = optarg;
             break;
@@ -284,7 +295,7 @@ main(int argc, char *argv[], char *envp[])
             printf("%s %s\n", progname, LGTD_VERSION);
             lgtd_cleanup();
             return 0;
-        case 'p':
+        case 'P':
             printf(
                 "%s%s\n", LGTD_INSTALL_PREFIX, LGTD_INSTALL_PREFIX[
                     LGTD_ARRAY_SIZE(LGTD_INSTALL_PREFIX) - 1
@@ -313,6 +324,11 @@ main(int argc, char *argv[], char *envp[])
     if (lgtd_opts.user) {
         lgtd_daemon_set_user(lgtd_opts.user);
         lgtd_daemon_set_group(lgtd_opts.group);
+        // create the pidfile before we drop privileges:
+        if (lgtd_opts.pidfile
+            && !lgtd_daemon_write_pidfile(lgtd_opts.pidfile)) {
+            lgtd_warn("couldn't write pidfile at %s", lgtd_opts.pidfile);
+        }
         lgtd_daemon_drop_privileges();
     } else if (lgtd_opts.group) {
         lgtd_errx(1, "please, specify an user with the -u option");
@@ -330,6 +346,11 @@ main(int argc, char *argv[], char *envp[])
         if (!lgtd_daemon_unleash()) {
             lgtd_err(1, "can't fork to the background");
         }
+    }
+
+    // update the pidfile after we've forked:
+    if (lgtd_opts.pidfile && !lgtd_daemon_write_pidfile(lgtd_opts.pidfile)) {
+        lgtd_warn("couldn't write pidfile at %s", lgtd_opts.pidfile);
     }
 
     lgtd_lifx_discovery_start();

@@ -145,25 +145,28 @@ Command line options
 
    Usage: lightsd ...
 
-     [-l,--listen addr:port [+]]          Listen for JSON-RPC commands over TCP at
-                                          this address (can be repeated).
-     [-c,--comand-pipe /command/fifo [+]] Open an unidirectional JSON-RPC
-                                          command pipe at this location (can be
-                                          repeated).
-     [-s,--socket /unix/socket [+]]       Open an Unix socket at this location
-                                          (can be repeated).
-     [-d,--daemonize]                     Fork in the background.
-     [-u,--user user]                     Drop privileges to this user (and the
-                                          group of this user if -g is missing).
-     [-g,--group group]                   Drop privileges to this group (-g requires
-                                          the -u option to be used).
-     [-S,--syslog]                        Divert logging from the console to syslog.
-     [-F,--syslog-facility]               Facility to use with syslog (defaults to
-                                          daemon, other possible values are user and
-                                          local0-7, see syslog(3)).
-     [-t,--no-timestamps]                 Disable timestamps in logs.
-     [-h,--help]                          Display this.
-     [-V,--version]                       Display version and build information.
+     [-l,--listen addr:port [+]]            Listen for JSON-RPC commands over TCP at
+                                            this address (can be repeated).
+     [-c,--command-pipe /command/fifo [+]]  Open an unidirectional JSON-RPC
+                                            command pipe at this location (can be
+                                            repeated).
+     [-s,--socket /unix/socket [+]]         Open an Unix socket at this location
+                                            (can be repeated).
+     [-d,--daemonize]                       Fork in the background.
+     [-p,--pidfile /path/to/pid.file]       Write lightsd's pid in the given file.
+     [-u,--user user]                       Drop privileges to this user (and the
+                                            group of this user if -g is missing).
+     [-g,--group group]                     Drop privileges to this group (-g requires
+                                            the -u option to be used).
+     [-S,--syslog]                          Divert logging from the console to syslog.
+     [-F,--syslog-facility]                 Facility to use with syslog (defaults to
+                                            daemon, other possible values are user and
+                                            local0-7, see syslog(3)).
+     [-I,--syslog-ident]                    Identifier to use with syslog (defaults to
+                                            lightsd).
+     [-t,--no-timestamps]                   Disable timestamps in logs.
+     [-h,--help]                            Display this.
+     [-V,--version]                         Display version and build information.
      [-v,--verbosity debug|info|warning|error]
 
    or,

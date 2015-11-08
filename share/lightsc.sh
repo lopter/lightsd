@@ -34,8 +34,8 @@
 _lightsc_b64e() {
     if type base64 >/dev/null 2>&1 ; then
         base64
-    elif type b64encode >/dev/null 2>&1 ; then
-        b64encode
+    elif type openssl >/dev/null 2>&1 ; then
+        openssl base64
     else
         cat >/dev/null
         echo null

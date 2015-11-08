@@ -1,6 +1,7 @@
 #include "bulb.c"
 
 #include "mock_gateway.h"
+#include "mock_log.h"
 #define MOCKED_LGTD_ROUTER_SEND_TO_DEVICE
 #include "mock_router.h"
 #define MOCKED_LGTD_TIMER_STOP

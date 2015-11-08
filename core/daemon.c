@@ -29,11 +29,13 @@
 #include <grp.h>
 #include <libgen.h>
 #include <pwd.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include <unistd.h>
 
 #include <event2/util.h>
@@ -367,4 +369,140 @@ lgtd_daemon_makedirs(const char *filepath)
     }
 
     return true;
+}
+
+int
+lgtd_daemon_syslog_facilitytoi(const char *facility)
+{
+    struct {
+        const char  *name;
+        int         value;
+    } syslog_facilities[] = {
+        { "daemon", LOG_DAEMON },
+        { "user",   LOG_USER   },
+        { "local0", LOG_LOCAL0 },
+        { "local1", LOG_LOCAL1 },
+        { "local2", LOG_LOCAL2 },
+        { "local3", LOG_LOCAL3 },
+        { "local4", LOG_LOCAL4 },
+        { "local5", LOG_LOCAL5 },
+        { "local6", LOG_LOCAL6 },
+        { "local7", LOG_LOCAL7 }
+    };
+
+    for (int i = 0; i != LGTD_ARRAY_SIZE(syslog_facilities); i++) {
+        if (!strcmp(facility, syslog_facilities[i].name)) {
+            return syslog_facilities[i].value;
+        }
+    }
+
+    lgtd_errx(
+        1,
+        "invalid syslog facility %s (possible values: daemon, "
+        "user, local0 through 7)",
+        facility
+    );
+}
+
+static void
+lgtd_daemon_setup_errfmt(const char *fmt, char *errfmt, int sz)
+{
+    int n = LGTD_MIN(sz - 1, (int)strlen(fmt) + 1);
+    memcpy(errfmt, fmt, n);
+    if (n - 1 + (int)sizeof(": %m") <= sz) {
+        memcpy(errfmt + n - 1, ": %m", sizeof(": %m"));
+    } else {
+        errfmt[n] = '\0';
+#ifndef NDEBUG
+        abort();
+#endif
+    }
+}
+
+void
+lgtd_daemon_syslog_err(int eval, const char *fmt, va_list ap)
+{
+    char errfmt[LGTD_DAEMON_ERRFMT_SIZE];
+    lgtd_daemon_setup_errfmt(fmt, errfmt, sizeof(errfmt));
+
+    va_list aq;
+    va_copy(aq, ap);
+    vsyslog(LOG_ERR, errfmt, aq);
+    va_end(aq);
+
+    lgtd_cleanup();
+    exit(eval);
+}
+
+// -Wtautological-constant-out-of-range-compare appears to be a clang thing.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic push // yes, I know, the assert below is stupid.
+#pragma GCC diagnostic ignored "-Wtautological-constant-out-of-range-compare"
+void
+lgtd_daemon_syslog_open(const char *ident,
+                        enum lgtd_verbosity level,
+                        int facility)
+{
+    static const int syslog_priorities[] = {
+        LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERR
+    };
+
+    assert(level < LGTD_ARRAY_SIZE(syslog_priorities));
+
+    openlog(ident, LOG_PID, facility);
+    setlogmask(LOG_UPTO(syslog_priorities[level]));
+}
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+
+void
+lgtd_daemon_syslog_errx(int eval, const char *fmt, va_list ap)
+{
+    va_list aq;
+    va_copy(aq, ap);
+    vsyslog(LOG_ERR, fmt, aq);
+    va_end(aq);
+
+    lgtd_cleanup();
+    exit(eval);
+}
+
+void
+lgtd_daemon_syslog_warn(const char *fmt, va_list ap)
+{
+    char errfmt[LGTD_DAEMON_ERRFMT_SIZE];
+    lgtd_daemon_setup_errfmt(fmt, errfmt, sizeof(errfmt));
+
+    va_list aq;
+    va_copy(aq, ap);
+    vsyslog(LOG_WARNING, errfmt, aq);
+    va_end(aq);
+}
+
+void
+lgtd_daemon_syslog_warnx(const char *fmt, va_list ap)
+{
+    va_list aq;
+    va_copy(aq, ap);
+    vsyslog(LOG_WARNING, fmt, aq);
+    va_end(aq);
+}
+
+void
+lgtd_daemon_syslog_info(const char *fmt, va_list ap)
+{
+    va_list aq;
+    va_copy(aq, ap);
+    vsyslog(LOG_INFO, fmt, aq);
+    va_end(aq);
+}
+
+void
+lgtd_daemon_syslog_debug(const char *fmt, va_list ap)
+{
+    va_list aq;
+    va_copy(aq, ap);
+    vsyslog(LOG_DEBUG, fmt, aq);
+    va_end(aq);
 }

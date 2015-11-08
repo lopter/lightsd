@@ -14,6 +14,7 @@
 #include "mock_event2.h"
 #include "mock_gateway.h"
 #include "mock_jsonrpc.h"
+#include "mock_log.h"
 #include "mock_router.h"
 #include "mock_timer.h"
 

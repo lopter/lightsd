@@ -3,6 +3,7 @@
 #include "wire_proto.c"
 
 #include "mock_gateway.h"
+#include "mock_log.h"
 
 int
 main(void)

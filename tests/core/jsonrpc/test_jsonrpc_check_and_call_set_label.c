@@ -1,6 +1,7 @@
 #include "jsonrpc.c"
 
 #include "mock_client_buf.h"
+#include "mock_log.h"
 #define MOCKED_LGTD_PROTO_SET_LABEL
 #include "mock_proto.h"
 #include "mock_gateway.h"

@@ -6,6 +6,7 @@
 #define MOCKED_LIFX_GATEWAY_ALLOCATE_TAG_ID
 #include "mock_gateway.h"
 #include "mock_event2.h"
+#include "mock_log.h"
 #include "mock_timer.h"
 #include "tests_utils.h"
 

@@ -103,12 +103,17 @@ reallocarray(void *optr, size_t nmemb, size_t size)
 }
 #endif
 
+struct sockaddr;
+
 struct lgtd_opts {
     bool                foreground;
     bool                log_timestamps;
     enum lgtd_verbosity verbosity;
     const char          *user;
     const char          *group;
+    bool                syslog;
+    int                 syslog_facility;
+    const char          *syslog_ident;
 };
 
 extern struct lgtd_opts lgtd_opts;
@@ -126,16 +131,15 @@ char *lgtd_print_duration(uint64_t, char *, int);
 #define LGTD_PRINT_DURATION(secs, arr) \
     lgtd_print_duration((secs), (arr), sizeof((arr)))
 
-void _lgtd_err(void (*)(int, const char *, ...), int, const char *, ...)
-    __attribute__((format(printf, 3, 4)));
-#define lgtd_err(eval, fmt, ...) _lgtd_err(err, (eval), (fmt), ##__VA_ARGS__);
-#define lgtd_errx(eval, fmt, ...) _lgtd_err(errx, (eval), (fmt), ##__VA_ARGS__);
-void _lgtd_warn(void (*)(const char *, va_list), const char *, ...)
-    __attribute__((format(printf, 2, 3)));
-#define lgtd_warn(fmt, ...) _lgtd_warn(vwarn, (fmt), ##__VA_ARGS__);
-#define lgtd_warnx(fmt, ...) _lgtd_warn(vwarnx, (fmt), ##__VA_ARGS__);
+void lgtd_log_setup(void);
+
+void lgtd_err(int, const char *, ...)
+    __attribute__((format(printf, 2, 3), noreturn));
+void lgtd_errx(int, const char *, ...)
+    __attribute__((format(printf, 2, 3), noreturn));
+void lgtd_warn(const char *, ...) __attribute__((format(printf, 1, 2)));
+void lgtd_warnx(const char *, ...) __attribute__((format(printf, 1, 2)));
 void lgtd_info(const char *, ...) __attribute__((format(printf, 1, 2)));
 void lgtd_debug(const char *, ...) __attribute__((format(printf, 1, 2)));
-void lgtd_libevent_log(int, const char *);
 
 void lgtd_cleanup(void);

@@ -17,7 +17,15 @@
 
 #pragma once
 
+#ifndef __attribute__
+# define __atttribute__(e)
+#endif
+
+enum lgtd_verbosity;
+
 enum { LGTD_DAEMON_TITLE_SIZE = 2048 };
+
+enum { LGTD_DAEMON_ERRFMT_SIZE = 4096 };
 
 bool lgtd_daemon_unleash(void); // \_o<
 void lgtd_daemon_setup_proctitle(int, char *[], char *[]);
@@ -27,3 +35,12 @@ void lgtd_daemon_set_user(const char *);
 void lgtd_daemon_set_group(const char *);
 void lgtd_daemon_drop_privileges(void);
 bool lgtd_daemon_makedirs(const char *);
+
+int lgtd_daemon_syslog_facilitytoi(const char *);
+void lgtd_daemon_syslog_open(const char *, enum lgtd_verbosity, int);
+void lgtd_daemon_syslog_err(int, const char *, va_list) __attribute__((noreturn));
+void lgtd_daemon_syslog_errx(int, const char *, va_list) __attribute__((noreturn));
+void lgtd_daemon_syslog_warn(const char *, va_list);
+void lgtd_daemon_syslog_warnx(const char *, va_list);
+void lgtd_daemon_syslog_info(const char *, va_list);
+void lgtd_daemon_syslog_debug(const char *, va_list);

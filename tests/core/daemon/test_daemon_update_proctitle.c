@@ -6,11 +6,10 @@ void mock_setproctitle(const char *fmt, ...)
 #define setproctitle mock_setproctitle
 #include "daemon.c"
 
-#include <err.h>
-
 #include "mock_gateway.h"
 #include "mock_pipe.h"
 #include "mock_router.h"
+#include "mock_log.h"
 #include "mock_timer.h"
 
 #include "tests_utils.h"

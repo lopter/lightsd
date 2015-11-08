@@ -1,5 +1,7 @@
 #include "tagging.c"
 
+#include "mock_log.h"
+
 static int
 count_tag(const char *tag_label)
 {

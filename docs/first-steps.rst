@@ -133,6 +133,10 @@ Command line options
                                           group of this user if -g is missing).
      [-g,--group group]                   Drop privileges to this group (-g requires
                                           the -u option to be used).
+     [-S,--syslog]                        Divert logging from the console to syslog.
+     [-F,--syslog-facility]               Facility to use with syslog (defaults to
+                                          daemon, other possible values are user and
+                                          local0-7, see syslog(3)).
      [-t,--no-timestamps]                 Disable timestamps in logs.
      [-h,--help]                          Display this.
      [-V,--version]                       Display version and build information.
@@ -184,8 +188,8 @@ from your current shell or shell script:
 
 .. data:: LIGHTSD_COMMAND_PIPE
 
-   By default lightsc will use `lightsd --rundir`/pipe but you can set that to
-   your own value.
+   By default lightsc will use ```lightsd --rundir`/pipe`` but you can set that
+   to your own value.
 
 .. describe:: lightsc method [arguments…]
 
@@ -205,8 +209,8 @@ from your current shell or shell script:
 .. note::
 
    Keep in mind that arguments must be JSON, you will have to enclose tags and
-   labels into double quotes '"likethis"'. The command pipe is write-only: you
-   cannot read any result back.
+   labels into double quotes ``'"likethis"'``. The command pipe is write-only:
+   you cannot read any result back.
 
 Examples:
 

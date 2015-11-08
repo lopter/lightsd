@@ -86,6 +86,31 @@ Read the logs with:
 Try to :ref:`toggle your lights <toggle>` and read on some of the examples
 bundled with lightsd.
 
+Linux (System V style)
+~~~~~~~~~~~~~~~~~~~~~~
+
+Start lightsd with:
+
+::
+
+   /etc/init.d/lightsd start
+
+Stop lightsd with:
+
+::
+
+   /etc/init.d/lightsd stop
+
+Check how lightsd is running with:
+
+::
+
+   ps aux | grep lightsd
+
+The logs will be logged to `syslogd(8)`_.
+
+.. _syslogd(8): http://manpages.debian.org/cgi-bin/man.cgi?query=syslogd&sektion=8
+
 Manually (other systems)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

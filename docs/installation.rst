@@ -97,7 +97,7 @@ Install the package:
 
 .. parsed-literal::
 
-   dpkg -i ../lightsd\_\ |release|\_`dpkg --print-architecture`.tar.gz
+   dpkg -i ../lightsd\_\ |release|-1\_`dpkg --print-architecture`.deb
 
 Still as root, run the command the package asks you to run:
 

@@ -108,7 +108,7 @@ INSTALL(
 )
 INSTALL(
     DIRECTORY examples
-    DESTINATION share/doc/lightsd
+    DESTINATION share/lightsd
     USE_SOURCE_PERMISSIONS
     REGEX ".*\\.sw.$" EXCLUDE
 )

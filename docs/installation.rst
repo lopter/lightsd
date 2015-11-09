@@ -60,6 +60,33 @@ Read on :doc:`/first-steps` to see how to use lightsd.
 
 .. _wiki page: https://wiki.archlinux.org/index.php/Yaourt
 
+
+Installation (OpenWRT trunk)
+----------------------------
+
+If you're running `OpenWRT trunk`_ then, from your build root, just add
+lightsd's feed:
+
+::
+
+   cat >>feeds.conf`[ -f feeds.conf ] || echo .default` <<EOF
+   src-git lightsd https://github.com/lopter/openwrt-lightsd.git
+   EOF
+   ./scripts/feeds update -a
+
+Install lightsd:
+
+::
+
+   ./scripts/feeds install lightsd
+
+Run your usual ``make menuconfig``, ``make`` firmware flash flow, lightsd should
+be running at startup.
+
+Read on :doc:`/first-steps` to see how to use lightsd.
+
+.. _OpenWRT trunk: http://wiki.openwrt.org/doc/howto/build
+
 .. _build_instructions:
 
 Build instructions for Debian based systems (Ubuntu/Raspbian)

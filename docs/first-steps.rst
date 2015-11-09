@@ -81,7 +81,7 @@ Read the logs with:
 
 ::
 
-   journalctl -x -f _SYSTEMD_UNIT=lightsd.unit
+   journalctl -x -f _SYSTEMD_UNIT=lightsd.service
 
 Try to :ref:`toggle your lights <toggle>` and read on some of the examples
 bundled with lightsd.

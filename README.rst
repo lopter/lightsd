@@ -52,9 +52,9 @@ lightsd works and is developed against LIFX firmwares 1.1, 1.5, 2.0 and 2.1.
 Documentation
 -------------
 
-lightsd is packaged for Mac OS X and Arch Linux with OpenWrt coming out later
-this year. Checkout http://lightsd.readthedocs.org/en/latest/ for installation
-instructions and a walk-through some interactive examples.
+lightsd is packaged for Mac OS X, Arch Linux, Debian based systems and OpenWRT.
+Checkout http://lightsd.readthedocs.org/en/latest/ for installation instructions
+and a walk-through some interactive examples.
 
 Requirements
 ------------
@@ -68,8 +68,8 @@ written in C with reasonable dependencies:
 - CMake ≥ 2.8.9 (released August 2012): only if you want to build lightsd from
   its sources.
 
-lightsd is actively developed and tested from Arch Linux, Debian, Mac OS X and
-OpenBSD; both for 32/64 bits and little/big endian architectures.
+lightsd is actively developed and tested from Arch Linux, Debian, Mac OS X,
+OpenWRT and OpenBSD; both for 32/64 bits and little/big endian architectures.
 
 Developers
 ----------

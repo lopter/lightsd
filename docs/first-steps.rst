@@ -111,6 +111,42 @@ The logs will be logged to `syslogd(8)`_.
 
 .. _syslogd(8): http://manpages.debian.org/cgi-bin/man.cgi?query=syslogd&sektion=8
 
+OpenWRT (procd)
+~~~~~~~~~~~~~~~
+
+Start lightsd with:
+
+::
+
+   /etc/init.d/lightsd start
+
+Stop lightsd with:
+
+::
+
+   /etc/init.d/lightsd stop
+
+Enable lightsd at boot:
+
+::
+
+   /etc/init.d/lightsd enable
+
+Check how lightsd is running with:
+
+::
+
+   pgrep -l lightsd
+
+Read the logs with:
+
+::
+
+   logread -e lightsd -f
+
+Try to :ref:`toggle your lights <toggle>` and read on some of the examples
+bundled with lightsd.
+
 Manually (other systems)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -253,7 +289,7 @@ Build a batch request manually:
    ]
    EOF
 
-.. _lightsc.sh: https://github.com/lopter/lightsd/blob/master/share/lightsc.sh.in
+.. _lightsc.sh: https://github.com/lopter/lightsd/blob/master/share/lightsc.sh
 
 Using lightsc.py
 ----------------

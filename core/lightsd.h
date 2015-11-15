@@ -131,6 +131,9 @@ char *lgtd_sockaddrtoa(const struct sockaddr *, char *buf, int buflen);
 char *lgtd_print_duration(uint64_t, char *, int);
 #define LGTD_PRINT_DURATION(secs, arr) \
     lgtd_print_duration((secs), (arr), sizeof((arr)))
+char* lgtd_print_nsec_timestamp(uint64_t, char *, int);
+#define LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(ts, arr) \
+    lgtd_print_nsec_timestamp((ts), (arr), sizeof((arr)))
 
 void lgtd_log_setup(void);
 

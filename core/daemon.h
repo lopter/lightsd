@@ -36,6 +36,7 @@ void lgtd_daemon_set_group(const char *);
 bool lgtd_daemon_write_pidfile(const char *);
 void lgtd_daemon_drop_privileges(void);
 bool lgtd_daemon_makedirs(const char *);
+uint32_t lgtd_daemon_randuint32(void);
 
 int lgtd_daemon_syslog_facilitytoi(const char *);
 void lgtd_daemon_syslog_open(const char *, enum lgtd_verbosity, int);

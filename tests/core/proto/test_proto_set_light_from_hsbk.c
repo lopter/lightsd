@@ -7,6 +7,7 @@
 #include "mock_event2.h"
 #include "mock_log.h"
 #include "mock_timer.h"
+#include "mock_wire_proto.h"
 #include "tests_utils.h"
 
 #define MOCKED_CLIENT_SEND_RESPONSE

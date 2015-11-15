@@ -2,6 +2,7 @@
 
 #include "wire_proto.c"
 
+#include "mock_daemon.h"
 #include "mock_gateway.h"
 #include "mock_log.h"
 

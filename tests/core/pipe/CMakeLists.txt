@@ -10,7 +10,6 @@ ADD_LIBRARY(
     ${LIGHTSD_SOURCE_DIR}/core/utils.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${LIGHTSD_SOURCE_DIR}/lifx/tagging.c
-    ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_shims.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests_utils.c
 )

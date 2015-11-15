@@ -5,6 +5,7 @@
 #include "mock_client_buf.h"
 #include "mock_log.h"
 #include "mock_proto.h"
+#include "mock_wire_proto.h"
 #include "test_jsonrpc_utils.h"
 
 int

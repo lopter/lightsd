@@ -4,6 +4,7 @@
 #include "mock_log.h"
 #define MOCKED_LGTD_PROTO_TAG
 #include "mock_proto.h"
+#include "mock_wire_proto.h"
 #include "mock_gateway.h"
 
 #include "test_jsonrpc_utils.h"

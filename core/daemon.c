@@ -400,6 +400,28 @@ lgtd_daemon_write_pidfile(const char *filepath)
     return written == pidlen;
 }
 
+uint32_t
+lgtd_daemon_randuint32(void)
+{
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd == -1) {
+        lgtd_err(1, "couldn't open /dev/urandom");
+    }
+
+    uint32_t rv;
+    int nbytes = read(fd, &rv, sizeof(rv));
+    if (nbytes != sizeof(rv)) {
+        close(fd);
+        lgtd_err(
+            1, "couln't fetch %ju bytes from /dev/urandom",
+            sizeof((uintmax_t)rv)
+        );
+    }
+
+    close(fd);
+    return rv;
+}
+
 int
 lgtd_daemon_syslog_facilitytoi(const char *facility)
 {

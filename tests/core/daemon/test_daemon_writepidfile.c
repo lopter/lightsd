@@ -46,7 +46,7 @@ mock_open(const char *fp, int flags, ...)
     va_end(ap);
 
     if (strcmp(fp, "/test.pid")) {
-        lgtd_errx(1, "got fp %s (expected test.pid)", fp);
+        lgtd_errx(1, "got fp %s (expected /test.pid)", fp);
     }
 
     int expected_flags = O_CREAT|O_WRONLY|O_TRUNC;

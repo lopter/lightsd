@@ -61,8 +61,16 @@ struct lgtd_lifx_packet_header {
     //! - tagged: true when the target field holds tags;
     //! - origin: LIFX internal use, should be 0.
     uint16le_t      protocol;
-    //! Here is what LIFXKit says about it, maybe it's related to zigbee:
-    //! Message source identifier from NAT table (Internal LIFX use)
+    //! http://lan.developer.lifx.com/v2.0/docs/header-description
+    //! The source identifier allows each client to provide an unique value,
+    //! which will be included by the LIFX device in any message that is sent
+    //! in response to a message sent by the client. If the source identifier
+    //! is a non-zero value, then the LIFX device will send a unicast message
+    //! to the source IP address and port that the client used to send the
+    //! originating message. If the source identifier is a zero value, then the
+    //! LIFX device may send a broadcast message that can be received by all
+    //! clients on the same sub-net. See _ack_required_ and _res_required_
+    //! fields in the Frame Address.
     uint32le_t      source;
     union {
         //! All targeted tags ORed together.
@@ -387,12 +395,10 @@ lgtd_lifx_wire_next_tag_id(int current_tag_id, uint64_t tags)
          (tag_id_varname) = lgtd_lifx_wire_next_tag_id((tag_id_varname), (tags)))
 
 enum lgtd_lifx_waveform_type lgtd_lifx_wire_waveform_string_id_to_type(const char *, int);
-char* lgtd_lifx_wire_print_nsec_timestamp(uint64_t, char *, int);
-#define LGTD_LIFX_WIRE_PRINT_NSEC_TIMESTAMP(ts, arr) \
-    lgtd_lifx_wire_print_nsec_timestamp((ts), (arr), sizeof((arr)))
 
 const struct lgtd_lifx_packet_info *lgtd_lifx_wire_get_packet_info(enum lgtd_lifx_packet_type);
-void lgtd_lifx_wire_load_packet_info_map(void);
+
+void lgtd_lifx_wire_setup(void);
 
 const struct lgtd_lifx_packet_info *lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *,
                                                                  enum lgtd_lifx_target_type,

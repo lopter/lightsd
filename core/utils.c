@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "lightsd.h"
 
@@ -115,5 +116,24 @@ lgtd_print_duration(uint64_t secs, char *buf, int bufsz)
         i = LGTD_MIN(i + n, bufsz);
     }
     snprintf(&buf[i], bufsz - i, "%02d:%02d", hours, minutes);
+    return buf;
+}
+
+char *
+lgtd_print_nsec_timestamp(uint64_t nsec_ts, char *buf, int bufsz)
+{
+    assert(buf);
+    assert(bufsz > 0);
+
+    time_t ts = LGTD_NSECS_TO_SECS(nsec_ts);
+
+    struct tm tm_utc;
+    if (gmtime_r(&ts, &tm_utc)) {
+        int64_t usecs = LGTD_NSECS_TO_USECS(nsec_ts - LGTD_SECS_TO_NSECS(ts));
+        LGTD_TM_TO_ISOTIME(&tm_utc, buf, bufsz, usecs);
+    } else {
+        buf[0] = '\0';
+    }
+
     return buf;
 }

@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include <event2/util.h>
 
@@ -35,6 +34,7 @@
 #include "core/time_monotonic.h"
 #include "bulb.h"
 #include "gateway.h"
+#include "core/daemon.h"
 #include "core/lightsd.h"
 
 const union lgtd_lifx_target LGTD_LIFX_UNSPEC_TARGET = { .tags = 0 };
@@ -49,6 +49,8 @@ const int LGTD_LIFX_DEBRUIJN_SEQUENCE[64] = {
    25, 39, 14, 33, 19, 30,  9, 24,
    13, 18,  8, 12,  7,  6,  5, 63
 };
+
+static uint32_t lgtd_lifx_client_id = 0;
 
 static struct lgtd_lifx_packet_info_map lgtd_lifx_packet_info =
     RB_INITIALIZER(&lgtd_lifx_packets_infos);
@@ -95,7 +97,7 @@ lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
     );
 }
 
-void
+static void
 lgtd_lifx_wire_load_packet_info_map(void)
 {
 #define DECODER(x)  ((void (*)(void *))(x))
@@ -465,6 +467,15 @@ lgtd_lifx_wire_get_packet_info(enum lgtd_lifx_packet_type packet_type)
     return RB_FIND(lgtd_lifx_packet_info_map, &lgtd_lifx_packet_info, &pkt_info);
 }
 
+void
+lgtd_lifx_wire_setup(void)
+{
+    lgtd_lifx_wire_load_packet_info_map();
+    do {
+        lgtd_lifx_client_id = lgtd_daemon_randuint32();
+    } while (!lgtd_lifx_client_id);
+}
+
 
 #define WAVEFORM_ENTRY(e) { .str = e, .len = sizeof(e) - 1 }
 const struct lgtd_lifx_waveform_string_id lgtd_lifx_waveform_table[] = {
@@ -493,25 +504,6 @@ lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
     return LGTD_LIFX_WAVEFORM_INVALID;
 }
 
-char *
-lgtd_lifx_wire_print_nsec_timestamp(uint64_t nsec_ts, char *buf, int bufsz)
-{
-    assert(buf);
-    assert(bufsz > 0);
-
-    time_t ts = LGTD_NSECS_TO_SECS(nsec_ts);
-
-    struct tm tm_utc;
-    if (gmtime_r(&ts, &tm_utc)) {
-        int64_t usecs = LGTD_NSECS_TO_USECS(nsec_ts - LGTD_SECS_TO_NSECS(ts));
-        LGTD_TM_TO_ISOTIME(&tm_utc, buf, bufsz, usecs);
-    } else {
-        buf[0] = '\0';
-    }
-
-    return buf;
-}
-
 static void
 lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr, int flags)
 {
@@ -534,6 +526,7 @@ lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr, int flags)
     }
     hdr->at_time = htole64(hdr->at_time);
     hdr->packet_type = htole16(hdr->packet_type);
+    hdr->source = htole32(hdr->source); // not strictly necessary but eh.
 }
 
 // Convert all the fields in the header to the host endianness.
@@ -554,6 +547,7 @@ lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *hdr)
     }
     hdr->at_time = le64toh(hdr->at_time);
     hdr->packet_type = le16toh(hdr->packet_type);
+    hdr->source = le32toh(hdr->source);
 }
 
 const struct lgtd_lifx_packet_info *
@@ -564,6 +558,7 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
                             enum lgtd_lifx_packet_type packet_type)
 {
     assert(hdr);
+    assert(lgtd_lifx_client_id);
 
     const struct lgtd_lifx_packet_info *pkt_info =
         lgtd_lifx_wire_get_packet_info(packet_type);
@@ -571,6 +566,7 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
     assert(pkt_info);
 
     memset(hdr, 0, sizeof(*hdr));
+    hdr->source = lgtd_lifx_client_id;
     hdr->size = pkt_info->size + sizeof(*hdr);
     hdr->packet_type = packet_type;
     if (site) {

@@ -336,7 +336,7 @@ main(int argc, char *argv[], char *envp[])
 
     lgtd_daemon_die_if_running_as_root_unless_requested(lgtd_opts.user);
 
-    lgtd_lifx_wire_load_packet_info_map();
+    lgtd_lifx_wire_setup();
     if (!lgtd_lifx_discovery_setup() || !lgtd_lifx_broadcast_setup()) {
         lgtd_err(1, "can't setup lightsd");
     }

@@ -4,10 +4,19 @@
 #include "mock_log.h"
 #define MOCKED_LGTD_PROTO_SET_WAVEFORM
 #include "mock_proto.h"
+#define MOCKED_LGTD_LIFX_WIRE_WAVEFORM_STRING_ID_TO_TYPE
+#include "mock_wire_proto.h"
 
 #include "test_jsonrpc_utils.h"
 
 static bool set_waveform_called = false;
+
+enum lgtd_lifx_waveform_type
+lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
+{
+    return len == 3 && !strncmp(s, "SAW", 3) ?
+        LGTD_LIFX_WAVEFORM_SAW : LGTD_LIFX_WAVEFORM_INVALID;
+}
 
 void
 lgtd_proto_set_waveform(struct lgtd_client *client,

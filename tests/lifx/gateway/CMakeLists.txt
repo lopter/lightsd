@@ -18,7 +18,6 @@ ADD_LIBRARY(
     ${LIGHTSD_SOURCE_DIR}/lifx/broadcast.c
     ${LIGHTSD_SOURCE_DIR}/lifx/bulb.c
     ${LIGHTSD_SOURCE_DIR}/lifx/discovery.c
-    ${LIGHTSD_SOURCE_DIR}/lifx/wire_proto.c
 )
 
 FUNCTION(ADD_GATEWAY_TEST TEST_SOURCE)

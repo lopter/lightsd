@@ -5,11 +5,12 @@
 #include "test_gateway_utils.h"
 #include "mock_log.h"
 #include "mock_timer.h"
+#include "mock_wire_proto.h"
 
 int
 main(void)
 {
-    lgtd_lifx_wire_load_packet_info_map();
+    lgtd_lifx_wire_setup();
 
     struct lgtd_lifx_gateway gw;
     memset(&gw, 0, sizeof(gw));

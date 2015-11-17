@@ -1,6 +1,15 @@
 Changelog
 =========
 
+1.1.1 (2015-11-17)
+------------------
+
+- Greatly improve responsiveness by setting the LIFX source identifier [#]_.
+- Fix parallel builds in the Debian package & fix the homebrew formulae for OS X
+  10.11 (El Capitan).
+
+.. [#] http://lan.developer.lifx.com/docs/header-description#frame
+
 1.1.0 (2015-11-07)
 ------------------
 

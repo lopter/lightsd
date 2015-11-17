@@ -6,6 +6,7 @@
 #include "mock_event2.h"
 #include "mock_log.h"
 #include "mock_timer.h"
+#define MOCKED_LGTD_LIFX_WIRE_ENCODE_TAGS
 #include "mock_wire_proto.h"
 #include "tests_utils.h"
 
@@ -15,6 +16,16 @@
 #include "tests_proto_utils.h"
 
 static bool device_list_free_called = false;
+
+static int lifx_wire_encode_tags_call_count = 0;
+
+void
+lgtd_lifx_wire_encode_tags(struct lgtd_lifx_packet_tags *pkt)
+{
+    (void)pkt;
+
+    lifx_wire_encode_tags_call_count++;
+}
 
 void
 lgtd_router_device_list_free(struct lgtd_router_device_list *devices)
@@ -125,10 +136,16 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
     }
 
     struct lgtd_lifx_packet_tags *pkt_tags = pkt;
-    if (le64toh(pkt_tags->tags) != 0x2) {
+    if (lifx_wire_encode_tags_call_count != 1) {
+        errx(
+            1, "lifx_wire_encode_tags_call_count = %d (expected 1)",
+            lifx_wire_encode_tags_call_count
+        );
+    }
+    if (pkt_tags->tags != 0x2) {
         errx(
             1, "invalid SET_TAGS payload=%#jx (expected %#x)",
-            (uintmax_t)le64toh(pkt_tags->tags), 0x2
+            (uintmax_t)pkt_tags->tags, 0x2
         );
     }
 

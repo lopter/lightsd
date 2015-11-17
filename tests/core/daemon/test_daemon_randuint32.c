@@ -16,7 +16,7 @@ int mock_close(int);
 #include "mock_log.h"
 #include "mock_timer.h"
 
-static const int MOCK_RANDOM_NUMBER = 0x72616e64;
+static const uint32_t MOCK_RANDOM_NUMBER = 0x72616e64;
 
 int mock_open_call_count = 0;
 

@@ -3,7 +3,18 @@
 #include "test_gateway_utils.h"
 #include "mock_log.h"
 #include "mock_timer.h"
+#define MOCKED_LGTD_LIFX_WIRE_ENCODE_TAG_LABELS
 #include "mock_wire_proto.h"
+
+static int lifx_wire_encode_tag_labels_call_count = 0;
+
+void
+lgtd_lifx_wire_encode_tag_labels(struct lgtd_lifx_packet_tag_labels *pkt)
+{
+    (void)pkt;
+
+    lifx_wire_encode_tag_labels_call_count++;
+}
 
 int
 main(void)
@@ -73,11 +84,16 @@ main(void)
 
     struct lgtd_lifx_packet_tag_labels *pkt =
         (void *)&gw_write_buf[sizeof(struct lgtd_lifx_packet_header)];
-    uint64_t tags = le64toh(pkt->tags);
-    if (tags != ~2ULL) {
+    if (lifx_wire_encode_tag_labels_call_count != 1) {
+        errx(
+            1, "lifx_wire_encode_tag_labels_call_count == %d (expected 1)",
+            lifx_wire_encode_tag_labels_call_count
+        );
+    }
+    if (pkt->tags != ~2ULL) {
         errx(
             1, "tags on LGTD_LIFX_SET_TAG_LABELS was %#jx (expected %#jx)",
-            (uintmax_t)tags, (uintmax_t)~2ULL
+            (uintmax_t)pkt->tags, (uintmax_t)~2ULL
         );
     }
     const char blank_label[LGTD_LIFX_LABEL_SIZE] = { 0 };

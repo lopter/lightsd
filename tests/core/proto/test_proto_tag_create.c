@@ -8,6 +8,8 @@
 #include "mock_event2.h"
 #include "mock_log.h"
 #include "mock_timer.h"
+#define MOCKED_LGTD_LIFX_WIRE_ENCODE_TAG_LABELS
+#define MOCKED_LGTD_LIFX_WIRE_ENCODE_TAGS
 #include "mock_wire_proto.h"
 #include "tests_utils.h"
 
@@ -22,6 +24,26 @@ static struct lgtd_router_device_list devices =
     SLIST_HEAD_INITIALIZER(&devices);
 static struct lgtd_router_device_list device_1_only =
     SLIST_HEAD_INITIALIZER(&device_1_only);
+
+static int lifx_wire_encode_tag_labels_call_count = 0;
+
+void
+lgtd_lifx_wire_encode_tag_labels(struct lgtd_lifx_packet_tag_labels *pkt)
+{
+    (void)pkt;
+
+    lifx_wire_encode_tag_labels_call_count++;
+}
+
+static int lifx_wire_encode_tags_call_count = 0;
+
+void
+lgtd_lifx_wire_encode_tags(struct lgtd_lifx_packet_tags *pkt)
+{
+    (void)pkt;
+
+    lifx_wire_encode_tags_call_count++;
+}
 
 static bool send_to_device_called = false;
 
@@ -55,11 +77,16 @@ lgtd_router_send_to_device(struct lgtd_lifx_bulb *bulb,
     }
 
     const struct lgtd_lifx_packet_tags *pkt_tags = pkt;
-    uint64_t tags = le64toh(pkt_tags->tags);
-    if (tags != 0x1) {
+    if (lifx_wire_encode_tags_call_count != 1) {
+        errx(
+            1, "lifx_wire_encode_tags_call_count = %d (expected 1)",
+            lifx_wire_encode_tags_call_count
+        );
+    }
+    if (pkt_tags->tags != 0x1) {
         errx(
             1, "invalid SET_TAGS payload=%#jx (expected %#x)",
-            (uintmax_t)tags, 0x1
+            (uintmax_t)pkt_tags->tags, 0x1
         );
     }
 
@@ -85,11 +112,18 @@ lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,
     }
 
     const struct lgtd_lifx_packet_tag_labels *pkt_tag_labels = pkt;
-    uint64_t tags = le64toh(pkt_tag_labels->tags);
-    if (tags != 0x1) {
-        errx(1, "got tags %#jx (expected %#x)", (uintmax_t)tags, 0x1);
+    if (lifx_wire_encode_tag_labels_call_count != 1) {
+        errx(
+            1, "lifx_wire_encode_tag_labels_call_count = %d (expected 1)",
+            lifx_wire_encode_tag_labels_call_count
+        );
     }
-
+    if (pkt_tag_labels->tags != 0x1) {
+        errx(
+            1, "got tags %#jx (expected %#x)",
+            (uintmax_t)pkt_tag_labels->tags, 0x1
+        );
+    }
     if (strcmp(pkt_tag_labels->label, "dub")) {
         errx(1, "got label %s (expected dub)", pkt_tag_labels->label);
     }

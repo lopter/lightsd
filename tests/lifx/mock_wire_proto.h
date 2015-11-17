@@ -353,11 +353,19 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
                             const uint8_t *site,
                             enum lgtd_lifx_packet_type packet_type)
 {
-    (void)hdr;
     (void)target_type;
     (void)target;
     (void)site;
-    return lgtd_lifx_wire_get_packet_info(packet_type);
+
+    const struct lgtd_lifx_packet_info *pkt_info =
+        lgtd_lifx_wire_get_packet_info(packet_type);
+    hdr->size = pkt_info->size + sizeof(*hdr);
+    hdr->packet_type = packet_type;
+    if (site) {
+        memcpy(hdr->site, site, sizeof(hdr->site));
+    }
+
+    return pkt_info;
 }
 #endif
 

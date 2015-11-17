@@ -414,7 +414,7 @@ lgtd_daemon_randuint32(void)
         close(fd);
         lgtd_err(
             1, "couln't fetch %ju bytes from /dev/urandom",
-            sizeof((uintmax_t)rv)
+            (uintmax_t)sizeof(rv)
         );
     }
 

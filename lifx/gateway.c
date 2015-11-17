@@ -427,7 +427,14 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
 
     evbuffer_add(gw->write_buf, hdr, sizeof(*hdr));
     if (pkt) {
-        assert(pkt_info->size == le16toh(hdr->size) - sizeof(*hdr));
+#ifndef NDEBUG
+        // actually decode the header instead of just calling
+        // le16toh(hdr->size) so it's easier to mock things in the tests:
+        struct lgtd_lifx_packet_header decoded_hdr;
+        memcpy(&decoded_hdr, hdr, sizeof(decoded_hdr));
+        lgtd_lifx_wire_decode_header(&decoded_hdr);
+        assert(pkt_info->size == decoded_hdr.size - sizeof(*hdr));
+#endif
         evbuffer_add(gw->write_buf, pkt, pkt_info->size);
     }
     gw->pkt_ring[gw->pkt_ring_head].size = sizeof(*hdr) + pkt_info->size;

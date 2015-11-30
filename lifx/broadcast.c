@@ -51,104 +51,6 @@ static struct {
 };
 
 static bool
-lgtd_lifx_broadcast_handle_read(void)
-{
-    assert(lgtd_lifx_broadcast_endpoint.socket != -1);
-
-    while (true) {
-        struct sockaddr_storage peer;
-        // if we get back from recvfrom with a sockaddr_in the end of the struct
-        // will not be initialized and we will be comparing unintialized stuff
-        // in lgtd_lifx_gateway_get:
-        memset(&peer, 0, sizeof(peer));
-        ev_socklen_t addrlen = sizeof(peer);
-        union {
-            char buf[LGTD_LIFX_MAX_PACKET_SIZE];
-            struct lgtd_lifx_packet_header hdr;
-        } read;
-        int nbytes = recvfrom(
-            lgtd_lifx_broadcast_endpoint.socket,
-            read.buf,
-            sizeof(read.buf),
-            0,
-            (struct sockaddr *)&peer,
-            &addrlen
-        );
-        if (nbytes == -1) {
-            int error = EVUTIL_SOCKET_ERROR();
-            if (error == EINTR) {
-                continue;
-            }
-            if (error == EAGAIN) {
-                return true;
-            }
-            lgtd_warn("can't receive broadcast packet");
-            return false;
-        }
-
-        lgtd_time_mono_t received_at = lgtd_time_monotonic_msecs();
-        char peer_addr[INET6_ADDRSTRLEN];
-        LGTD_SOCKADDRTOA((const struct sockaddr *)&peer, peer_addr);
-
-        if (nbytes < LGTD_LIFX_PACKET_HEADER_SIZE) {
-            lgtd_warnx("broadcast packet too short from %s", peer_addr);
-            return false;
-        }
-
-        lgtd_lifx_wire_decode_header(&read.hdr);
-        if (read.hdr.size != nbytes) {
-            lgtd_warnx("incomplete broadcast packet from %s", peer_addr);
-            return false;
-        }
-        int proto_version = read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
-        if (proto_version != LGTD_LIFX_PROTOCOL_V1) {
-            lgtd_warnx(
-                "unsupported protocol %d from %s",
-                read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK, peer_addr
-            );
-        }
-        if (read.hdr.packet_type == LGTD_LIFX_GET_PAN_GATEWAY) {
-            continue;
-        }
-
-        const struct lgtd_lifx_packet_info *pkt_info =
-            lgtd_lifx_wire_get_packet_info(read.hdr.packet_type);
-        if (!pkt_info) {
-            lgtd_warnx(
-                "received unknown packet %#x from %s",
-                read.hdr.packet_type, peer_addr
-            );
-            continue;
-        }
-        if (!(read.hdr.protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE)) {
-            lgtd_warnx(
-                "received non-addressable packet %s from %s",
-                pkt_info->name, peer_addr
-            );
-            continue;
-        }
-        struct lgtd_lifx_gateway *gw;
-        gw = lgtd_lifx_gateway_get((struct sockaddr *)&peer, addrlen);
-        if (!gw && read.hdr.packet_type == LGTD_LIFX_PAN_GATEWAY) {
-            gw = lgtd_lifx_gateway_open(
-                (struct sockaddr *)&peer, addrlen, read.hdr.site, received_at
-            );
-            if (!gw) {
-                lgtd_err(1, "can't allocate gateway");
-            }
-        }
-        if (gw) {
-            void *pkt = &read.buf[LGTD_LIFX_PACKET_HEADER_SIZE];
-            gw->last_pkt_at = received_at;
-            pkt_info->decode(pkt);
-            pkt_info->handle(gw, &read.hdr, pkt);
-        } else {
-            lgtd_warnx("got packet from unknown gateway %s", peer_addr);
-        }
-    }
-}
-
-static bool
 lgtd_lifx_broadcast_handle_write(void)
 {
     assert(lgtd_lifx_broadcast_endpoint.socket != -1);
@@ -208,15 +110,11 @@ lgtd_lifx_broadcast_event_callback(evutil_socket_t socket,
         lgtd_warnx("timeout on the udp broadcast socket");
         goto error_reset;
     }
-    if (events & EV_READ) {
-        if (!lgtd_lifx_broadcast_handle_read()) {
-            goto error_reset;
-        }
+    if ((events & EV_READ) && !lgtd_lifx_wire_handle_receive(socket, NULL)) {
+        goto error_reset;
     }
-    if (events & EV_WRITE) {
-        if (!lgtd_lifx_broadcast_handle_write()) {
-            goto error_reset;
-        }
+    if ((events & EV_WRITE) && !lgtd_lifx_broadcast_handle_write()) {
+        goto error_reset;
     }
 
     return;

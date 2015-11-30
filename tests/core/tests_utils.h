@@ -23,7 +23,7 @@ lgtd_tests_lifx_header_has_flags(const struct lgtd_lifx_packet_header *hdr,
         expected_flags |= LGTD_LIFX_FLAG_ACK_REQUIRED;
     }
     if (flags & LGTD_LIFX_RES_REQUIRED) {
-        expected_flags |= LGTD_LIFX_FLAG_ACK_REQUIRED;
+        expected_flags |= LGTD_LIFX_FLAG_RES_REQUIRED;
     }
     if (hdr->flags != expected_flags) {
         return false;

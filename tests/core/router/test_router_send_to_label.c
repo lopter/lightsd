@@ -39,7 +39,9 @@ main(void)
         const void *pkt_queued = lgtd_tests_gw_pkt_queue[0].pkt;
         int pkt_size = lgtd_tests_gw_pkt_queue[0].pkt_size;
 
-        if (!lgtd_tests_lifx_header_has_flags(hdr_queued, LGTD_LIFX_ADDRESSABLE)) {
+
+    int expected_flags = LGTD_LIFX_ADDRESSABLE|LGTD_LIFX_RES_REQUIRED;
+        if (!lgtd_tests_lifx_header_has_flags(hdr_queued, expected_flags)) {
             lgtd_errx(1, "the packet header doesn't have the right protocol flags");
         }
         if (pkt_queued != &payload) {

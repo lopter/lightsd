@@ -12,7 +12,7 @@ main(void)
 
     struct lgtd_lifx_gateway gw;
     memset(&gw, 0, sizeof(gw));
-    gw.write_ev = (void *)42;
+    gw.socket_ev = (void *)42;
 
     struct lgtd_lifx_packet_power_state pkt;
     pkt.power = LGTD_LIFX_POWER_ON;
@@ -58,8 +58,8 @@ main(void)
         errx(1, "packet ring shouldn't be full");
     }
 
-    if (last_event_passed_to_event_add != gw.write_ev) {
-        errx(1, "event_add should have been called with gw.write_ev");
+    if (last_event_passed_to_event_add != gw.socket_ev) {
+        errx(1, "event_add should have been called with gw.socket_ev");
     }
 
     return 0;

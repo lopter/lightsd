@@ -75,7 +75,7 @@ struct lgtd_lifx_gateway {
     int                             pkt_ring_head;
     int                             pkt_ring_tail;
     bool                            pkt_ring_full;
-    struct event                    *write_ev;
+    struct event                    *socket_ev;
     struct evbuffer                 *write_buf;
     bool                            pending_refresh_req;
     struct lgtd_timer               *refresh_timer;
@@ -125,6 +125,14 @@ void lgtd_lifx_gateway_update_tag_refcounts(struct lgtd_lifx_gateway *, uint64_t
 int lgtd_lifx_gateway_get_tag_id(const struct lgtd_lifx_gateway *, const struct lgtd_lifx_tag *);
 int lgtd_lifx_gateway_allocate_tag_id(struct lgtd_lifx_gateway *, int, const char *);
 void lgtd_lifx_gateway_deallocate_tag_id(struct lgtd_lifx_gateway *, int);
+
+void lgtd_lifx_gateway_handle_packet(struct lgtd_lifx_gateway *,
+                                     const struct sockaddr *,
+                                     ev_socklen_t,
+                                     const struct lgtd_lifx_packet_info *,
+                                     const struct lgtd_lifx_packet_header *,
+                                     const void *,
+                                     lgtd_time_mono_t);
 
 void lgtd_lifx_gateway_handle_pan_gateway(struct lgtd_lifx_gateway *,
                                           const struct lgtd_lifx_packet_header *,

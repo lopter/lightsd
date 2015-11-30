@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <endian.h>
 #include <err.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -78,7 +79,7 @@ lgtd_lifx_wire_null_packet_handler(struct lgtd_lifx_gateway *gw,
     (void)pkt;
 }
 
-static void
+void
 lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
                                      const struct lgtd_lifx_packet_header *hdr,
                                      const void *pkt)
@@ -736,6 +737,93 @@ lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
     return LGTD_LIFX_WAVEFORM_INVALID;
 }
 
+bool
+lgtd_lifx_wire_handle_receive(evutil_socket_t socket,
+                              struct lgtd_lifx_gateway *gw)
+{
+    assert(socket != -1);
+
+    while (true) {
+        struct sockaddr_storage peer;
+        // if we get back from recvfrom with a sockaddr_in the end of the struct
+        // will not be initialized and we will be comparing unintialized stuff
+        // in lgtd_lifx_gateway_get:
+        memset(&peer, 0, sizeof(peer));
+        ev_socklen_t addrlen = sizeof(peer);
+        union {
+            char buf[LGTD_LIFX_MAX_PACKET_SIZE];
+            struct lgtd_lifx_packet_header hdr;
+        } read;
+        int nbytes = recvfrom(
+            socket,
+            read.buf,
+            sizeof(read.buf),
+            0,
+            (struct sockaddr *)&peer,
+            &addrlen
+        );
+        if (nbytes == -1) {
+            int error = EVUTIL_SOCKET_ERROR();
+            if (error == EINTR) {
+                continue;
+            }
+            if (error == EAGAIN) {
+                return true;
+            }
+            lgtd_warn("can't receive LIFX packet");
+            return false;
+        }
+
+        lgtd_time_mono_t received_at = lgtd_time_monotonic_msecs();
+        char peer_addr[INET6_ADDRSTRLEN];
+        LGTD_SOCKADDRTOA((const struct sockaddr *)&peer, peer_addr);
+
+        if (nbytes < LGTD_LIFX_PACKET_HEADER_SIZE) {
+            lgtd_warnx("broadcast packet too short from %s", peer_addr);
+            return false;
+        }
+
+        lgtd_lifx_wire_decode_header(&read.hdr);
+        if (read.hdr.size != nbytes) {
+            lgtd_warnx("incomplete broadcast packet from %s", peer_addr);
+            return false;
+        }
+        int proto_version = read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
+        if (proto_version != LGTD_LIFX_PROTOCOL_V1) {
+            lgtd_warnx(
+                "unsupported protocol %d from %s",
+                read.hdr.protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK, peer_addr
+            );
+        }
+        if (read.hdr.packet_type == LGTD_LIFX_GET_PAN_GATEWAY) {
+            continue;
+        }
+
+        const struct lgtd_lifx_packet_info *pkt_info =
+            lgtd_lifx_wire_get_packet_info(read.hdr.packet_type);
+        if (!pkt_info) {
+            lgtd_warnx(
+                "received unknown packet %#x from %s",
+                read.hdr.packet_type, peer_addr
+            );
+            continue;
+        }
+        if (!(read.hdr.protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE)) {
+            lgtd_warnx(
+                "received non-addressable packet %s from %s",
+                pkt_info->name, peer_addr
+            );
+            continue;
+        }
+        void *pkt = &read.buf[LGTD_LIFX_PACKET_HEADER_SIZE];
+        pkt_info->decode(pkt);
+        struct sockaddr *addr = (struct sockaddr *)&peer;
+        lgtd_lifx_gateway_handle_packet(
+            gw, addr, addrlen, pkt_info, &read.hdr, pkt, received_at
+        );
+    }
+}
+
 static void
 lgtd_lifx_wire_encode_header(struct lgtd_lifx_packet_header *hdr, int flags)
 {
@@ -807,7 +895,7 @@ lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *hdr,
         assert(target_type == LGTD_LIFX_TARGET_ALL_DEVICES);
     }
 
-    int flags = LGTD_LIFX_ADDRESSABLE;
+    int flags = LGTD_LIFX_ADDRESSABLE|LGTD_LIFX_RES_REQUIRED;
     switch (target_type) {
     case LGTD_LIFX_TARGET_SITE:
     case LGTD_LIFX_TARGET_ALL_DEVICES:

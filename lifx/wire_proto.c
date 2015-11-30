@@ -90,10 +90,12 @@ lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
     bool addressable = hdr->protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE;
     bool tagged = hdr->protocol & LGTD_LIFX_PROTOCOL_TAGGED;
     unsigned int protocol = hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
+    char target[LGTD_LIFX_ADDR_STRLEN];
+    LGTD_LIFX_WIRE_PRINT_TARGET(hdr, target);
     lgtd_info(
         "%s <-- %s - (Unimplemented, header info: "
-        "addressable=%d, tagged=%d, protocol=%d)",
-        pkt_info->name, gw->peeraddr, addressable, tagged, protocol
+        "addressable=%d, tagged=%d, protocol=%d, target=%s",
+        pkt_info->name, gw->peeraddr, addressable, tagged, protocol, target
     );
 }
 
@@ -356,6 +358,21 @@ lgtd_lifx_wire_load_packet_info_map(void)
         },
         {
             UNIMPLEMENTED,
+            .name = "GET_DUMMY_PAYLOAD",
+            .type = LGTD_LIFX_GET_DUMMY_PAYLOAD
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_DUMMY_PAYLOAD",
+            .type = LGTD_LIFX_SET_DUMMY_PAYLOAD
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_DUMMY_PAYLOAD",
+            .type = LGTD_LIFX_STATE_DUMMY_PAYLOAD
+        },
+        {
+            UNIMPLEMENTED,
             .name = "GET_BULB_LABEL",
             .type = LGTD_LIFX_GET_BULB_LABEL
         },
@@ -386,8 +403,88 @@ lgtd_lifx_wire_load_packet_info_map(void)
         },
         {
             UNIMPLEMENTED,
+            .name = "STATE_FACTORY_TEST_MODE",
+            .type = LGTD_LIFX_STATE_FACTORY_TEST_MODE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_SITE",
+            .type = LGTD_LIFX_STATE_SITE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_REBOOT",
+            .type = LGTD_LIFX_STATE_REBOOT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_PAN_GATEWAY",
+            .type = LGTD_LIFX_SET_PAN_GATEWAY
+        },
+        {
+            UNIMPLEMENTED,
             .name = "ACK",
             .type = LGTD_LIFX_ACK
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_FACTORY_RESET",
+            .type = LGTD_LIFX_SET_FACTORY_RESET
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_FACTORY_RESET",
+            .type = LGTD_LIFX_STATE_FACTORY_RESET
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_LOCATION",
+            .type = LGTD_LIFX_GET_LOCATION
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_LOCATION",
+            .type = LGTD_LIFX_SET_LOCATION
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_LOCATION",
+            .type = LGTD_LIFX_STATE_LOCATION
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_GROUP",
+            .type = LGTD_LIFX_GET_GROUP
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_GROUP",
+            .type = LGTD_LIFX_SET_GROUP
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_GROUP",
+            .type = LGTD_LIFX_STATE_GROUP
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_OWNER",
+            .type = LGTD_LIFX_GET_OWNER
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_OWNER",
+            .type = LGTD_LIFX_SET_OWNER
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_OWNER",
+            .type = LGTD_LIFX_STATE_OWNER
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_FACTORY_TEST_MODE",
+            .type = LGTD_LIFX_GET_FACTORY_TEST_MODE
         },
         {
             UNIMPLEMENTED,
@@ -408,6 +505,126 @@ lgtd_lifx_wire_load_packet_info_map(void)
             UNIMPLEMENTED,
             .name = "SET_DIM_RELATIVE",
             .type = LGTD_LIFX_SET_DIM_RELATIVE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_RGBW",
+            .type = LGTD_LIFX_SET_RGBW
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_RAIL_VOLTAGE",
+            .type = LGTD_LIFX_GET_RAIL_VOLTAGE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_RAIL_VOLTAGE",
+            .type = LGTD_LIFX_STATE_RAIL_VOLTAGE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_TEMPERATURE",
+            .type = LGTD_LIFX_GET_TEMPERATURE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_TEMPERATURE",
+            .type = LGTD_LIFX_STATE_TEMPERATURE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_CALIBRATION_COEFFICIENTS",
+            .type = LGTD_LIFX_SET_CALIBRATION_COEFFICIENTS
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_SIMPLE_EVENT",
+            .type = LGTD_LIFX_SET_SIMPLE_EVENT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_SIMPLE_EVENT",
+            .type = LGTD_LIFX_GET_SIMPLE_EVENT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_SIMPLE_EVENT",
+            .type = LGTD_LIFX_STATE_SIMPLE_EVENT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_POWER",
+            .type = LGTD_LIFX_GET_POWER
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_POWER",
+            .type = LGTD_LIFX_SET_POWER
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_POWER",
+            .type = LGTD_LIFX_STATE_POWER
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_WAVEFORM_OPTIONAL",
+            .type = LGTD_LIFX_SET_WAVEFORM_OPTIONAL
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "CONNECT_PLAIN",
+            .type = LGTD_LIFX_CONNECT_PLAIN
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "CONNECT_KEY",
+            .type = LGTD_LIFX_CONNECT_KEY
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_CONNECT",
+            .type = LGTD_LIFX_STATE_CONNECT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_AUTH_KEY",
+            .type = LGTD_LIFX_GET_AUTH_KEY
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_AUTH_KEY",
+            .type = LGTD_LIFX_SET_AUTH_KEY
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_AUTH_KEY",
+            .type = LGTD_LIFX_STATE_AUTH_KEY
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_KEEP_ALIVE",
+            .type = LGTD_LIFX_SET_KEEP_ALIVE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_KEEP_ALIVE",
+            .type = LGTD_LIFX_STATE_KEEP_ALIVE
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_HOST",
+            .type = LGTD_LIFX_SET_HOST
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_HOST",
+            .type = LGTD_LIFX_GET_HOST
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_HOST",
+            .type = LGTD_LIFX_STATE_HOST
         },
         {
             UNIMPLEMENTED,
@@ -436,8 +653,23 @@ lgtd_lifx_wire_load_packet_info_map(void)
         },
         {
             UNIMPLEMENTED,
-            .name = "ACCESS_POINT",
-            .type = LGTD_LIFX_ACCESS_POINT
+            .name = "STATE_ACCESS_POINTS",
+            .type = LGTD_LIFX_STATE_ACCESS_POINTS
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "GET_ACCESS_POINT",
+            .type = LGTD_LIFX_GET_ACCESS_POINT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "STATE_ACCESS_POINT",
+            .type = LGTD_LIFX_STATE_ACCESS_POINT
+        },
+        {
+            UNIMPLEMENTED,
+            .name = "SET_ACCESS_POINT_BROADCAST",
+            .type = LGTD_LIFX_SET_ACCESS_POINT_BROADCAST
         },
         {
             UNIMPLEMENTED,

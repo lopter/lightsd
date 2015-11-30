@@ -97,6 +97,14 @@ struct lgtd_lifx_packet_header {
     uint8_t         reserved[2];
 };
 
+#define LGTD_LIFX_WIRE_PRINT_TARGET(hdr, buf) do {                              \
+    if ((hdr)->protocol & LGTD_LIFX_PROTOCOL_TAGGED) {                          \
+        snprintf((buf), sizeof((buf)), "%#jx", (uintmax_t)(hdr)->target.tags);  \
+    } else {                                                                    \
+        LGTD_IEEE8023MACTOA((hdr)->target.device_addr, (buf));                  \
+    }                                                                           \
+} while (0)
+
 enum { LGTD_LIFX_PACKET_HEADER_SIZE = sizeof(struct lgtd_lifx_packet_header) };
 
 enum lgtd_lifx_protocol {
@@ -123,7 +131,7 @@ enum lgtd_lifx_flags {
 // headers:
 enum { LGTD_LIFX_MAX_PACKET_SIZE = 4096 };
 
-enum lgtd_lifx_packet_type {
+enum lgtd_lifx_packet_type { // FIXME: normalize and prefix everything correctly
     // Device
     LGTD_LIFX_SET_SITE = 0x01,
     LGTD_LIFX_GET_PAN_GATEWAY = 0x02,
@@ -133,6 +141,9 @@ enum lgtd_lifx_packet_type {
     LGTD_LIFX_TIME_STATE = 0x06,
     LGTD_LIFX_GET_RESET_SWITCH_STATE = 0x07,
     LGTD_LIFX_RESET_SWITCH_STATE = 0x08,
+    LGTD_LIFX_GET_DUMMY_PAYLOAD = 0x09,
+    LGTD_LIFX_SET_DUMMY_PAYLOAD = 0x0a,
+    LGTD_LIFX_STATE_DUMMY_PAYLOAD = 0x0b,
     LGTD_LIFX_GET_MESH_INFO = 0x0c,
     LGTD_LIFX_MESH_INFO = 0x0d,
     LGTD_LIFX_GET_MESH_FIRMWARE = 0x0e,
@@ -162,11 +173,23 @@ enum lgtd_lifx_packet_type {
     LGTD_LIFX_REBOOT = 0x26,
     LGTD_LIFX_SET_FACTORY_TEST_MODE = 0x27,
     LGTD_LIFX_DISABLE_FACTORY_TEST_MODE = 0x28,
+    LGTD_LIFX_STATE_FACTORY_TEST_MODE = 0x29,
+    LGTD_LIFX_STATE_SITE = 0x2a,
+    LGTD_LIFX_STATE_REBOOT = 0x2b,
+    LGTD_LIFX_SET_PAN_GATEWAY = 0x2c,
     LGTD_LIFX_ACK = 0x2d,
-    LGTD_LIFX_GET_LOCATION = 0x30, // I wonder what 0x31 and 0x34 are...
+    LGTD_LIFX_SET_FACTORY_RESET = 0x2e,
+    LGTD_LIFX_STATE_FACTORY_RESET = 0x2f,
+    LGTD_LIFX_GET_LOCATION = 0x30,
+    LGTD_LIFX_SET_LOCATION = 0x31,
     LGTD_LIFX_STATE_LOCATION = 0x32,
     LGTD_LIFX_GET_GROUP = 0x33, // TODO: replace GET/SET_TAG_LABELS ?
+    LGTD_LIFX_SET_GROUP = 0x34,
     LGTD_LIFX_STATE_GROUP = 0x35,
+    LGTD_LIFX_GET_OWNER = 0x36,
+    LGTD_LIFX_SET_OWNER = 0x37,
+    LGTD_LIFX_STATE_OWNER = 0x38,
+    LGTD_LIFX_GET_FACTORY_TEST_MODE = 0x39,
     LGTD_LIFX_ECHO_REQUEST = 0x3a,
     LGTD_LIFX_ECHO_RESPONSE = 0x3b,
     // Light
@@ -175,21 +198,42 @@ enum lgtd_lifx_packet_type {
     LGTD_LIFX_SET_WAVEFORM = 0x67,
     LGTD_LIFX_SET_DIM_ABSOLUTE = 0x68,
     LGTD_LIFX_SET_DIM_RELATIVE = 0x69,
+    LGTD_LIFX_SET_RGBW = 0x6a,
     LGTD_LIFX_LIGHT_STATUS = 0x6b,
+    LGTD_LIFX_GET_RAIL_VOLTAGE = 0x6c,
+    LGTD_LIFX_STATE_RAIL_VOLTAGE = 0x6d,
+    LGTD_LIFX_GET_TEMPERATURE = 0x6e,
+    LGTD_LIFX_STATE_TEMPERATURE = 0x6f,
+    LGTD_LIFX_SET_CALIBRATION_COEFFICIENTS = 0x70,
+    LGTD_LIFX_SET_SIMPLE_EVENT = 0x71,
+    LGTD_LIFX_GET_SIMPLE_EVENT = 0x72,
+    LGTD_LIFX_STATE_SIMPLE_EVENT = 0x73,
+    LGTD_LIFX_GET_POWER = 0x74,
+    LGTD_LIFX_SET_POWER = 0x75,
+    LGTD_LIFX_STATE_POWER = 0x76,
+    LGTD_LIFX_SET_WAVEFORM_OPTIONAL = 0x77,
     // Wan
     LGTD_LIFX_CONNECT_PLAIN = 0xc9,
     LGTD_LIFX_CONNECT_KEY = 0xca,
     LGTD_LIFX_STATE_CONNECT = 0xcb,
-    LGTD_LIFX_SUB = 0xcc,
-    LGTD_LIFX_UNSUB = 0xcd,
-    LGTD_LIFX_STATE_SUB = 0xcd,
+    LGTD_LIFX_GET_AUTH_KEY = 0xcc,
+    LGTD_LIFX_SET_AUTH_KEY = 0xcd,
+    LGTD_LIFX_STATE_AUTH_KEY = 0xce,
+    LGTD_LIFX_SET_KEEP_ALIVE = 0xcf,
+    LGTD_LIFX_STATE_KEEP_ALIVE = 0xd0,
+    LGTD_LIFX_SET_HOST = 0xd1,
+    LGTD_LIFX_GET_HOST = 0xd2,
+    LGTD_LIFX_STATE_HOST = 0xd3,
     // Wifi
     LGTD_LIFX_GET_WIFI_STATE = 0x12d,
     LGTD_LIFX_SET_WIFI_STATE = 0x12e,
     LGTD_LIFX_WIFI_STATE = 0x12f,
     LGTD_LIFX_GET_ACCESS_POINTS = 0x130,
     LGTD_LIFX_SET_ACCESS_POINTS = 0x131,
-    LGTD_LIFX_ACCESS_POINT = 0x132,
+    LGTD_LIFX_STATE_ACCESS_POINTS = 0x132,
+    LGTD_LIFX_GET_ACCESS_POINT = 0x133,
+    LGTD_LIFX_STATE_ACCESS_POINT = 0x134,
+    LGTD_LIFX_SET_ACCESS_POINT_BROADCAST = 0x135,
     // Sensor
     LGTD_LIFX_GET_AMBIENT_LIGHT = 0x191,
     LGTD_LIFX_STATE_AMBIENT_LIGHT = 0x192,

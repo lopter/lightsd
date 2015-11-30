@@ -13,17 +13,30 @@ bulb(s) the operation should apply. The target argument is either a string
 (identifying a target as explained in the following table), or an array of
 strings (targets).
 
-+-----------------------------+-----------------------------------------------+
-| ``*``                       | targets all bulbs                             |
-+-----------------------------+-----------------------------------------------+
-| ``#TagName``                | targets bulbs tagged with *TagName*           |
-+-----------------------------+-----------------------------------------------+
-| ``124f31a5``                | directly target the bulb with the given id    |
-+-----------------------------+-----------------------------------------------+
-| ``label``                   | directly target the bulb with the given label |
-+-----------------------------+-----------------------------------------------+
-| ``[#TagName, 123f31a5]``    | composite target (JSON array)                 |
-+-----------------------------+-----------------------------------------------+
++-----------------------------+------------------------------------------------+
+| ``*``                       | targets all bulbs                              |
++-----------------------------+------------------------------------------------+
+| ``#TagName``                | targets bulbs tagged with *TagName*            |
++-----------------------------+------------------------------------------------+
+| ``124f31a5``                | directly target the bulb with the given id     |
+|                             | (mac addr, see below)                          |
++-----------------------------+------------------------------------------------+
+| ``label``                   | directly target the bulb with the given Label  |
++-----------------------------+------------------------------------------------+
+| ``[#TagName, 123f31a5]``    | composite target (JSON array)                  |
++-----------------------------+------------------------------------------------+
+
+The mac address (id) of each bulb can be found with get_light_state_ under the
+``_lifx`` map, e.g:
+
+::
+
+   "_lifx": {
+       "addr": "d0:73:d5:02:e5:30",
+       "gateway": {
+           […]
+
+This bulb has id ``d073d502e530``.
 
 .. note::
 

@@ -19,6 +19,18 @@ lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
 }
 #endif
 
+#ifndef MOCKED_LGTD_LIFX_WIRE_ENOSYS_PACKET_HANDLER
+void
+lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
+                                     const struct lgtd_lifx_packet_header *hdr,
+                                     const void *pkt)
+{
+    (void)gw;
+    (void)hdr;
+    (void)pkt;
+}
+#endif
+
 #ifndef MOCKED_LGTD_LIFX_WIRE_NULL_PACKET_ENCODER_DECODER
 static void
 lgtd_lifx_wire_null_packet_encoder_decoder(void *pkt)
@@ -572,6 +584,17 @@ lgtd_lifx_wire_get_packet_info(enum lgtd_lifx_packet_type packet_type)
     }
 
     return NULL;
+}
+#endif
+
+#ifndef MOCKED_LGTD_LIFX_WIRE_HANDLE_RECEIVE
+bool
+lgtd_lifx_wire_handle_receive(evutil_socket_t socket,
+                              struct lgtd_lifx_gateway *gw)
+{
+    (void)socket;
+    (void)gw;
+    return false;
 }
 #endif
 

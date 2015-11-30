@@ -53,7 +53,7 @@ main(void)
 
     // fake some values:
     gw.socket = 25;
-    gw.write_ev = (void *)21;
+    gw.socket_ev = (void *)21;
     gw.write_buf = (void *)42;
 
     int pkt_ring_last_idx = LGTD_ARRAY_SIZE(gw.pkt_ring) - 1;
@@ -63,7 +63,7 @@ main(void)
     gw.pkt_ring[pkt_ring_last_idx].size += sizeof(struct lgtd_lifx_packet_power_state);
     gw.pkt_ring[pkt_ring_last_idx].type = LGTD_LIFX_SET_POWER_STATE;
 
-    lgtd_lifx_gateway_write_callback(-1, EV_WRITE, &gw);
+    lgtd_lifx_gateway_socket_event_callback(-1, EV_WRITE, &gw);
 
     if (gw.pkt_ring[pkt_ring_last_idx].size != 0
         || gw.pkt_ring[pkt_ring_last_idx].type != 0) {

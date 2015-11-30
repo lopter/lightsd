@@ -59,12 +59,12 @@ lgtd_lifx_gateway_close(struct lgtd_lifx_gateway *gw)
 
     LGTD_STATS_ADD_AND_UPDATE_PROCTITLE(gateways, -1);
     lgtd_timer_stop(gw->refresh_timer);
-    event_del(gw->write_ev);
+    event_del(gw->socket_ev);
     if (gw->socket != -1) {
         evutil_closesocket(gw->socket);
         LIST_REMOVE(gw, link);
     }
-    event_free(gw->write_ev);
+    event_free(gw->socket_ev);
     evbuffer_free(gw->write_buf);
     for (int i = 0; i != LGTD_LIFX_GATEWAY_MAX_TAGS; i++) {
         if (gw->tags[i]) {
@@ -102,9 +102,62 @@ lgtd_lifx_gateway_remove_and_close_bulb(struct lgtd_lifx_gateway *gw,
     lgtd_lifx_bulb_close(bulb);
 }
 
+void
+lgtd_lifx_gateway_handle_packet(struct lgtd_lifx_gateway *gw,
+                                const struct sockaddr *peer,
+                                ev_socklen_t addrlen,
+                                const struct lgtd_lifx_packet_info *pkt_info,
+                                const struct lgtd_lifx_packet_header *hdr,
+                                const void *pkt,
+                                lgtd_time_mono_t received_at)
+{
+    assert(peer);
+    assert(addrlen);
+    assert(pkt_info);
+    assert(hdr);
+    assert(pkt);
+    assert(received_at);
+
+    if (gw) {
+        assert(gw->peerlen == addrlen);
+        assert(!memcmp(peer, gw->peer, addrlen));
+    } else {
+        gw = lgtd_lifx_gateway_get(peer, addrlen);
+        if (!gw && hdr->packet_type == LGTD_LIFX_PAN_GATEWAY) {
+            gw = lgtd_lifx_gateway_open(peer, addrlen, hdr->site, received_at);
+            if (!gw) {
+                lgtd_warn("can't allocate gateway");
+                return;
+            }
+        }
+    }
+
+    if (gw) {
+        // gw->last_pkt_at is used to compute timeouts based on known
+        // traffic only:
+        if (pkt_info->handle != lgtd_lifx_wire_enosys_packet_handler) {
+            gw->last_pkt_at = received_at;
+        }
+        pkt_info->handle(gw, hdr, pkt);
+    } else {
+        bool addressable = hdr->protocol & LGTD_LIFX_PROTOCOL_ADDRESSABLE;
+        bool tagged = hdr->protocol & LGTD_LIFX_PROTOCOL_TAGGED;
+        unsigned int protocol = hdr->protocol & LGTD_LIFX_PROTOCOL_VERSION_MASK;
+        char target[LGTD_LIFX_ADDR_STRLEN], peer_addr[INET6_ADDRSTRLEN];
+        LGTD_LIFX_WIRE_PRINT_TARGET(hdr, target);
+        LGTD_SOCKADDRTOA(peer, peer_addr);
+        lgtd_info(
+            "%s <-- %s - (Packet from unknown client or gateway, header "
+            "info: addressable=%d, tagged=%d, protocol=%d, target=%s)",
+            pkt_info->name, peer_addr, addressable, tagged, protocol, target
+        );
+    }
+}
+
 static void
-lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
-                                 short events, void *ctx)
+lgtd_lifx_gateway_socket_event_callback(evutil_socket_t socket,
+                                        short events,
+                                        void *ctx)
 {
     (void)socket;
 
@@ -114,11 +167,14 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
 
     if (events & EV_TIMEOUT) {  // Not sure how that could happen in UDP but eh.
         lgtd_warn("lost connection with gateway bulb %s", gw->peeraddr);
-        lgtd_lifx_gateway_close(gw);
-        if (!lgtd_lifx_broadcast_discovery()) {
-            lgtd_err(1, "can't start auto discovery");
+        goto drop_gw_and_restart_discovery;
+    }
+
+    if (events & EV_READ) {
+        bool ok = lgtd_lifx_wire_handle_receive(gw->socket, gw);
+        if (!ok) {
+            goto drop_gw_and_restart_discovery;
         }
-        return;
     }
 
     if (events & EV_WRITE) {
@@ -129,11 +185,7 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
         int nbytes = evbuffer_write_atmost(gw->write_buf, gw->socket, to_write);
         if (nbytes == -1 && errno != EAGAIN) {
             lgtd_warn("can't write to %s", gw->peeraddr);
-            lgtd_lifx_gateway_close(gw);
-            if (!lgtd_lifx_broadcast_discovery()) {
-                lgtd_err(1, "can't start auto discovery");
-            }
-            return;
+            goto drop_gw_and_restart_discovery;
         }
 
         // Callbacks are called in any order, so we keep two timers to make
@@ -156,9 +208,18 @@ lgtd_lifx_gateway_write_callback(evutil_socket_t socket,
         }
 
         if (!evbuffer_get_length(gw->write_buf)) {
-            event_del(gw->write_ev);
+            event_del(gw->socket_ev);
         }
     }
+
+    return;
+
+drop_gw_and_restart_discovery:
+    lgtd_lifx_gateway_close(gw);
+    if (!lgtd_lifx_broadcast_discovery()) {
+        lgtd_err(1, "can't start auto discovery");
+    }
+    return;
 }
 
 static bool
@@ -311,15 +372,15 @@ lgtd_lifx_gateway_open(const struct sockaddr *peer,
         goto error_connect;
     }
 
-    gw->write_ev = event_new(
+    gw->socket_ev = event_new(
         lgtd_ev_base,
         gw->socket,
-        EV_WRITE|EV_PERSIST,
-        lgtd_lifx_gateway_write_callback,
+        EV_READ|EV_WRITE|EV_PERSIST,
+        lgtd_lifx_gateway_socket_event_callback,
         gw
     );
     gw->write_buf = evbuffer_new();
-    if (!gw->write_ev || !gw->write_buf) {
+    if (!gw->socket_ev || !gw->write_buf) {
         goto error_allocate;
     }
     gw->peer = malloc(addrlen);
@@ -364,8 +425,8 @@ lgtd_lifx_gateway_open(const struct sockaddr *peer,
 
 error_allocate:
     lgtd_warn("can't allocate a new gateway bulb");
-    if (gw->write_ev) {
-        event_free(gw->write_ev);
+    if (gw->socket_ev) {
+        event_free(gw->socket_ev);
     }
     if (gw->write_buf) {
         evbuffer_free(gw->write_buf);
@@ -443,7 +504,7 @@ lgtd_lifx_gateway_enqueue_packet(struct lgtd_lifx_gateway *gw,
     if (gw->pkt_ring_head == gw->pkt_ring_tail) {
         gw->pkt_ring_full = true;
     }
-    event_add(gw->write_ev, NULL);
+    event_add(gw->socket_ev, NULL);
 }
 
 void
@@ -689,8 +750,6 @@ lgtd_lifx_gateway_handle_tag_labels(struct lgtd_lifx_gateway *gw,
                                     const struct lgtd_lifx_packet_header *hdr,
                                     const struct lgtd_lifx_packet_tag_labels *pkt)
 {
-    assert(gw && hdr && pkt);
-
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_TAG_LABELS <-- %s - %s label=%.*s, tags=%jx",
@@ -713,8 +772,6 @@ lgtd_lifx_gateway_handle_tags(struct lgtd_lifx_gateway *gw,
                               const struct lgtd_lifx_packet_header *hdr,
                               const struct lgtd_lifx_packet_tags *pkt)
 {
-    assert(gw && hdr && pkt);
-
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "SET_TAGS <-- %s - %s tags=%#jx",
@@ -748,8 +805,6 @@ lgtd_lifx_gateway_handle_ip_state(struct lgtd_lifx_gateway *gw,
                                   const struct lgtd_lifx_packet_header *hdr,
                                   const struct lgtd_lifx_packet_ip_state *pkt)
 {
-    assert(gw && hdr && pkt);
-
     const char  *type;
     enum lgtd_lifx_bulb_ips ip_id;
     switch (hdr->packet_type) {
@@ -788,8 +843,6 @@ lgtd_lifx_gateway_handle_ip_firmware_info(struct lgtd_lifx_gateway *gw,
                                           const struct lgtd_lifx_packet_header *hdr,
                                           const struct lgtd_lifx_packet_ip_firmware_info *pkt)
 {
-    assert(gw && hdr && pkt);
-
     const char  *type;
     enum lgtd_lifx_bulb_ips ip_id;
     switch (hdr->packet_type) {
@@ -830,8 +883,6 @@ lgtd_lifx_gateway_handle_product_info(struct lgtd_lifx_gateway *gw,
                                       const struct lgtd_lifx_packet_header *hdr,
                                       const struct lgtd_lifx_packet_product_info *pkt)
 {
-    assert(gw && hdr && pkt);
-
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "PRODUCT_INFO <-- %s - %s "
@@ -851,8 +902,6 @@ lgtd_lifx_gateway_handle_runtime_info(struct lgtd_lifx_gateway *gw,
                                       const struct lgtd_lifx_packet_header *hdr,
                                       const struct lgtd_lifx_packet_runtime_info *pkt)
 {
-    assert(gw && hdr && pkt);
-
     char device_time[64], uptime[64], downtime[64], addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "PRODUCT_INFO <-- %s - %s time=%s, uptime=%s, downtime=%s",
@@ -873,8 +922,6 @@ lgtd_lifx_gateway_handle_bulb_label(struct lgtd_lifx_gateway *gw,
                                     const struct lgtd_lifx_packet_header *hdr,
                                     const struct lgtd_lifx_packet_label *pkt)
 {
-    assert(gw && hdr && pkt);
-
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "BULB_LABEL <-- %s - %s label=%.*s",
@@ -892,8 +939,6 @@ lgtd_lifx_gateway_handle_ambient_light(struct lgtd_lifx_gateway *gw,
                                        const struct lgtd_lifx_packet_header *hdr,
                                        const struct lgtd_lifx_packet_ambient_light *pkt)
 {
-    assert(gw && hdr && pkt);
-
     char addr[LGTD_LIFX_ADDR_STRLEN];
     lgtd_debug(
         "AMBIENT_LIGHT <-- %s - %s ambient_light=%flx",

@@ -68,7 +68,7 @@ main(void)
     gw.pkt_ring_head++;
     gw.pkt_ring_head++;
 
-    lgtd_lifx_gateway_write_callback(-1, EV_WRITE, &gw);
+    lgtd_lifx_gateway_socket_event_callback(-1, EV_WRITE, &gw);
 
     if (gw.pkt_ring[0].type != LGTD_LIFX_SET_POWER_STATE) {
         errx(1, "the ring entry doesn't have the right packet type");
@@ -86,7 +86,7 @@ main(void)
         errx(1, "event_del shouldn't have ben called");
     }
 
-    lgtd_lifx_gateway_write_callback(-1, EV_WRITE, &gw);
+    lgtd_lifx_gateway_socket_event_callback(-1, EV_WRITE, &gw);
 
     if (gw.pkt_ring[0].size != 0 || gw.pkt_ring[0].type != 0) {
         errx(1, "the ring entry should have been reset");

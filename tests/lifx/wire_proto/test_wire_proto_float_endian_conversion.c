@@ -1,7 +1,9 @@
 #include <sys/tree.h>
-
 #include <endian.h>
+#include <stdbool.h>
 #include <stdint.h>
+
+#include <event2/util.h>
 
 #include "lifx/wire_proto.h"
 

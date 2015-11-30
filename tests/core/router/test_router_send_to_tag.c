@@ -39,7 +39,8 @@ main(void)
         lgtd_errx(1, "the packet has been sent to the wrong gateway");
     }
 
-    int expected_flags = LGTD_LIFX_ADDRESSABLE|LGTD_LIFX_TAGGED;
+    int expected_flags =
+        LGTD_LIFX_ADDRESSABLE|LGTD_LIFX_TAGGED|LGTD_LIFX_RES_REQUIRED;
     if (!lgtd_tests_lifx_header_has_flags(hdr_queued, expected_flags)) {
         lgtd_errx(1, "the packet header doesn't have the right protocol flags");
     }

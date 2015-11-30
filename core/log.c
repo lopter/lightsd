@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <event2/util.h>
+
 #include "lifx/wire_proto.h"
 #include "stats.h"
 #include "console.h"

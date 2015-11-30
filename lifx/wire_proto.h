@@ -88,7 +88,12 @@ struct lgtd_lifx_packet_header {
     //! - res required: true when a response is required (the response type
     //!   depends on the request type).
     uint8_t         flags;
-    //! Wrap-around sequence number, LIFX internal use.
+    //! The sequence number allows the client to provide a unique value, which
+    //! will be included by the LIFX device in any message that is sent in
+    //! response to a message sent by the client. This allows the client to
+    //! distinguish between different messages sent with the same source
+    //! identifier in the Frame. See _ack_required_ and _res_required_ fields in
+    //! the Frame Address.
     uint8_t         seqn;
     //! Apparently this is a unix epoch timestamp in milliseconds at which the
     //! payload should be run.
@@ -123,8 +128,8 @@ enum lgtd_lifx_protocol {
 };
 
 enum lgtd_lifx_flags {
+    LGTD_LIFX_FLAG_RES_REQUIRED = 1,
     LGTD_LIFX_FLAG_ACK_REQUIRED = 1 << 1,
-    LGTD_LIFX_FLAG_RES_REQUIRED = 1
 };
 
 // Let's define a maximum packet size just in case somebody sends us weird
@@ -444,12 +449,19 @@ const struct lgtd_lifx_packet_info *lgtd_lifx_wire_get_packet_info(enum lgtd_lif
 
 void lgtd_lifx_wire_setup(void);
 
+bool lgtd_lifx_wire_handle_receive(evutil_socket_t, struct lgtd_lifx_gateway *);
+
 const struct lgtd_lifx_packet_info *lgtd_lifx_wire_setup_header(struct lgtd_lifx_packet_header *,
-                                                                 enum lgtd_lifx_target_type,
-                                                                 union lgtd_lifx_target,
-                                                                 const uint8_t *,
-                                                                 enum lgtd_lifx_packet_type);
+                                                                enum lgtd_lifx_target_type,
+                                                                union lgtd_lifx_target,
+                                                                const uint8_t *,
+                                                                enum lgtd_lifx_packet_type);
 void lgtd_lifx_wire_decode_header(struct lgtd_lifx_packet_header *);
+
+
+void lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *,
+                                          const struct lgtd_lifx_packet_header *,
+                                          const void *);
 
 void lgtd_lifx_wire_decode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *);
 void lgtd_lifx_wire_encode_pan_gateway(struct lgtd_lifx_packet_pan_gateway *);

@@ -18,6 +18,26 @@ lgtd_lifx_gateway_latency(const struct lgtd_lifx_gateway *gw)
 }
 #endif
 
+#ifndef MOCKED_LGTD_LIFX_GATEWAY_HANDLE_PACKET
+void
+lgtd_lifx_gateway_handle_packet(struct lgtd_lifx_gateway *gw,
+                                const struct sockaddr *peer,
+                                ev_socklen_t addrlen,
+                                const struct lgtd_lifx_packet_info *pkt_info,
+                                const struct lgtd_lifx_packet_header *hdr,
+                                const void *pkt,
+                                lgtd_time_mono_t received_at)
+{
+    (void)gw;
+    (void)peer;
+    (void)addrlen;
+    (void)pkt_info;
+    (void)hdr;
+    (void)pkt;
+    (void)received_at;
+}
+#endif
+
 #ifndef MOCKED_LIFX_GATEWAY_SEND_TO_SITE
 bool
 lgtd_lifx_gateway_send_to_site(struct lgtd_lifx_gateway *gw,

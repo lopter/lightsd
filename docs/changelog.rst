@@ -1,8 +1,21 @@
 Changelog
 =========
 
+1.1.2 (2015-11-30)
+------------------
+
+- Fix LIFX LAN protocol V2 handling (properly set RES_REQUIRED and properly
+  listen on each gateway's socket);
+- The bulb timeout has been increased from 3 to 20s;
+- Improved LIFX traffic logging.
+
 1.1.1 (2015-11-17)
 ------------------
+
+.. warning::
+
+   This release broke the compatibility with the LIFX LAN protocol "v2", please
+   upgrade to 1.1.2.
 
 - Greatly improve responsiveness by setting the LIFX source identifier [#]_.
 - Fix parallel builds in the Debian package & fix the homebrew formulae for OS X

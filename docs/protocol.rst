@@ -147,7 +147,6 @@ Available methods
 Notes
 -----
 
-- You cannot the set the color of the bulb while it's turned off;
-- lightsd supports batch JSON-RPC requests, use them!
+lightsd supports batch JSON-RPC requests, use them!
 
 .. vim: set tw=80 spelllang=en spell:

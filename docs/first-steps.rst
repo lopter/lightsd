@@ -323,8 +323,6 @@ Fetch the state of all your bulbs:
 
    bulbs = {b["label"]: b for b in c.get_light_state("*")["result"]}
 
-Check out :doc:`lightsd's protocol </protocol>` to see everything you can do.
-
 lightsc.py also accepts an url which lets you connect to anything running
 lightsd, e.g:
 
@@ -337,6 +335,8 @@ Or, for an Unix socket:
 ::
 
     lightsc.py -u unix:///path/to/lightsd/socket
+
+Check out :doc:`lightsd's API </protocol>` to see everything you can do!
 
 .. _lightsc.py: https://github.com/lopter/lightsd/blob/master/examples/lightsc.py
 

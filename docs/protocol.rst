@@ -147,6 +147,6 @@ Available methods
 Notes
 -----
 
-lightsd supports batch JSON-RPC requests, use them!
+- lightsd supports batch JSON-RPC requests, use them!
 
 .. vim: set tw=80 spelllang=en spell:

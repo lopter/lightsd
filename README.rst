@@ -1,6 +1,3 @@
-lightsd, a daemon with a JSON-RPC API to control your light bulbs
-=================================================================
-
 lightsd acts a central point of control for your LIFX_ WiFi bulbs. lightsd
 should be a small, simple and fast daemon exposing an easy to use protocol
 inspired by how musicpd_ works.

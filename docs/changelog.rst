@@ -1,6 +1,8 @@
 Changelog
 =========
 
+lightsd uses `semantic versionning <http://semver.org/>`_.
+
 1.1.2 (2015-11-30)
 ------------------
 

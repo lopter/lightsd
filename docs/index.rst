@@ -22,6 +22,7 @@ instructions:
    protocol
    known-issues
    developers
+   packaging
    changelog
 
 .. [#bulbs] Currently only LIFX_ WiFi smart bulbs are supported.

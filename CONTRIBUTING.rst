@@ -92,7 +92,7 @@ Reporting bugs
 
 I can be joined via email, via IRC in `#lightsd`_ on Freenode, you can also post
 in this topic_ and if you feel comfortable writing bug reports you can directly
-open an issue on Github_.
+open an issue on GitHub_.
 
 .. _#lightsd: irc://chat.freenode.net/#lightsd
 .. _topic: https://community.lifx.com/t/lightsd-a-daemon-with-a-json-rpc-api-to-control-your-bulbs/446/

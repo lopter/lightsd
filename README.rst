@@ -1,5 +1,5 @@
-lightsd, a LIFX broker
-======================
+lightsd, a daemon with a JSON-RPC API to control your light bulbs
+=================================================================
 
 lightsd acts a central point of control for your LIFX_ WiFi bulbs. lightsd
 should be a small, simple and fast daemon exposing an easy to use protocol
@@ -44,7 +44,8 @@ lightsd can target single or multiple bulbs at once:
 - broadcast;
 - composite (list of targets);
 
-lightsd works and is developed against LIFX firmwares 1.1, 1.5, 2.0 and 2.1.
+lightsd works and is developed against a variety of LIFX firmwares from the
+oldest ones to the newest ones.
 
 .. _JSON-RPC: http://www.jsonrpc.org/specification
 .. _mkfifo(1): http://www.openbsd.org/cgi-bin/man.cgi?query=mkfifo
@@ -59,10 +60,9 @@ and a walk-through some interactive examples.
 Requirements
 ------------
 
-lightsd aims to be highly portable on any slightly POSIX system (native Windows
-support has been kept in mind should be quite easy, but isn't really the focus)
-and on any kind of hardware including embedded devices. Hence why lightsd is
-written in C with reasonable dependencies:
+lightsd aims to be highly portable on any slightly POSIX system and on any kind
+of hardware including embedded devices. Hence why lightsd is written in C with
+reasonable dependencies:
 
 - libevent ≥ 2.0.19 (released May 2012);
 - CMake ≥ 2.8.9 (released August 2012): only if you want to build lightsd from
@@ -71,15 +71,30 @@ written in C with reasonable dependencies:
 lightsd is actively developed and tested from Arch Linux, Debian, Mac OS X,
 OpenWRT and OpenBSD; both for 32/64 bits and little/big endian architectures.
 
-Developers
-----------
+Native Windows support has been kept in mind and will be addressed, but isn't
+really the focus. Windows build will be targeted at `Windows 10 IoT Core`_ which
+is the only one that you don't have to pay for [#]_.
 
-Feel free to reach out via email or irc (kalessin on freenode, insist if I don't
-reply). As the project name implies, I'm fairly interested in other smart bulbs.
+.. [#] I do need a version of ffu2img_ that actually works, because otherwise you
+       need Windows to install Windows 10 IoT Core; be my guest.
+
+.. _Windows 10 IoT Core: https://dev.windows.com/en-us/iot
+.. _ffu2img: https://msdn.microsoft.com/en-us/library/windows/hardware/dn757539.aspx
+
+Contact
+-------
+
+Feel free to reach out via email or irc (`#lightsd`_ on Freenode, insist if I
+don't reply). As the project name implies, I'm fairly interested in other smart
+bulbs.
 
 Check out the `contribution guide`_ for the vision behind the project and how to
 contribute.
 
+Join the conversation on the `LIFX forum`_.
+
+.. _#lightsd: irc://chat.freenode.net/#lightsd
 .. _contribution guide: https://github.com/lopter/lightsd/blob/master/CONTRIBUTING.rst
+.. _LIFX forum: https://community.lifx.com/t/lightsd-a-daemon-with-a-json-rpc-api-to-control-your-bulbs/446
 
 .. vim: set tw=80 spelllang=en spell:

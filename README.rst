@@ -1,3 +1,6 @@
+lightsd, a daemon to control smart bulbs
+========================================
+
 lightsd acts a central point of control for your LIFX_ WiFi bulbs. lightsd
 should be a small, simple and fast daemon exposing an easy to use protocol
 inspired by how musicpd_ works.
@@ -51,8 +54,8 @@ Documentation
 -------------
 
 lightsd is packaged for Mac OS X, Arch Linux, Debian based systems and OpenWRT.
-Checkout http://lightsd.readthedocs.org/en/latest/ for installation instructions
-and a walk-through some interactive examples.
+Check out http://lightsd.readthedocs.org/en/latest/ for installation
+instructions and a walk-through some interactive examples.
 
 Requirements
 ------------
@@ -61,9 +64,9 @@ lightsd aims to be highly portable on any slightly POSIX system and on any kind
 of hardware including embedded devices. Hence why lightsd is written in C with
 reasonable dependencies:
 
-- libevent ≥ 2.0.19 (released May 2012);
-- CMake ≥ 2.8.9 (released August 2012): only if you want to build lightsd from
-  its sources.
+- libevent ≥ 2.0.19 (released in May 2012);
+- CMake ≥ 2.8.9 (released in August 2012): only if you want to build lightsd
+  from its sources.
 
 lightsd is actively developed and tested from Arch Linux, Debian, Mac OS X,
 OpenWRT and OpenBSD; both for 32/64 bits and little/big endian architectures.

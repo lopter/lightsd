@@ -228,6 +228,12 @@ Or, from the root of the repository:
 
    examples/toggle
 
+Here is the source code of this example, it uses a small client —lightsc.sh— the
+next section covers it:
+
+.. literalinclude:: ../examples/toggle
+   :language: sh
+
 .. _examples:
 
 Using lightsc.sh
@@ -278,6 +284,8 @@ from your current shell or shell script:
 Examples:
 
 Build a batch request manually:
+
+.. pygmentize sucks on heredocs:
 
 ::
 

@@ -77,4 +77,9 @@ Developers
 Feel free to reach out via email or irc (kalessin on freenode, insist if I don't
 reply). As the project name implies, I'm fairly interested in other smart bulbs.
 
+Check out the `contribution guide`_ for the vision behind the project and how to
+contribute.
+
+.. _contribution guide: https://github.com/lopter/lightsd/blob/master/CONTRIBUTING.rst
+
 .. vim: set tw=80 spelllang=en spell:

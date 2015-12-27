@@ -94,13 +94,13 @@ Build instructions for Debian based systems (Ubuntu/Raspbian)
 
 .. note:: Those instructions have been tested on Debian Wheezy & Jessie.
 
-Install the following requirements:
+Install the following packages:
 
 ::
 
    build-essential cmake libevent-dev git ca-certificates ipython3 fakeroot wget devscripts debhelper
 
-Download and extract the release:
+Download and extract lightsd:
 
 .. parsed-literal::
 
@@ -130,8 +130,8 @@ Still as root, run the command the package asks you to run:
 
 .. note::
 
-   If you are not using sudo replace ``$USER`` by your regular non-root
-   username:
+   If you are *not using sudo* on your system replace ``$USER`` by your regular
+   non-root username:
 
 ::
 

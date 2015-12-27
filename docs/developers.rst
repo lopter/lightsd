@@ -3,7 +3,7 @@ Developers & companies
 
 lightsd's development takes place on github: https://github.com/lopter/lightsd.
 
-lightsd follows semver_.
+Check-out the `contribution guide`_!
 
 If you wanna get a feel of what I'm working on you can watch my patch queue:
 https://github.com/lopter/lightsd-mq. You will need to install Mercurial_ and
@@ -14,10 +14,11 @@ Feel free to reach out via email or irc (kalessin on freenode, insist if I
 don't reply). As the project name implies, I'm fairly interested in other smart
 bulbs. If you are a company trying to use lightsd feel free to reach me out as
 well. lightsd is free software under the GPLv3_ but has been designed in a way
-that make it usable in closed source environments. I'm not looking for a new
-job, thanks.
+that make it usable in closed source environments.
 
-.. _semver: http://semver.org/
+I'm not looking for a new job, thanks.
+
+.. _contribution guide: https://github.com/lopter/lightsd/blob/master/CONTRIBUTING.rst
 .. _Mercurial: https://mercurial.selenic.com/
 .. _hg-git: http://hg-git.github.io/
 .. _series: https://github.com/lopter/lightsd-mq

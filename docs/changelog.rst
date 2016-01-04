@@ -1,7 +1,15 @@
 Changelog
 =========
 
-lightsd uses `semantic versionning <http://semver.org/>`_.
+lightsd uses `semantic versionning <http://semver.org/>`_, here is the summary:
+
+Given a version number MAJOR.MINOR.PATCH:
+
+- MAJOR version gets incremented when you may need to modify your lightsd
+  configuration to keep your setup running;
+- MINOR version gets incremented when functionality or substantial improvements
+  are added in a backwards-compatible manner;
+- PATCH version gets incremented for backwards-compatible bug fixes.
 
 1.1.2 (2015-11-30)
 ------------------

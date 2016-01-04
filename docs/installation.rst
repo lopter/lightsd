@@ -98,7 +98,7 @@ Install the following packages:
 
 ::
 
-   build-essential cmake libevent-dev git ca-certificates ipython3 fakeroot wget devscripts debhelper
+   apt-get install build-essential cmake libevent-dev git ca-certificates ipython3 fakeroot wget devscripts debhelper
 
 Download and extract lightsd:
 

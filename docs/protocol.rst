@@ -1,7 +1,12 @@
 The lights daemon protocol
 ==========================
 
-The lightsd protocol is implemented on top of `JSON-RPC 2.0`_.
+The lightsd protocol is implemented on top of `JSON-RPC 2.0`_. This section
+covers the available methods and how to target bulbs.
+
+Since lightsd implements JSON-RPC without any kind of framing like it usually is
+the case (using HTTP), this section also explains how to implement your own
+lightsd client in `Writing a client for lightsd`_.
 
 .. _JSON-RPC 2.0: http://www.jsonrpc.org/specification
 
@@ -19,7 +24,7 @@ strings (targets).
 | ``#TagName``                | targets bulbs tagged with *TagName*            |
 +-----------------------------+------------------------------------------------+
 | ``124f31a5``                | directly target the bulb with the given id     |
-|                             | (mac addr, see below)                          |
+|                             | (that's the bulb mac address, see below)       |
 +-----------------------------+------------------------------------------------+
 | ``label``                   | directly target the bulb with the given Label  |
 +-----------------------------+------------------------------------------------+
@@ -144,9 +149,105 @@ Available methods
 
       untag("#myexistingtag", "myexistingtag")
 
-Notes
------
+Writing a client for lightsd
+----------------------------
 
+lightsd does JSON-RPC directly over TCP, requests and responses aren't framed in
+any way like it is usually done by using HTTP.
+
+This means that you will very likely need to write a JSON-RPC client
+specifically for lightsd. You're actually encouraged to do that as lightsd will
+probably augment JSON-RPC via lightsd specific `JSON-RPC extensions`_ in the
+future.
+
+.. _JSON-RPC extensions: http://www.jsonrpc.org/specification#extensions
+
+JSON-RPC over TCP
+~~~~~~~~~~~~~~~~~
+
+JSON-RPC works in a request/response fashion: the socket (network connection) is
+never used in a full-duplex fashion (data never flows in both direction at the
+same time):
+
+#. Write (send) a request on the socket;
+#. Read (receive) the response on the socket;
+#. Repeat.
+
+Writing the request is easy: do successive write (send) calls until you have
+successfully sent the whole request. The next step (reading/receiving) is a bit
+more complex. And that said, if the response isn't useful to you, you can ask
+lightsd to omit it by turning your request into a `notification`_: if you remove
+the JSON-RPC id, then you can just send your requests (now notifications) on the
+socket in a fire and forget fashion.
+
+.. _notification: http://www.jsonrpc.org/specification#notification
+
+Otherwise to successfully read and decode JSON-RPC over TCP you will need to
+implement your own read loop, the algorithm follows. It focuses on the low-level
+details, adapt it for the language and platform you are using:
+
+#. Prepare an empty buffer that you can grow, we will accumulate received data
+   in it;
+#. Start an infinite loop and start a read (receive) for a chunk of data (e.g:
+   4KiB), accumulate the received data in the previous buffer, then try to
+   interpret the data as JSON:
+
+   - if valid JSON can be decoded then break out of the loop;
+   - else data is missing and continue the loop;
+#. Decode the JSON data.
+
+Here is a complete Python 3 request/response example:
+
+.. code-block:: python
+   :linenos:
+
+   import json
+   import socket
+   import uuid
+
+   READ_SIZE = 4096
+   ENCODING = "utf-8"
+
+   # Connect to lightsd, here using an Unix socket. The rest of the example is
+   # valid for TCP sockets too. Replace /run/lightsd/socket by the output of:
+   # echo $(lightsd --rundir)/socket
+   lightsd_socket = socket.socket(socket.AF_UNIX)
+   lightsd_socket.connect("/run/lightsd/socket")
+   lightsd_socket.settimeout(2)  # seconds
+
+   # Prepare the request:
+   request = json.dumps({
+       "method": "get_light_state",
+       "params": ["*"],
+       "jsonrpc": "2.0",
+       "id": str(uuid.uuid4()),
+   }).encode(ENCODING, "surrogateescape")
+
+   # Send it:
+   lightsd_socket.sendall(request)
+
+   # Prepare an empty buffer to accumulate the received data:
+   response = bytearray()
+   while True:
+       # Read a chunk of data, and accumulate it in the response buffer:
+       response += lightsd_socket.recv(READ_SIZE)
+       try:
+           # Try to load the received the data, we ignore encoding errors
+           # since we only wanna know if the received data is complete.
+           json.loads(response.decode(ENCODING, "ignore"))
+           break  # Decoding was successful, we have received everything.
+       except Exception:
+           continue  # Decoding failed, data must be missing.
+
+   response = response.decode(ENCODING, "surrogateescape")
+   print(json.loads(response))
+
+Notes
+~~~~~
+
+- Use an incremental JSON parser if you have one handy: for responses multiple
+  times the size of your receive window it will let you avoid decoding the whole
+  response at each iteration of the read loop;
 - lightsd supports batch JSON-RPC requests, use them!
 
 .. vim: set tw=80 spelllang=en spell:

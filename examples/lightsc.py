@@ -42,8 +42,28 @@ import uuid
 
 class LightsClient:
 
-    def __init__(self, url):
+    READ_SIZE = 4096
+    TIMEOUT = 2  # seconds
+    ENCODING = "utf-8"
+
+    class Error(Exception):
+        pass
+
+    class TimeoutError(Error):
+        pass
+
+    class JSONError(Error):
+
+        def __init__(self, response):
+            self._response = response
+
+        def __str__(self):
+            return "received invalid JSON: {}".format(self._response)
+
+    def __init__(self, url, encoding=ENCODING, timeout=TIMEOUT,
+                 read_size=READ_SIZE):
         self.url = url
+        self.encoding = encoding
 
         parts = urllib.parse.urlparse(args.url)
 
@@ -55,7 +75,9 @@ class LightsClient:
             self._socket = socket.create_connection((parts.hostname, parts.port))
         else:
             raise ValueError("Unsupported url {}".format(url))
+        self._socket.settimeout(timeout)
 
+        self._read_size = read_size
         self._pipeline = []
         self._batch = False
 
@@ -75,15 +97,24 @@ class LightsClient:
         }
 
     def _execute_payload(self, payload):
-        self._socket.send(json.dumps(payload).encode("utf-8"))
-        # FIXME: proper read loop
-        response = self._socket.recv(64 * 1024).decode("utf-8")
+        response = bytearray()
         try:
-            response = json.loads(response)
-        except Exception:
-            print("received invalid json: {}".format(response))
+            payload = json.dumps(payload)
+            payload = payload.encode(self.encoding, "surrogateescape")
+            self._socket.sendall(payload)
 
-        return response
+            while True:
+                response += self._socket.recv(self._read_size)
+                try:
+                    return json.loads(response.decode(
+                        self.encoding, "surrogateescape"
+                    ))
+                except Exception:
+                    continue
+        except socket.timeout:
+            if not response:
+                raise self.TimeoutError
+            raise self.JSONError(response)
 
     def _jsonrpc_call(self, method, params):
         payload = self._make_payload(method, params)
@@ -199,11 +230,6 @@ class LightsClient:
 
 def _drop_to_shell(lightsc):
     c = lightsc  # noqa
-    nb = "d073d501a0d5"  # noqa
-    fugu = "d073d500603b"  # noqa
-    neko = "d073d5018fb6"  # noqa
-    middle = "d073d502e530"  # noqa
-
     banner = (
         "Connected to {}, use the variable c to interact with your "
         "bulbs:\n\n>>> r = c.get_light_state(\"*\")".format(c.url)
@@ -227,7 +253,7 @@ if __name__ == "__main__":
         lightsdrundir = subprocess.check_output(["lightsd", "--rundir"])
     except Exception as ex:
         print(
-            "Couldn't infer lightsd's runtime directory is lightsd installed? "
+            "Couldn't infer lightsd's runtime directory, is lightsd installed? "
             "({})\nTrying build/socket...".format(ex),
             file=sys.stderr
         )
@@ -238,7 +264,7 @@ if __name__ == "__main__":
         lightsdrundir = lightsdrundir.decode(encoding).strip()
 
     parser = argparse.ArgumentParser(
-        description="lightsc.py is an interactive lightsd Python client"
+        description="Interactive lightsd Python client"
     )
     parser.add_argument(
         "-u", "--url", type=str,

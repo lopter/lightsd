@@ -139,6 +139,8 @@ Still as root, run the command the package asks you to run:
 
 Log out and back in as ``$USER`` for the change to take effect.
 
+Read on :doc:`/first-steps` to see how to use lightsd.
+
 .. _sudo(8): http://manpages.debian.org/cgi-bin/man.cgi?query=sudo&sektion=8
 
 Build instructions (for other systems)

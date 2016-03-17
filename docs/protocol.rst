@@ -55,18 +55,25 @@ Available methods
 
 .. function:: power_off(target)
 
-   Power off the given bulb(s).
+   :param string: Target identifier.
+
+   Power off the given bulb.
 
 .. function:: power_on(target)
 
-   Power on the given bulb(s).
+   :param string: Target identifier.
+
+   Power on the given bulb.
 
 .. function:: power_toggle(target)
 
-   Power on (if they are off) or power off (if they are on) the given bulb(s).
+   :param string: Target identifier.
+
+   Power on (if they are off) or power off (if they are on) the given bulb.
 
 .. function:: set_light_from_hsbk(target, h, s, b, k, t)
 
+   :param string: Target identifier.
    :param float h: Hue from 0 to 360.
    :param float s: Saturation from 0 to 1.
    :param float b: Brightness from 0 to 1.
@@ -75,6 +82,8 @@ Available methods
 
 .. function:: set_waveform(target, waveform, h, s, b, k, period, cycles, skew_ratio, transient)
 
+   :param string: Target identifier.
+   :param float h: Hue from 0 to 360.
    :param string waveform: One of ``SAW``, ``SINE``, ``HALF_SINE``,
                            ``TRIANGLE``, ``SQUARE``.
    :param float h: Hue from 0 to 360.
@@ -107,6 +116,8 @@ Available methods
 
 .. function:: get_light_state(target)
 
+   :param string: Target identifier.
+
    Return a list of dictionnaries, each dict representing the state of one
    targeted bulb, the list is not in any specific order. Each dict has the
    following fields:
@@ -118,6 +129,9 @@ Available methods
 
 .. function:: set_label(target, label)
 
+   :param string: Target identifier.
+   :param string: Label.
+
    Label the target bulb(s) with the given label.
 
    .. note::
@@ -125,6 +139,9 @@ Available methods
       Use :func:`tag` instead set_label to give a common name to multiple bulbs.
 
 .. function:: tag(target, label)
+
+   :param string: Target identifier.
+   :param string: Label.
 
    Tag (group) the given target bulb(s) with the given label (group name), then
    label can be used as a target by prefixing it with ``#``.
@@ -141,6 +158,9 @@ Available methods
       used as a target or a regular argument.
 
 .. function:: untag(target, label)
+
+   :param string: Target identifier.
+   :param string: Label.
 
    Remove the given tag from the given target bulb(s). To completely delete a
    tag (group), simple do:

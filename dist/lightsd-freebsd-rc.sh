@@ -32,9 +32,10 @@ load_rc_config "$name"
 : ${lightsd_group:="lightsd"}
 : ${lightsd_listen:="localhost:23456"}
 : ${lightsd_log:="info"}
+: ${lightsd_flags:=""}
 
 
-command_args="-P $pidfile -p $pidfile.cl -r /usr/local/bin/$name -l ${lightsd_listen} -v $lightsd_log -S 2>&1  "
+command_args="-P $pidfile -p $pidfile.cl -r /usr/local/bin/$name -l ${lightsd_listen} -v $lightsd_log -S $lightsd_flags 2>&1  "
 #command_args="-l ${lightsd_listen} -v debug "
 
 lightsd_precmd()

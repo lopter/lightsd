@@ -35,12 +35,15 @@ load_rc_config "$name"
 : ${lightsd_flags:=""}
 
 
-command_args="-P $pidfile -p $pidfile.cl -r /usr/local/bin/$name -l ${lightsd_listen} -v $lightsd_log -S $lightsd_flags 2>&1  "
+command_args="-P $pidfile -p ${pidfile}_child -r /usr/local/bin/$name -l ${lightsd_listen} -v $lightsd_log -S $lightsd_flags 2>&1  "
 #command_args="-l ${lightsd_listen} -v debug "
 
 lightsd_precmd()
 {
-  # not a lot
+  if [ ! -d "/var/run/lightsd/" ] ; then
+    mkdir -pv /var/run/lightsd/
+    chown ${lightsd_user}:${lightsd_group} /var/run/lightsd/
+  fi
 }
 
 run_rc_command "$1"

@@ -17,6 +17,7 @@
 
 #include <sys/queue.h>
 #include <sys/tree.h>
+#include <netinet/in.h>
 #include <assert.h>
 #include <endian.h>
 #include <err.h>

@@ -65,6 +65,11 @@ Available methods
 
 .. function:: set_light_from_hsbk(target, hue, saturation, brightness, kelvin[, transition])
 
+   Set the color of the given bulbs, if `hue` and `saturation` are both 0 then
+   the bulbs will be white otherwise you'll be setting an actual color. The
+   temperature parameter (`kelvin`) can be used to get a warmer or colder white
+   and will also affect colors.
+
    :param float hue: From 0 to 360.
    :param float saturation: From 0 to 1.
    :param float brightness: From 0 to 1.
@@ -73,6 +78,11 @@ Available methods
                           to this color.
 
 .. function:: set_waveform(target, waveform, hue, saturation, brightness, kelvin, period, cycles, skew_ratio[, transient])
+
+   Repeatedly change the color of the given bulbs according to a periodic
+   (mathematical) function selected with the `waveform` parameter. The `hue`,
+   `saturation`, `brightness` and `kelvin` parameters work like in
+   :func:`set_light_from_hsbk`.
 
    :param string waveform: One of ``SAW``, ``SINE``, ``HALF_SINE``,
                            ``TRIANGLE``, ``SQUARE``.
@@ -88,7 +98,7 @@ Available methods
                           its original state. This argument is optional and
                           defaults to true.
 
-   The meaning of the ``skew_ratio`` argument depends on the type of waveform:
+   The meaning of the `skew_ratio` argument depends on the selected `waveform`:
 
    +---------------+-----------------------------------------------------------+
    | ``SAW``       | Should be 0.5.                                            |
@@ -111,18 +121,20 @@ Available methods
    targeted bulb, the list is not in any specific order. Each dict has the
    following fields:
 
-   - hsbk: tuple (h, s, b, k) see function:`set_light_from_hsbk`;
-   - label: bulb label (utf-8 encoded string);
-   - power: boolean, true when the bulb is powered on false otherwise;
-   - tags: list of tags applied to the bulb (utf-8 encoded strings).
+   - hsbk: tuple (h, s, b, k) as in :func:`set_light_from_hsbk`;
+   - label: bulb label;
+   - power: boolean, true when the bulb is powered on, false otherwise;
+   - tags: list of tags applied to the bulb.
 
 .. function:: set_label(target, label)
 
-   Label the target bulb(s) with the given label.
+   Label the target bulb(s) with the given label. UTF-8 encoded values are
+   recommended.
 
    .. note::
 
-      Use :func:`tag` instead set_label to give a common name to multiple bulbs.
+      Use :func:`tag` instead of :func:`set_label` to give a common name to
+      multiple bulbs.
 
 .. function:: tag(target, label)
 
@@ -227,13 +239,16 @@ Here is a complete Python 3 request/response example:
    while True:
        # Read a chunk of data, and accumulate it in the response buffer:
        response += lightsd_socket.recv(READ_SIZE)
+       # Try to load the received the data, we ignore encoding and parsing
+       # errors since we only wanna know if the received data is complete:
        try:
-           # Try to load the received the data, we ignore encoding errors
-           # since we only wanna know if the received data is complete.
            json.loads(response.decode(ENCODING, "ignore"))
-           break  # Decoding was successful, we have received everything.
+           # Decoding and JSON parsing were successful, we have received
+           # everything:
+           break 
        except Exception:
-           continue  # Decoding failed, data must be missing.
+           # Decoding or parsing failed, data must be missing, try again:
+           continue
 
    response = response.decode(ENCODING, "surrogateescape")
    print(json.loads(response))

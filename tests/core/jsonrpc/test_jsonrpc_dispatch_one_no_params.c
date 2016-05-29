@@ -40,7 +40,7 @@ main(void)
         "\"error\": {"
             "\"code\": -32602, "
             "\"message\": "
-            "\"Invalid number of parameters\""
+            "\"Invalid parameters\""
         "}"
     "}");
 

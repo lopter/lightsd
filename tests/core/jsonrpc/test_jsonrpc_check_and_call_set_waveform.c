@@ -23,7 +23,7 @@ lgtd_lifx_wire_waveform_string_id_to_type(const char *s, int len)
     return LGTD_LIFX_WAVEFORM_SAW;
 }
 
-static bool set_waveform_called = false;
+static int set_waveform_call_count = 0;
 
 void
 lgtd_proto_set_waveform(struct lgtd_client *client,
@@ -79,23 +79,38 @@ lgtd_proto_set_waveform(struct lgtd_client *client,
     if (skew_ratio != 0) {
         errx(1, "Invalid skew_ratio: %d, expected: 0", skew_ratio);
     }
-    if (!transient) {
-        errx(1, "transient is false instead of true");
-    }
     if (waveform != LGTD_LIFX_WAVEFORM_SAW) {
         errx(
             1, "Invalid waveform %d: expected: %d",
             waveform, LGTD_LIFX_WAVEFORM_SAW
         );
     }
-    set_waveform_called = true;
+    switch (set_waveform_call_count++) {
+    case 0:
+        if (transient) {
+            errx(1, "Invalid transient: true (expected false)");
+        }
+        break;
+    case 1:
+        if (!transient) {
+            errx(1, "Invalid transient: false (expected true)");
+        }
+        break;
+    default:
+        errx(1, "set_waveform called too many times");
+    }
 }
 
 int
 main(void)
 {
     jsmntok_t tokens[32];
-    const char json[] = ("{"
+    int parsed;
+    bool ok;
+    struct lgtd_jsonrpc_request req;
+    struct lgtd_client client = { .io = NULL, .current_request = &req };
+
+    const char *json = ("{"
         "\"jsonrpc\": \"2.0\","
         "\"method\": \"set_waveform\","
         "\"params\": {"
@@ -107,28 +122,49 @@ main(void)
             "\"cycles\": 10,"
             "\"period\": 1000,"
             "\"skew_ratio\": 0.5,"
-            "\"transient\": true,"
+            "\"transient\": false,"
             "\"waveform\": \"SAW\""
         "},"
         "\"id\": \"42\""
     "}");
-    int parsed = parse_json(
-        tokens, LGTD_ARRAY_SIZE(tokens), json, sizeof(json)
-    );
-
-    bool ok;
-    struct lgtd_jsonrpc_request req = TEST_REQUEST_INITIALIZER;
-    struct lgtd_client client = {
-        .io = NULL, .current_request = &req, .json = json
-    };
+    client.json = json;
+    parsed = parse_json(tokens, LGTD_ARRAY_SIZE(tokens), json, strlen(json));
+    memset(&req, 0, sizeof(req));
     ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
     if (!ok) {
         errx(1, "can't parse request");
     }
-
     lgtd_jsonrpc_check_and_call_set_waveform(&client);
+    if (set_waveform_call_count != 1) {
+        errx(1, "lgtd_proto_set_waveform wasn't called");
+    }
 
-    if (!set_waveform_called) {
+    // optional transient argument
+    json = ("{"
+        "\"jsonrpc\": \"2.0\","
+        "\"method\": \"set_waveform\","
+        "\"params\": {"
+            "\"target\": \"*\", "
+            "\"hue\": 324.2341514, "
+            "\"saturation\": 0.234, "
+            "\"brightness\": 1.0, "
+            "\"kelvin\": 4200,"
+            "\"cycles\": 10,"
+            "\"period\": 1000,"
+            "\"skew_ratio\": 0.5,"
+            "\"waveform\": \"SAW\""
+        "},"
+        "\"id\": \"42\""
+    "}");
+    client.json = json;
+    parsed = parse_json(tokens, LGTD_ARRAY_SIZE(tokens), json, strlen(json));
+    memset(&req, 0, sizeof(req));
+    ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
+    if (!ok) {
+        errx(1, "can't parse request");
+    }
+    lgtd_jsonrpc_check_and_call_set_waveform(&client);
+    if (set_waveform_call_count != 2) {
         errx(1, "lgtd_proto_set_waveform wasn't called");
     }
 

@@ -63,15 +63,13 @@ struct lgtd_jsonrpc_node {
 struct lgtd_jsonrpc_method {
     const char  *name;
     int         namelen;
-    int         params_count;
     void        (*method)(struct lgtd_client *);
 };
 
-#define LGTD_JSONRPC_METHOD(name_, params_count_, method_) {    \
-    .name = (name_),                                            \
-    .namelen = sizeof((name_)) -1,                              \
-    .params_count = (params_count_),                            \
-    .method = (method_)                                         \
+#define LGTD_JSONRPC_METHOD(name_, method_) {   \
+    .name = (name_),                            \
+    .namelen = sizeof((name_)) -1,              \
+    .method = (method_)                         \
 }
 
 enum lgtd_jsonrpc_error_code {

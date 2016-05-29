@@ -17,12 +17,15 @@
 
 #include <sys/queue.h>
 #include <sys/tree.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <assert.h>
 #include <endian.h>
 #include <err.h>
 #include <errno.h>
+#include <ifaddrs.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -52,16 +55,37 @@ static struct {
 };
 
 static bool
+lgtd_lifx_broadcast_send_packet(const void *pkt,
+                                int pkt_sz,
+                                const struct sockaddr *addr,
+                                ev_socklen_t addrlen)
+{
+    char addr_str[INET6_ADDRSTRLEN];
+    LGTD_SOCKADDRTOA(addr, addr_str);
+    lgtd_debug("broadcasting LIFX discovery packet on %s", addr_str);
+
+    int nbytes, socket = lgtd_lifx_broadcast_endpoint.socket;
+    do {
+        nbytes = sendto(socket, pkt, pkt_sz, 0, addr, addrlen);
+    } while (nbytes == -1 && EVUTIL_SOCKET_ERROR() == EINTR);
+
+    if (nbytes != pkt_sz) {
+        void (*warnfn)(const char *fmt, ...) = nbytes == -1 ?
+            lgtd_warn : lgtd_warnx;
+        warnfn("couldn't broadcast LIFX discovery packet on %s", addr_str);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 lgtd_lifx_broadcast_handle_write(void)
 {
     assert(lgtd_lifx_broadcast_endpoint.socket != -1);
 
-    struct sockaddr_in lifx_addr = {
-        .sin_family = AF_INET,
-        .sin_addr = { INADDR_BROADCAST },
-        .sin_port = htons(LGTD_LIFX_PROTOCOL_PORT),
-        .sin_zero = { 0 }
-    };
+    const uint16_t lifx_port = htons(LGTD_LIFX_PROTOCOL_PORT);
+
     struct lgtd_lifx_packet_header get_pan_gateway;
     lgtd_lifx_wire_setup_header(
         &get_pan_gateway,
@@ -71,31 +95,50 @@ lgtd_lifx_broadcast_handle_write(void)
         LGTD_LIFX_GET_PAN_GATEWAY
     );
 
-    int nbytes;
-retry:
-    nbytes = sendto(
-        lgtd_lifx_broadcast_endpoint.socket,
-        (void *)&get_pan_gateway,
-        sizeof(get_pan_gateway),
-        0,
-        (const struct sockaddr *)&lifx_addr,
-        sizeof(lifx_addr)
-    );
-    if (nbytes == sizeof(get_pan_gateway)) {
-        if (event_del(lgtd_lifx_broadcast_endpoint.write_ev)) {
-            lgtd_err(1, "can't setup events");
-        }
-        return true;
-    }
-    if (nbytes == -1) {
-        if (EVUTIL_SOCKET_ERROR() == EINTR) {
-            goto retry;
-        }
-        lgtd_warn("can't broadcast discovery packet");
+    bool ok = false;
+    struct ifaddrs *ifaddrs = NULL;
+    if (getifaddrs(&ifaddrs)) {
+        struct sockaddr_in lifx_bcast_addr = {
+            .sin_family = AF_INET,
+            .sin_addr = { INADDR_BROADCAST },
+            .sin_port = lifx_port,
+            .sin_zero = { 0 }
+        };
+        char addr_str[INET6_ADDRSTRLEN];
+        lgtd_warn(
+            "can't fetch the list of network interfaces, falling back on %s",
+            LGTD_SOCKADDRTOA((struct sockaddr *)&lifx_bcast_addr, addr_str)
+        );
+        ok = lgtd_lifx_broadcast_send_packet(
+            &get_pan_gateway,
+            sizeof(get_pan_gateway),
+            (struct sockaddr *)&lifx_bcast_addr,
+            sizeof(lifx_bcast_addr)
+        );
     } else {
-        lgtd_warnx("can't broadcast discovery packet");
+        for (struct ifaddrs *ifa = ifaddrs; ifa; ifa = ifa->ifa_next) {
+            // NOTE: IPv6 doesn't implement broadcast
+            if (ifa->ifa_broadaddr != NULL
+                && (ifa->ifa_flags & IFF_BROADCAST)
+                && ifa->ifa_broadaddr->sa_family == AF_INET
+                && ifa->ifa_netmask != NULL) {
+                struct sockaddr *addr = ifa->ifa_broadaddr;
+                ((struct sockaddr_in *)addr)->sin_port = lifx_port;
+                ev_socklen_t addrlen = sizeof(struct sockaddr_in);
+                bool sent = lgtd_lifx_broadcast_send_packet(
+                    &get_pan_gateway, sizeof(get_pan_gateway), addr, addrlen
+                );
+                ok = sent || ok;
+            }
+        }
+        freeifaddrs(ifaddrs);
     }
-    return false;
+
+    if (ok && event_del(lgtd_lifx_broadcast_endpoint.write_ev)) {
+        lgtd_err(1, "can't setup events");
+    }
+
+    return ok;
 }
 
 static void

@@ -1,6 +1,7 @@
 #pragma once
 
 struct bufferevent;
+struct sockaddr;
 
 static inline bool
 lgtd_tests_lifx_header_has_flags(const struct lgtd_lifx_packet_header *hdr,
@@ -32,6 +33,12 @@ lgtd_tests_lifx_header_has_flags(const struct lgtd_lifx_packet_header *hdr,
     return true;
 }
 
+static inline void
+lgtd_tests_hr(void)
+{
+    puts("----");
+}
+
 char *lgtd_tests_make_temp_dir(void);
 void lgtd_tests_remove_temp_dir(char *);
 
@@ -44,3 +51,4 @@ struct lgtd_lifx_site *lgtd_tests_add_tag_to_gw(struct lgtd_lifx_tag *,
                                                 int);
 struct lgtd_listen *lgtd_tests_insert_mock_listener(const char *, uint16_t);
 struct lgtd_client *lgtd_tests_insert_mock_client(struct bufferevent *);
+void lgtd_tests_check_sockaddr_in(const struct sockaddr *, int, int, uint32_t, uint16_t);

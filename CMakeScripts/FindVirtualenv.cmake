@@ -1,0 +1,7 @@
+FIND_PROGRAM(
+    VIRTUALENV_EXECUTABLE
+    NAMES virtualenv virtualenv2
+    DOC "Path to the virtualenv executable"
+)
+
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(Virtualenv DEFAULT_MSG VIRTUALENV_EXECUTABLE)

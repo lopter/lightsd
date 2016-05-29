@@ -54,14 +54,20 @@ STRING(STRIP "${CMAKE_C_FLAGS}" CMAKE_C_FLAGS)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Wstrict-prototypes -std=c99")
 SET(CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} "")
 
+IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    ADD_DEFINITIONS(
+        # see feature_test_macros(7)
+        "-D_XOPEN_SOURCE=700"
+        "-D_BSD_SOURCE=1"
+        "-D_DEFAULT_SOURCE=1"
+    )
+ENDIF ()
+
+IF (APPLE)
+    ADD_DEFINITIONS("-D_DARWIN_C_SOURCE=1")
+ENDIF ()
+
 ADD_DEFINITIONS(
-    # Only relevant for the GNU libc:
-    "-D_POSIX_C_SOURCE=200809L"
-    "-D_BSD_SOURCE=1"
-    "-D_DEFAULT_SOURCE=1"
-
-    "-D_DARWIN_C_SOURCE=1"
-
     "-DLGTD_BIG_ENDIAN_SYSTEM=${BIG_ENDIAN_SYSTEM}"
     "-DLGTD_SIZEOF_VOID_P=${CMAKE_SIZEOF_VOID_P}"
 

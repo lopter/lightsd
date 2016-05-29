@@ -1,6 +1,7 @@
 #include "pipe.c"
 
 #include <sys/tree.h>
+#include <sys/stat.h>
 #include <endian.h>
 #include <limits.h>
 

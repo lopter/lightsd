@@ -341,7 +341,6 @@ def _release(version, next_version):
 
     subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "out"])
     if click.confirm("Are you ready to push those commit?"):
-        return
         subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "push"])
 
 

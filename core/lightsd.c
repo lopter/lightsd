@@ -36,7 +36,6 @@
 #include <unistd.h>
 
 #include <event2/event.h>
-#include <event2/event_struct.h>
 
 #include "lifx/wire_proto.h"
 #include "time_monotonic.h"
@@ -72,36 +71,22 @@ struct lgtd_opts lgtd_opts = {
 
 struct event_base *lgtd_ev_base = NULL;
 
-static int lgtd_last_signal_received = 0;
+static const int lgtd_signals[] = { SIGINT, SIGTERM, SIGQUIT };
+static struct event *lgtd_signal_evs[LGTD_ARRAY_SIZE(lgtd_signals)] = { NULL };
 
-void
-lgtd_cleanup(void)
-{
-    lgtd_lifx_discovery_close();
-    lgtd_listen_close_all();
-    lgtd_command_pipe_close_all();
-    lgtd_client_close_all();
-    lgtd_lifx_broadcast_close();
-    lgtd_lifx_gateway_close_all();
-    lgtd_timer_stop_all();
-    event_base_free(lgtd_ev_base);
-#if LIBEVENT_VERSION_NUMBER >= 0x02010100
-    libevent_global_shutdown();
-#endif
-    if (lgtd_opts.pidfile) {
-        unlink(lgtd_opts.pidfile);
-    }
-}
+static int lgtd_last_signal_received = 0;
 
 static void
 lgtd_signal_event_callback(int signum, short events, void *ctx)
 {
-    assert(ctx);
-
-    // NOTE: syslog isn't signal safe, don't log anything in this function.
+    int i = (int)ctx;
+    assert(i >= 0);
+    assert(i < (int)LGTD_ARRAY_SIZE(lgtd_signals));
+    assert(i < (int)LGTD_ARRAY_SIZE(lgtd_signal_evs));
+    assert(signum == lgtd_signals[i]);
 
     lgtd_last_signal_received = signum;
-    event_del((struct event *)ctx);  // restore default behavior
+    event_del(lgtd_signal_evs[i]);  // restore default behavior
     event_base_loopbreak(lgtd_ev_base);
     (void)events;
 }
@@ -126,25 +111,35 @@ lgtd_configure_libevent(void)
 }
 
 static void
-lgtd_configure_signal_handling(void)
+lgtd_setup_signal_handling(void)
 {
-    const int signals[] = {SIGINT, SIGTERM, SIGQUIT};
-    static struct event sigevs[LGTD_ARRAY_SIZE(signals)];
-
-    for (int i = 0; i != LGTD_ARRAY_SIZE(signals); i++) {
-        evsignal_assign(
-            &sigevs[i],
+    for (int i = 0; i != LGTD_ARRAY_SIZE(lgtd_signals); i++) {
+        lgtd_signal_evs[i] = evsignal_new(
             lgtd_ev_base,
-            signals[i],
+            lgtd_signals[i],
             lgtd_signal_event_callback,
-            &sigevs[i]
+            // event_self_cbarg() would make things cleaner, but this was
+            // unfortunately added in libevent 2.1 which hasn't been released
+            // as of 2016:
+            (void *)(intptr_t)i // cast twice for -Wint-to-void-pointer-cast
         );
-        evsignal_add(&sigevs[i], NULL);
+        if (!lgtd_signal_evs[i] || evsignal_add(lgtd_signal_evs[i], NULL)) {
+            lgtd_err(1, "can't configure signal handling");
+        }
     }
 
     struct sigaction act = { .sa_handler = SIG_IGN };
     if (sigaction(SIGPIPE, &act, NULL)) {
         lgtd_err(1, "can't configure signal handling");
+    }
+}
+
+static void
+lgtd_close_signal_handling(void)
+{
+    for (int i = 0; i != LGTD_ARRAY_SIZE(lgtd_signals); i++) {
+        event_del(lgtd_signal_evs[i]);
+        event_free(lgtd_signal_evs[i]);
     }
 }
 
@@ -186,6 +181,26 @@ lgtd_usage(const char *progname)
     exit(0);
 }
 
+void
+lgtd_cleanup(void)
+{
+    lgtd_lifx_discovery_close();
+    lgtd_listen_close_all();
+    lgtd_command_pipe_close_all();
+    lgtd_client_close_all();
+    lgtd_lifx_broadcast_close();
+    lgtd_lifx_gateway_close_all();
+    lgtd_timer_stop_all();
+    lgtd_close_signal_handling();
+    event_base_free(lgtd_ev_base);
+#if LIBEVENT_VERSION_NUMBER >= 0x02010100
+    libevent_global_shutdown();
+#endif
+    if (lgtd_opts.pidfile) {
+        unlink(lgtd_opts.pidfile);
+    }
+}
+
 int
 main(int argc, char *argv[], char *envp[])
 {
@@ -195,7 +210,7 @@ main(int argc, char *argv[], char *envp[])
     lgtd_daemon_setup_proctitle(argc, argv, envp);
 
     lgtd_configure_libevent();
-    lgtd_configure_signal_handling();
+    lgtd_setup_signal_handling();
 
     static const struct option long_opts[] = {
         {"listen",          required_argument, NULL, 'l'},

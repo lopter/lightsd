@@ -59,6 +59,14 @@ def repopath(repo):
     return os.path.join(LIGHTSD_PKGS_DIR, repo)
 
 
+def latest_released_version():
+    version = subprocess.check_output([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+        "log", "-r", "max(tag('re:^\d+.\d+.\d+'))", "-T", "{tags}"
+    ]).decode(USER_ENCODING)
+    return semver.parse(version)
+
+
 def next_dev_version(version):
     parts, version = version, semver.format_version(**version)
     if parts["prerelease"] is not None:
@@ -512,7 +520,7 @@ def release_debuild():
         prereq_echo("Cleaning-up previous build in {}".format(debuild_dir))
         shutil.rmtree(debuild_dir)
     os.makedirs(debuild_dir, exist_ok=True)
-    version = semver.parse(LIGHTSD_VERSION)
+    version = latest_released_version()
     build_number = extract_build_number(version)
     version = semver.format_version(**version)
     archive_name = "lightsd-{}.tar.gz".format(version)

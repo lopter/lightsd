@@ -459,7 +459,7 @@ lgtd_jsonrpc_extract_values_from_schema_and_array(void *output,
         }
     }
 
-    return si == schema_size;
+    return !objsize || (si < schema_size && schema[si].optional);
 }
 
 static bool
@@ -470,6 +470,17 @@ lgtd_jsonrpc_extract_and_validate_params_against_schema(void *output,
                                                         int ntokens,
                                                         const char *json)
 {
+    if (!ntokens) {
+        // "params" were omitted, make sure no args were required or that they
+        // are all optional:
+        while (schema_size--) {
+            if (!schema[schema_size].optional) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     switch (tokens[0].type) {
     case JSMN_OBJECT:
         return lgtd_jsonrpc_extract_values_from_schema_and_dict(
@@ -716,7 +727,7 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client)
             offsetof(struct lgtd_jsonrpc_set_light_from_hsbk_args, t),
             -1,
             lgtd_jsonrpc_type_integer,
-            false
+            true
         ),
     };
 
@@ -746,9 +757,12 @@ lgtd_jsonrpc_check_and_call_set_light_from_hsbk(struct lgtd_client *client)
     if (k < 2500 || k > 9000 || errno == ERANGE) {
         goto error_invalid_params;
     }
-    int t = strtol(&client->json[params.t->start], NULL, 10);
-    if (t < 0 || errno == ERANGE) {
-        goto error_invalid_params;
+    int t = 0;
+    if (params.t) {
+        t = strtol(&client->json[params.t->start], NULL, 10);
+        if (t < 0 || errno == ERANGE) {
+            goto error_invalid_params;
+        }
     }
 
     struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
@@ -854,7 +868,7 @@ lgtd_jsonrpc_check_and_call_set_waveform(struct lgtd_client *client)
             offsetof(struct lgtd_jsonrpc_set_waveform_args, transient),
             -1,
             lgtd_jsonrpc_type_bool,
-            false
+            true
         ),
     };
 
@@ -906,7 +920,8 @@ lgtd_jsonrpc_check_and_call_set_waveform(struct lgtd_client *client)
         0, 1
     );
     skew_ratio -= UINT16_MAX / 2;
-    bool transient = client->json[params.transient->start] == 't';
+    bool transient = params.transient ?
+        client->json[params.transient->start] == 't' : true;
 
     struct lgtd_proto_target_list targets = SLIST_HEAD_INITIALIZER(&targets);
     ok = lgtd_jsonrpc_build_target_list(
@@ -1102,43 +1117,24 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
                           int *batch_sent)
 {
     static const struct lgtd_jsonrpc_method methods[] = {
+        LGTD_JSONRPC_METHOD("power_on", lgtd_jsonrpc_check_and_call_power_on),
+        LGTD_JSONRPC_METHOD("power_off", lgtd_jsonrpc_check_and_call_power_off),
         LGTD_JSONRPC_METHOD(
-            "power_on", 1, // t
-            lgtd_jsonrpc_check_and_call_power_on
+            "power_toggle", lgtd_jsonrpc_check_and_call_power_toggle
         ),
         LGTD_JSONRPC_METHOD(
-            "power_off", 1, // t
-            lgtd_jsonrpc_check_and_call_power_off
-        ),
-        LGTD_JSONRPC_METHOD(
-            "power_toggle", 1, // t
-            lgtd_jsonrpc_check_and_call_power_toggle
-        ),
-        LGTD_JSONRPC_METHOD(
-            "set_light_from_hsbk", 6, // t, h, s, b, k, t
+            "set_light_from_hsbk",
             lgtd_jsonrpc_check_and_call_set_light_from_hsbk
         ),
         LGTD_JSONRPC_METHOD(
-            // t, waveform, h, s, b, k, period, cycles, skew_ratio, transient
-            "set_waveform", 10,
-            lgtd_jsonrpc_check_and_call_set_waveform
+            "set_waveform", lgtd_jsonrpc_check_and_call_set_waveform
         ),
         LGTD_JSONRPC_METHOD(
-            "get_light_state", 1, // t
-            lgtd_jsonrpc_check_and_call_get_light_state
+            "get_light_state", lgtd_jsonrpc_check_and_call_get_light_state
         ),
-        LGTD_JSONRPC_METHOD(
-            "tag", 2, // t, tag
-            lgtd_jsonrpc_check_and_call_tag
-        ),
-        LGTD_JSONRPC_METHOD(
-            "untag", 2, // t, tag
-            lgtd_jsonrpc_check_and_call_untag
-        ),
-        LGTD_JSONRPC_METHOD(
-            "set_label", 2, // t, label
-            lgtd_jsonrpc_check_and_call_set_label
-        )
+        LGTD_JSONRPC_METHOD("tag", lgtd_jsonrpc_check_and_call_tag),
+        LGTD_JSONRPC_METHOD("untag", lgtd_jsonrpc_check_and_call_untag),
+        LGTD_JSONRPC_METHOD("set_label", lgtd_jsonrpc_check_and_call_set_label)
     };
 
     if (batch_sent) {
@@ -1172,15 +1168,11 @@ lgtd_jsonrpc_dispatch_one(struct lgtd_client *client,
             continue;
         }
         int diff = memcmp(
-            methods[i].name, &client->json[request.method->start], methods[i].namelen
+            methods[i].name,
+            &client->json[request.method->start],
+            methods[i].namelen
         );
         if (!diff) {
-            int params_count = request.params ? request.params->size : 0;
-            if (params_count != methods[i].params_count) {
-                error_code = LGTD_JSONRPC_INVALID_PARAMS;
-                error_msg = "Invalid number of parameters";
-                goto error;
-            }
             struct bufferevent *client_io = NULL; // keep compilers happy...
             if (!request.id) {
                 // Ugly hack to behave correctly on jsonrpc notifications, it's

@@ -8,7 +8,7 @@
 
 #include "test_jsonrpc_utils.h"
 
-static bool set_light_called = false;
+static int set_light_call_count = false;
 
 void
 lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
@@ -55,19 +55,38 @@ lgtd_proto_set_light_from_hsbk(struct lgtd_client *client,
             1, "Invalid temperature: %d, expected: 4200", kelvin
         );
     }
-    if (transition_msecs != 60) {
-        errx(
-            1, "Invalid transition duration: %d, expected: 60", transition_msecs
-        );
+    switch (set_light_call_count++) {
+    case 0:
+        if (transition_msecs != 600) {
+            errx(
+                1, "Invalid transition duration: %d, expected: 600",
+                transition_msecs
+            );
+        }
+        break;
+    case 1:
+        if (transition_msecs != 0) {
+            errx(
+                1, "Invalid transition duration: %d, expected: 0",
+                transition_msecs
+            );
+        }
+        break;
+    default:
+        errx(1, "set_light_from_hsbk called too many times");
     }
-    set_light_called = true;
 }
 
 int
 main(void)
 {
     jsmntok_t tokens[32];
-    const char json[] = ("{"
+    int parsed;
+    bool ok;
+    struct lgtd_jsonrpc_request req;
+    struct lgtd_client client = { .io = NULL, .current_request = &req };
+
+    const char *json = ("{"
         "\"jsonrpc\": \"2.0\","
         "\"method\": \"set_light_from_hsbk\","
         "\"params\": {"
@@ -76,27 +95,44 @@ main(void)
             "\"saturation\": 0.234, "
             "\"brightness\": 1.0, "
             "\"kelvin\": 4200,"
-            "\"transition\": 60"
+            "\"transition\": 600"
         "},"
         "\"id\": \"42\""
     "}");
-    int parsed = parse_json(
-        tokens, LGTD_ARRAY_SIZE(tokens), json, sizeof(json)
-    );
-
-    bool ok;
-    struct lgtd_jsonrpc_request req = TEST_REQUEST_INITIALIZER;
-    struct lgtd_client client = {
-        .io = NULL, .current_request = &req, .json = json
-    };
+    client.json = json;
+    parsed = parse_json(tokens, LGTD_ARRAY_SIZE(tokens), json, strlen(json));
+    memset(&req, 0, sizeof(req));
     ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
     if (!ok) {
         errx(1, "can't parse request");
     }
-
     lgtd_jsonrpc_check_and_call_set_light_from_hsbk(&client);
+    if (set_light_call_count != 1) {
+        errx(1, "lgtd_proto_set_light_from_hsbk wasn't called");
+    }
 
-    if (!set_light_called) {
+    // optional transition argument
+    json = ("{"
+        "\"jsonrpc\": \"2.0\","
+        "\"method\": \"set_light_from_hsbk\","
+        "\"params\": {"
+            "\"target\": \"*\", "
+            "\"hue\": 324.2341514, "
+            "\"saturation\": 0.234, "
+            "\"brightness\": 1.0, "
+            "\"kelvin\": 4200"
+        "},"
+        "\"id\": \"42\""
+    "}");
+    client.json = json;
+    parsed = parse_json(tokens, LGTD_ARRAY_SIZE(tokens), json, strlen(json));
+    memset(&req, 0, sizeof(req));
+    ok = lgtd_jsonrpc_check_and_extract_request(&req, tokens, parsed, json);
+    if (!ok) {
+        errx(1, "can't parse request");
+    }
+    lgtd_jsonrpc_check_and_call_set_light_from_hsbk(&client);
+    if (set_light_call_count != 2) {
         errx(1, "lgtd_proto_set_light_from_hsbk wasn't called");
     }
 

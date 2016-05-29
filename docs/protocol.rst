@@ -32,9 +32,7 @@ strings (targets).
 +-----------------------------+------------------------------------------------+
 
 The mac address (id) of each bulb can be found with get_light_state_ under the
-``_lifx`` map, e.g:
-
-::
+``_lifx`` map, e.g::
 
    "_lifx": {
        "addr": "d0:73:d5:02:e5:30",
@@ -65,28 +63,30 @@ Available methods
 
    Power on (if they are off) or power off (if they are on) the given bulb(s).
 
-.. function:: set_light_from_hsbk(target, h, s, b, k, t)
+.. function:: set_light_from_hsbk(target, hue, saturation, brightness, kelvin[, transition])
 
-   :param float h: Hue from 0 to 360.
-   :param float s: Saturation from 0 to 1.
-   :param float b: Brightness from 0 to 1.
-   :param int k: Temperature in Kelvin from 2500 to 9000.
-   :param int t: Transition duration to this color in ms.
+   :param float hue: From 0 to 360.
+   :param float saturation: From 0 to 1.
+   :param float brightness: From 0 to 1.
+   :param int kelvin: Temperature in Kelvin from 2500 to 9000.
+   :param int transition: Optional time in ms it will take for the bulb to turn
+                          to this color.
 
-.. function:: set_waveform(target, waveform, h, s, b, k, period, cycles, skew_ratio, transient)
+.. function:: set_waveform(target, waveform, hue, saturation, brightness, kelvin, period, cycles, skew_ratio[, transient])
 
    :param string waveform: One of ``SAW``, ``SINE``, ``HALF_SINE``,
                            ``TRIANGLE``, ``SQUARE``.
-   :param float h: Hue from 0 to 360.
-   :param float s: Saturation from 0 to 1.
-   :param float b: Brightness from 0 to 1.
-   :param int k: Temperature in Kelvin from 2500 to 9000.
-   :param int period: milliseconds per cycle.
-   :param int cycles: number of cycles.
-   :param float skew_ratio: from 0 to 1.
-   :param bool transient: if true the target will keep the color it has at the
+   :param float hue: From 0 to 360.
+   :param float saturation: From 0 to 1.
+   :param float brightness: From 0 to 1.
+   :param int kelvin: Temperature in Kelvin from 2500 to 9000.
+   :param int period: Milliseconds per cycle.
+   :param int cycles: Number of cycles.
+   :param float skew_ratio: From 0 to 1, see table below.
+   :param bool transient: If true the target will keep the color it has at the
                           end of the waveform, otherwise it will revert back to
-                          its original state.
+                          its original state. This argument is optional and
+                          defaults to true.
 
    The meaning of the ``skew_ratio`` argument depends on the type of waveform:
 
@@ -129,9 +129,7 @@ Available methods
    Tag (group) the given target bulb(s) with the given label (group name), then
    label can be used as a target by prefixing it with ``#``.
 
-   To add a device to an existing "group" simply do:
-
-   ::
+   To add a device to an existing "group" simply do::
 
       tag(["#myexistingtag", "bulbtoadd"], "myexistingtag")
 
@@ -143,9 +141,7 @@ Available methods
 .. function:: untag(target, label)
 
    Remove the given tag from the given target bulb(s). To completely delete a
-   tag (group), simple do:
-
-   ::
+   tag (group), simply do::
 
       untag("#myexistingtag", "myexistingtag")
 

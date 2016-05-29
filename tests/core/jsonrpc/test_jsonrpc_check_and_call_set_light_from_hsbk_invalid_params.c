@@ -133,5 +133,29 @@ main(void)
         "},"
         "\"id\": \"42\""
     "}");
+
+    // invalid temperature:
+    test_request("{"
+        "\"jsonrpc\": \"2.0\","
+        "\"method\": \"set_light_from_hsbk\","
+        "\"params\": {"
+            "\"target\": \"*\", "
+            "\"hue\": 324.2341514, "
+            "\"saturation\": 0.234, "
+            "\"brightness\": 1.0, "
+            "\"kelvin\": -4200,"
+            "\"transition\": 42"
+        "},"
+        "\"id\": \"42\""
+    "}");
+
+    // too many params
+    test_request("{"
+        "\"jsonrpc\": \"2.0\","
+        "\"method\": \"set_light_from_hsbk\","
+        "\"params\": [\"*\", 324.2341514, 0.234, 1.0, 4200, 600, \"extraarg\"],"
+        "\"id\": \"42\""
+    "}");
+
     return 0;
 }

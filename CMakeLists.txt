@@ -3,10 +3,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.9)
 
 PROJECT(LIGHTSD C)
 
-SET(CPACK_PACKAGE_VERSION_MAJOR "1")
-SET(CPACK_PACKAGE_VERSION_MINOR "1")
-SET(CPACK_PACKAGE_VERSION_PATCH "2")
-SET(LIGHTSD_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
+SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${LIGHTSD_SOURCE_DIR}/CMakeScripts")
+INCLUDE(LightsdVersion)
 
 MESSAGE(STATUS "lightsd version: ${LIGHTSD_VERSION}")
 MESSAGE(STATUS "CMake version: ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}")
@@ -14,8 +12,6 @@ MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 MESSAGE(STATUS "Target system: ${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_VERSION} ${CMAKE_SYSTEM_PROCESSOR}")
 MESSAGE(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 MESSAGE(STATUS "Source directory: ${LIGHTSD_SOURCE_DIR}")
-
-SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${LIGHTSD_SOURCE_DIR}/CMakeScripts")
 
 ENABLE_TESTING()
 
@@ -25,6 +21,14 @@ ENABLE_TESTING()
 FIND_PACKAGE(Event2 REQUIRED COMPONENTS core)
 FIND_PACKAGE(Endian REQUIRED)
 FIND_PACKAGE(Sphinx)
+
+# Release tools:
+FIND_PACKAGE(Gzip)
+FIND_PACKAGE(Hg)
+FIND_PACKAGE(PythonInterp 3.3) # >= 3.3 for os.replace
+FIND_PACKAGE(BsdTar)
+FIND_PACKAGE(Virtualenv)
+FIND_PACKAGE(Xz)
 
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckVariableExists)
@@ -92,9 +96,7 @@ ADD_SUBDIRECTORY(lifx)
 
 # 2.8.11 is the first version with TARGET_INCLUDE_DIRECTORIES:
 IF (CMAKE_VERSION VERSION_GREATER 2.8.10)
-    CONFIGURE_FILE(
-        CTestCustom.cmake.in "${LIGHTSD_BINARY_DIR}/CTestCustom.cmake" @ONLY
-    )
+    CONFIGURE_FILE(CTestCustom.cmake.in "${LIGHTSD_BINARY_DIR}/CTestCustom.cmake" @ONLY)
     ADD_SUBDIRECTORY(tests)
 ELSE ()
     MESSAGE(
@@ -105,7 +107,34 @@ ELSE ()
 ENDIF ()
 
 IF (SPHINX_FOUND)
+    MESSAGE(STATUS "Sphinx found, docs generation enabled")
     ADD_SUBDIRECTORY(docs)
+ELSE ()
+    MESSAGE(STATUS "Shpinx wasn't found, docs generation disabled")
+ENDIF ()
+
+IF (
+    PYTHONINTERP_FOUND
+    AND PYTHON_VERSION_MAJOR EQUAL 3
+    AND PYTHON_VERSION_MINOR GREATER 2
+    AND VIRTUALENV_FOUND
+    AND HG_FOUND
+    AND BSDTAR_FOUND
+    AND GZIP_FOUND
+    AND XZ_FOUND
+)
+    MESSAGE(
+        STATUS
+        "Python >= 3.3, virtualenv, bsdtar, gzip, xz, and mercurial (hg) "
+        "found, release commands enabled"
+    )
+    ADD_SUBDIRECTORY(dist)
+ELSE ()
+    MESSAGE(
+        STATUS
+        "Python >= 3.3 and/or virtualenv, bsdtar, gzip, xz, mercurial (hg) "
+        "weren't found, release commands disabled"
+    )
 ENDIF ()
 
 INSTALL(

@@ -1,0 +1,559 @@
+#!/usr/bin/env python3
+
+import click
+import datetime
+import functools
+import hashlib
+import os
+import itertools
+import jinja2
+import locale
+import pytz
+import requests
+import semver
+import shutil
+import subprocess
+import sys
+
+LIGHTSD_VERSION = "@LIGHTSD_VERSION@"
+# where the lightsd sources are:
+LIGHTSD_SOURCE_DIR = "@LIGHTSD_SOURCE_DIR@"
+# where the build is:
+LIGHTSD_BINARY_DIR = "@LIGHTSD_BINARY_DIR@"
+# where all the downstream repositories are, they will be pushed by by buildbot
+# (which manage the credentials to those repositories)
+LIGHTSD_PKGS_DIR = "@LIGHTSD_RELEASE_PACKAGES_DIR@"
+# where to put the generated archives served at
+# https://downloads.lightsd.io/releases/:
+LIGHTSD_ARCHIVES_DIR = "@LIGHTSD_RELEASE_ARCHIVES_DIR@"
+# where to put generated debian packages
+LIGHTSD_DEBS_DIR = "@LIGHTSD_RELEASE_DEBS_DIR@"
+# where to manage the documentation served at https://docs.lighsd.io/:
+LIGHTSD_DOCS_DIR = "@LIGHTSD_RELEASE_DOCS_DIR@"
+
+# paths to utilities:
+HG_EXECUTABLE = "@HG_EXECUTABLE@"
+BSDTAR_EXECUTABLE = "@BSDTAR_EXECUTABLE@"
+GZIP_EXECUTABLE = "@GZIP_EXECUTABLE@"
+XZ_EXECUTABLE = "@XZ_EXECUTABLE@"
+
+COMMIT_AUTHOR = "Buildbot <buildbot@kalessin.fr>"
+
+FILE_READ_SIZE = 32768
+
+USER_ENCODING = locale.getpreferredencoding()
+
+TARBALL_COMPRESSORS = [
+    # suffix, path, extra_flags
+    ("gz", GZIP_EXECUTABLE, ["--best"]),
+    ("xz", XZ_EXECUTABLE, []),
+]
+
+prereq_echo = functools.partial(click.secho, fg="magenta", bold=True)
+action_echo = functools.partial(click.secho, fg="blue", bold=True)
+result_echo = functools.partial(click.secho, fg="green", bold=True)
+error_echo = functools.partial(click.secho, bold=True)
+
+
+def repopath(repo):
+    return os.path.join(LIGHTSD_PKGS_DIR, repo)
+
+
+def next_dev_version(version):
+    parts, version = version, semver.format_version(**version)
+    if parts["prerelease"] is not None:
+        return semver.bump_prerelease(version)
+    return semver.parse(semver.bump_prerelease(semver.bump_patch(version)))
+
+
+def next_pre_release(version):
+    version = semver.format_version(**version)
+    return semver.parse(semver.bump_prerelease(version))
+
+
+def next_build_release(version):
+    version = semver.format_version(**version)
+    return semver.parse(semver.bump_build(version))
+
+
+def extract_build_number(version):
+    if version["build"] is None:
+        return "1"
+    rv = str(int(version["build"].split(".")[-1]) + 1)
+    version["build"] = None
+    return rv
+
+
+def readfile(fp, read_size=FILE_READ_SIZE):
+    chunk = fp.read(read_size)
+    while chunk:
+        yield chunk
+        chunk = fp.read(read_size)
+
+
+class PackageContext:
+
+    __slots__ = (
+        "version",
+        "build_number",
+        "archive_name",
+        "archive_md5",
+        "archive_sha256",
+        "archive_url",
+    )
+
+    def __init__(self, **kwargs):
+        for name, value in kwargs.items():
+            if name not in self.__slots__:
+                raise TypeError("{}: invalid argument {}".format(
+                    self.__class__.__name__, name
+                ))
+            setattr(self, name, value)
+
+    def as_dict(self):
+        return {name: getattr(self, name) for name in self.__slots__}
+
+
+class DownstreamPackage:
+
+    TYPE = None
+    TEMPLATES = None
+    STATIC_FILES = None
+
+    def __init__(self, repo):
+        self._repo = repo
+        self._src_dir = os.path.join(LIGHTSD_SOURCE_DIR, "dist", self.TYPE)
+        jinja_loader = jinja2.FileSystemLoader(self._src_dir)
+        self._render_ctx = jinja2.Environment(loader=jinja_loader)
+
+    def _render(self, msg):
+        pass
+
+    def render(self, pkg_ctx):
+        if self.TEMPLATES is not None:
+            for filename in self.TEMPLATES:
+                template = self._render_ctx.get_template(filename)
+                with open(os.path.join(self._repo, filename), "wb") as fp:
+                    template.stream(pkg_ctx.as_dict()).dump(fp, "utf-8")
+
+        if self.STATIC_FILES is not None:
+            for filename in self.STATIC_FILES:
+                dest = os.path.join(self._src_dir, filename)
+                dirname = os.path.dirname(dest)
+                os.makedirs(dirname, exist_ok=True)
+                shutil.copyfile(dest, os.path.join(self._repo, filename))
+
+        self._render(pkg_ctx)
+
+    def _pre_commit(self, msg):
+        pass
+
+    def commit(self, msg):
+        self._pre_commit(msg)
+
+        dirty = bool(len(subprocess.check_output([
+            HG_EXECUTABLE, "-R", self._repo, "status"
+        ])))
+        if dirty:
+            subprocess.check_call([
+                HG_EXECUTABLE, "-R", self._repo, "commit", "-m", msg
+            ])
+        return dirty
+
+
+class DebianPackage(DownstreamPackage):
+
+    TYPE = "dpkg"
+    STATIC_FILES = (
+        "debian/init.d",
+        "debian/source/format",
+        "debian/postinst",
+        "debian/control",
+        "debian/postrm",
+        "debian/copyright",
+        "debian/rules",
+        "debian/compat",
+        "debian/watch",
+        "debian/docs",
+        "debian/lightsd.default",
+    )
+
+    _CHANGELOG_ENTRY_FORMAT = (
+"""lightsd ({version}-{build_number}) unstable; urgency=low
+
+  * {msg}
+
+ -- {author}  {date}
+
+"""  # noqa
+    )
+    _CHANGELOG_DATE_FORMAT = "%a, %d %b %Y %H:%M:%S %z"
+
+    def _render(self, pkg_ctx):
+        # change -rc.# into ~rc.# to keep lintian happy
+        self._version = pkg_ctx.version.replace("-", "~")
+        self._build_number = pkg_ctx.build_number
+
+    def _pre_commit(self, msg):
+        changelog_path = os.path.join(self._repo, "debian", "changelog")
+        staging_changelog_path = "-".join([changelog_path, "next"])
+        user_date_locale = locale.getlocale(locale.LC_TIME)
+        utcnow = datetime.datetime.now(pytz.utc)
+
+        # prepare new changelog:
+        with open(staging_changelog_path, "wb") as ofp:
+            try:
+                locale.setlocale(locale.LC_TIME, "C")
+                new_entry = self._CHANGELOG_ENTRY_FORMAT.format(
+                    version=self._version,
+                    build_number=self._build_number,
+                    msg=msg,
+                    author=COMMIT_AUTHOR,
+                    date=utcnow.strftime(self._CHANGELOG_DATE_FORMAT)
+                ).encode("utf-8")
+                ofp.write(new_entry)
+                with open(changelog_path, "rb") as ifp:
+                    prev_entry = next(ifp)  # get the first line
+                    if new_entry.startswith(prev_entry):
+                        os.unlink(staging_changelog_path)
+                        return  # we already released that version.
+                    ofp.write(prev_entry)
+                    for chunk in readfile(ifp):
+                        ofp.write(chunk)
+            except Exception:
+                os.unlink(staging_changelog_path)
+                raise
+            finally:
+                user_date_locale = locale.setlocale(
+                    locale.LC_TIME, user_date_locale
+                )
+
+        # and replace the old one:
+        os.replace(staging_changelog_path, changelog_path)
+
+
+class HomebrewPackage(DownstreamPackage):
+
+    TYPE = "homebrew"
+    TEMPLATES = ("lightsd.rb",)
+    STATIC_FILES = ("LICENSE", "README.rst")
+
+
+class OpenWRTPackage(DownstreamPackage):
+
+    TYPE = "openwrt"
+    TEMPLATES = ("utils/lightsd/Makefile",)
+    STATIC_FILES = ("utils/lightsd/files/lightsd.init",)
+
+
+class PKGBUILDPackage(DownstreamPackage):
+
+    TYPE = "pkgbuild"
+    TEMPLATES = ("PKGBUILD", ".SRCINFO")
+
+
+PACKAGES = (
+    DebianPackage(repopath("dpkg-lightsd")),
+    HomebrewPackage(repopath("homebrew-lightsd")),
+    OpenWRTPackage(repopath("openwrt-lightsd")),
+    PKGBUILDPackage(repopath("pkgbuild-lightsd")),
+)
+
+LIGHTSD_VERSION_CMAKE_TEMPLATE = (
+"""# NOTE: auto-generated by the release target
+SET(CPACK_PACKAGE_VERSION_MAJOR "{major}")
+SET(CPACK_PACKAGE_VERSION_MINOR "{minor}")
+SET(CPACK_PACKAGE_VERSION_PATCH "{patch}")
+SET(LIGHTSD_PRERELEASE "{prerelease}")
+SET(LIGHTSD_BUILD "{build}")
+SET(LIGHTSD_VERSION "{version}")
+"""  # noqa
+)
+
+
+def _abort_if_release_exists(version):
+    gz_archive_url = (
+        "https://downloads.lightsd.io/"
+        "releases/lightsd-{}.tar.gz".format(version)
+    )
+
+    prereq_echo("Checking for an existing release")
+    response = requests.head(gz_archive_url, allow_redirects=True)
+    click.echo("[+] {}: {} {}".format(
+        gz_archive_url, response.status_code, response.reason
+    ))
+    if response.status_code != requests.codes.not_found:
+        error_echo("Release already found at {}!".format(gz_archive_url))
+        sys.exit(1)
+
+
+def _update_lightsd_version_cmake_include(version):
+    version_parts = {
+        k: v if v is not None else ""
+        for k, v in semver.parse(version).items()
+    }
+    lightsd_version_file = os.path.join(
+        LIGHTSD_SOURCE_DIR, "CMakeScripts", "LightsdVersion.cmake"
+    )
+    with open(lightsd_version_file, "wb") as fp:
+        fp.write(LIGHTSD_VERSION_CMAKE_TEMPLATE.format(
+            version=version, **version_parts
+        ).encode("utf-8"))
+
+
+def _release(version, next_version):
+    revision, branch = [
+        part.strip() for part in subprocess.check_output([
+            HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "id", "--id", "--branch"
+        ]).decode(USER_ENCODING).split()
+    ]
+    qapplied = bool(len(subprocess.check_output([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+        "--config", "extensions.mq=", "qapplied"
+    ]).decode(USER_ENCODING)))
+    if qapplied or revision.endswith("+") or branch != "default":
+        error_echo(
+            "Can't do a release over a dirty repository! "
+            "(rev={}, branch={}, patched={})".format(
+                revision, branch, qapplied
+            )
+        )
+        sys.exit(1)
+
+    # Re-gen LightsdVersion.cmake with major.minor.patch, tag, and re-gen
+    # LightsdVersion.cmake after bumping minor adding a prerelease tag:
+    version = click.prompt(
+        "Confirm the version to release",
+        default=version,
+        type=lambda arg: semver.format_version(**semver.parse(arg))
+    )
+    _update_lightsd_version_cmake_include(version)
+    subprocess.check_call([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+        "tag", "-m", "Tagging release {}".format(version), version
+        # TODO: Use docutils to extract the changelog section
+    ])
+    _update_lightsd_version_cmake_include(next_version)
+    subprocess.check_call([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+        "commit", "-m", "Back to development, {}".format(next_version)
+    ])
+
+    subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "out"])
+    if click.confirm("Are you ready to push those commit?"):
+        return
+        subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "push"])
+
+
+@click.group()
+def cli():
+    pass
+
+
+@cli.command()
+def pre_release():
+    _abort_if_release_exists(LIGHTSD_VERSION)
+    version = semver.parse(LIGHTSD_VERSION)
+    if version["prerelease"] is None:
+        version = next_pre_release(version)
+    _release(
+        semver.format_version(**version),
+        semver.format_version(**next_pre_release(version)),
+    )
+
+
+@cli.command()
+def release():
+    _abort_if_release_exists(LIGHTSD_VERSION)
+    version = semver.parse(LIGHTSD_VERSION)
+    version["prerelease"] = version["build"] = None
+    _release(
+        semver.format_version(**version),
+        semver.format_version(**next_dev_version(version)),
+    )
+
+
+@cli.command()
+def package_release(release):
+    version = semver.parse(LIGHTSD_VERSION)
+    # TODO: version = previous_release (including build metadata)
+    #       (maybe downloads.lightsd.io can help)
+    version = next_build_release(version)
+    _release(
+        semver.format_version(**version),
+        semver.format_version(**next_build_release(version)),
+    )
+
+
+@cli.command()
+def release_new_tag():
+    if not all([LIGHTSD_PKGS_DIR, LIGHTSD_ARCHIVES_DIR]):
+        error_echo(
+            "Please configure the project with LIGHTSD_RELEASE_PACKAGES_DIR "
+            "and LIGHTSD_RELEASE_ARCHIVES_DIR to use this command."
+        )
+        sys.exit(1)
+
+    _abort_if_release_exists(LIGHTSD_VERSION)
+
+    prereq_echo("Cleaning-up the source tree")
+    subprocess.check_call([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+        "--config", "extensions.purge=", "purge", "--abort-on-err", "--all"
+    ])
+
+    archive_name = "lightsd-{}.tar".format(LIGHTSD_VERSION)
+    archive = os.path.join(LIGHTSD_BINARY_DIR, "dist", archive_name)
+    gz_archive_name = ".".join([archive_name, "gz"])
+    gz_archive = os.path.join(LIGHTSD_ARCHIVES_DIR, gz_archive_name)
+    gz_archive_url = "https://downloads.lightsd.io/releases/{}".format(
+        gz_archive_name
+    )
+
+    # NOTE: I wanted to use hg archive but then dpkg gave me troubles because
+    #       the archive had extra files or something:
+    action_echo("Tarballing the sources into {}".format(archive))
+    if not os.path.exists(archive):
+        subprocess.check_call([
+            BSDTAR_EXECUTABLE,
+            "-C", LIGHTSD_SOURCE_DIR,
+            "-cf", archive,
+            # Put everything under a top-level directory ("archive_name"
+            # without the .tar extension):
+            "-s", "/^\\./{}/".format(archive_name.rsplit(".", 1)[0]),
+            "--exclude", ".hg",
+            "."
+        ])
+    os.makedirs(LIGHTSD_ARCHIVES_DIR, exist_ok=True)
+    for suffix, bin, extra_flags in TARBALL_COMPRESSORS:
+        dest = ".".join([
+            os.path.join(LIGHTSD_ARCHIVES_DIR, archive_name), suffix
+        ])
+        if os.path.exists(dest):
+            click.echo("[=] compressing with {}".format(suffix))
+            continue
+        cmd = itertools.chain([bin, "--stdout"], extra_flags, [archive])
+        click.echo("[+] compressing with {}".format(suffix))
+        with open(dest, "wb") as fp:
+            subprocess.check_call(cmd, stdout=fp)
+
+    action_echo("Computing MD5 and SHA256 checksums for {}".format(gz_archive))
+    gz_archive_md5 = hashlib.md5()
+    gz_archive_sha256 = hashlib.sha256()
+    with open(gz_archive, "rb") as fp:
+        for chunk in readfile(fp):
+            gz_archive_md5.update(chunk)
+            gz_archive_sha256.update(chunk)
+    gz_archive_md5 = gz_archive_md5.hexdigest()
+    gz_archive_sha256 = gz_archive_sha256.hexdigest()
+    click.echo("[+] MD5 {}".format(gz_archive_md5))
+    click.echo("[+] SHA256 {}".format(gz_archive_sha256))
+
+    version = semver.parse(LIGHTSD_VERSION)
+    # NOTE: It would be cool to know which package really changed so we can just
+    #       render and release that one. I guess the easiest way is to implement
+    #       that with different schedulers in buildbot or a scheduler that's
+    #       able to fill-in a property that could be passed to CMake (even
+    #       better: generate a release target for each pkg).
+    build_number = extract_build_number(version)
+    pkg_ctx = PackageContext(
+        version=semver.format_version(**version),
+        build_number=build_number,
+        archive_name=gz_archive_name,
+        archive_md5=gz_archive_md5,
+        archive_sha256=gz_archive_sha256,
+        archive_url=gz_archive_url,
+    )
+    action_echo("Updating packages")
+    release_type = "upstream" if build_number == "1" else "package"
+    release_msg = "New {} release {}".format(release_type, LIGHTSD_VERSION)
+    for pkg in PACKAGES:
+        pkg.render(pkg_ctx)
+        dirty = pkg.commit(release_msg)
+        if not dirty:
+            click.echo("[=] {}".format(pkg.TYPE))
+            continue
+        click.echo("[+] {} package".format(pkg.TYPE))
+
+    result_echo(release_msg.replace("upstream", "downstream"))
+
+
+@cli.command()
+def release_docs():
+    version = semver.parse(LIGHTSD_VERSION)
+    dest_dir = os.path.join(LIGHTSD_DOCS_DIR, LIGHTSD_VERSION)
+    docs_dir = os.path.join(LIGHTSD_BINARY_DIR, "docs", "_build", ".")
+    os.makedirs(dest_dir, exist_ok=True)
+    if version["prerelease"] is None and version["build"] is None:
+        alias = "current"
+    else:
+        alias = "latest"
+    action_echo("Copying files into {}".format(dest_dir))
+    subprocess.check_call(["cp", "-av", docs_dir, dest_dir])
+    action_echo("Updating alias {}".format(alias))
+    subprocess.check_call([
+        "ln", "-vrsnf", dest_dir, os.path.join(LIGHTSD_DOCS_DIR, alias)
+    ])
+    result_echo("{} ({}) updated".format(dest_dir, alias))
+
+
+@cli.command()
+def release_debuild():
+    if not all([LIGHTSD_DEBS_DIR, LIGHTSD_ARCHIVES_DIR]):
+        error_echo(
+            "Please configure the project with LIGHTSD_RELEASE_DEBS_DIR "
+            "and LIGHTSD_RELEASE_ARCHIVES_DIR to use this command."
+        )
+        sys.exit(1)
+
+    # This is just too painful to do from buildbot atm (we need to parametrize
+    # the build with the version):
+    debuild_dir = os.path.join(LIGHTSD_BINARY_DIR, "dist", "debuild")
+    if os.path.exists(debuild_dir):
+        prereq_echo("Cleaning-up previous build in {}".format(debuild_dir))
+        shutil.rmtree(debuild_dir)
+    os.makedirs(debuild_dir, exist_ok=True)
+    version = semver.parse(LIGHTSD_VERSION)
+    build_number = extract_build_number(version)
+    version = semver.format_version(**version)
+    archive_name = "lightsd-{}.tar.gz".format(version)
+    archive_path = os.path.join(LIGHTSD_ARCHIVES_DIR, archive_name)
+    deb_archive_name = archive_name.replace("-rc", "~rc")
+    deb_archive_name = deb_archive_name.replace("lightsd-", "lightsd_")
+    prereq_echo("Setting-up sources under {}".format(debuild_dir))
+    deb_archive_path = os.path.join(debuild_dir, deb_archive_name)
+    shutil.copyfile(archive_path, deb_archive_path)
+    click.echo("[+] Archive copied to {}".format(deb_archive_path))
+    src_dir = os.path.join(debuild_dir, "lightsd-{}".format(version))
+    subprocess.check_call([
+        BSDTAR_EXECUTABLE, "-C", debuild_dir, "-xzf", deb_archive_path,
+    ])
+    click.echo("[+] Archive extracted in {}".format(src_dir))
+    shutil.copytree(
+        os.path.join(LIGHTSD_PKGS_DIR, "dpkg-lightsd", "debian"),
+        os.path.join(src_dir, "debian")
+    )
+    click.echo("[+] dpkg sources copied to {}".format(
+        os.path.join(src_dir, "debian")
+    ))
+    dpkg_arch = subprocess.check_output(["dpkg", "--print-architecture"])
+    dpkg_arch = dpkg_arch.decode(USER_ENCODING)
+    deb_pkg_name = "lightsd_{version}-{build_number}_{dpkg_arch}.deb".format(
+        version=version,
+        build_number=build_number,
+        dpkg_arch=dpkg_arch,
+    )
+    action_echo("Building {}".format(deb_pkg_name))
+    subprocess.check_call(["debuild"], cwd=src_dir)
+    shutil.copyfile(
+        os.path.join(debuild_dir, deb_pkg_name),
+        os.path.join(LIGHTSD_DEBS_DIR, deb_pkg_name),
+    )
+    click.echo("[+] Copied {} under {}".format(
+        deb_pkg_name, LIGHTSD_DEBS_DIR
+    ))
+    result_echo("New Debian package {}".format(deb_pkg_name))
+
+
+if __name__ == "__main__":
+    cli()

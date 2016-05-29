@@ -1,0 +1,7 @@
+# See uscan(1) for format
+
+# Compulsory line, this is a version 3 file
+version=3
+
+opts=filenamemangle=s/.+\/v?(\d\S*)\.tar\.gz/lightsd-$1\.tar\.gz/ \
+       https://github.com/lopter/lightsd/tags .*/?(\d+\.\d+.\d+)\.tar\.gz

@@ -210,3 +210,21 @@ bufferevent_write(struct bufferevent *bufev,
     return 0;
 }
 #endif
+
+#ifndef MOCKED_EVUTIL_CLOSESOCKET
+int
+evutil_closesocket(evutil_socket_t sock)
+{
+    (void)sock;
+    return -1;
+}
+#endif
+
+#ifndef MOCKED_EVUTIL_MAKE_LISTEN_SOCKET_REUSEABLE
+int
+evutil_make_listen_socket_reuseable(evutil_socket_t sock)
+{
+    (void)sock;
+    return -1;
+}
+#endif

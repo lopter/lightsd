@@ -274,9 +274,9 @@ lgtd_lifx_bulb_set_tags(struct lgtd_lifx_bulb *bulb, uint64_t tags)
 
 void
 lgtd_lifx_bulb_set_ip_state(struct lgtd_lifx_bulb *bulb,
-                      enum lgtd_lifx_bulb_ips ip_id,
-                      const struct lgtd_lifx_ip_state *state,
-                      lgtd_time_mono_t received_at)
+                            enum lgtd_lifx_bulb_ips ip_id,
+                            const struct lgtd_lifx_ip_state *state,
+                            lgtd_time_mono_t received_at)
 {
     assert(bulb);
     assert(state);

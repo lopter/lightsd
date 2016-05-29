@@ -17,6 +17,8 @@
 
 #pragma once
 
+struct lgtd_lifx_gateway;
+
 extern struct lgtd_lifx_tag_list lgtd_lifx_tags;
 
 struct lgtd_lifx_site {

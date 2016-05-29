@@ -41,7 +41,9 @@
 #define LGTD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
 #define LGTD_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define LGTD_MAX(a, b) ((a) > (b) ? (a) : (b))
+
 #define LGTD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 #define LGTD_MSECS_TO_TIMEVAL(v) {  \
     .tv_sec = (v) / 1000,           \
     .tv_usec = ((v) % 1000) * 1000  \
@@ -49,6 +51,7 @@
 #define LGTD_NSECS_TO_USECS(v) ((v) / (unsigned int)1E6)
 #define LGTD_NSECS_TO_SECS(v) ((v) / (unsigned int)1E9)
 #define LGTD_SECS_TO_NSECS(v) ((v) * (unsigned int)1E9)
+
 #define LGTD_TM_TO_ISOTIME(tm, sbuf, bufsz, usec) do {                          \
     /* '2015-01-02T10:13:16.132222+00:00' */                                    \
     if ((usec)) {                                                               \
@@ -69,10 +72,23 @@
         );                                                                      \
     }                                                                           \
 } while (0)
+
 #define LGTD_SNPRINTF_APPEND(buf, i, bufsz, ...) do {       \
     int n = snprintf(&(buf)[(i)], bufsz - i, __VA_ARGS__);  \
     (i) = LGTD_MIN((i) + n, bufsz);                         \
 } while (0)
+
+#if LGTD_BIG_ENDIAN_SYSTEM
+# define LGTD_STATIC_HTONS(s) (s)
+# define LGTD_STATIC_HTONL(l) (l)
+#else
+# define LGTD_STATIC_HTONS(s) ((((s) << 8) & 0xff00) | (((s) >> 8) & 0xff))
+# define LGTD_STATIC_HTONL(l) (                                 \
+    (((l) & 0xff000000) >> 24) | (((l) & 0x00ff0000) >> 8)      \
+    | (((l) & 0x0000ff00) << 8) | (((l) & 0x000000ff) << 24)    \
+)
+#endif
+
 
 enum lgtd_verbosity {
     LGTD_DEBUG = 0,

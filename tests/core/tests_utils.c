@@ -213,3 +213,39 @@ lgtd_tests_remove_temp_dir(char *path)
 
     free(path);
 }
+
+void
+lgtd_tests_check_sockaddr_in(const struct sockaddr *addr,
+                             int addrlen,
+                             int expected_family,
+                             uint32_t expected_addr,
+                             uint16_t expected_port)
+{
+    if (!addr) {
+        lgtd_errx(1, "missing addr");
+    }
+
+    if (addr->sa_family != expected_family) {
+        lgtd_errx(
+            1, "got address of type %d (expected %d)",
+            addr->sa_family, expected_family
+        );
+    }
+    const struct sockaddr_in *inaddr = (const struct sockaddr_in *)addr;
+    if (inaddr->sin_addr.s_addr != expected_addr) {
+        lgtd_errx(
+            1, "got address %#x (expected %#x)",
+            inaddr->sin_addr.s_addr, expected_addr
+        );
+    }
+    uint16_t port = ntohs(inaddr->sin_port);
+    if (port != expected_port) {
+        lgtd_errx(1, "got port %hu (expected %u)", port, expected_port);
+    }
+    if (addrlen != -1 && addrlen != sizeof(*inaddr)) {
+        lgtd_errx(
+            1, "got invalid addrlen %u (expected %ju)",
+            addrlen, (uintmax_t)sizeof(*inaddr)
+        );
+    }
+}

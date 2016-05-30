@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import click
+import contextlib
 import datetime
 import functools
 import hashlib
@@ -63,7 +64,7 @@ def latest_released_version():
     version = subprocess.check_output([
         HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
         "log", "-r", "max(tag('re:^\d+.\d+.\d+'))", "-T", "{tags}"
-    ]).decode(USER_ENCODING)
+    ]).decode(USER_ENCODING).strip()
     return semver.parse(version)
 
 
@@ -161,7 +162,7 @@ class DownstreamPackage:
 
         dirty = bool(len(subprocess.check_output([
             HG_EXECUTABLE, "-R", self._repo, "status"
-        ])))
+        ]).decode(USER_ENCODING).strip()))
         if dirty:
             subprocess.check_call([
                 HG_EXECUTABLE, "-R", self._repo, "commit", "-m", msg
@@ -293,6 +294,22 @@ def _abort_if_release_exists(version):
     if response.status_code != requests.codes.not_found:
         error_echo("Release already found at {}!".format(gz_archive_url))
         sys.exit(1)
+
+
+def _download_file(url, dst):
+    action_echo("Downloading {}".format(os.path.basename(url)))
+
+    with contextlib.closing(requests.get(
+        url, allow_redirects=True, stream=True
+    )) as response:
+        if response.status_code != 200:
+            error_echo("Can't download {}: {} {}".format(
+                os.path.basename(url), response.status_code, response.reason
+            ))
+            sys.exit(1)
+        with open(dst, "wb") as ofp:
+            for chunk in response.iter_content(FILE_READ_SIZE):
+                ofp.write(chunk)
 
 
 def _update_lightsd_version_cmake_include(version):
@@ -524,13 +541,16 @@ def release_debuild():
     build_number = extract_build_number(version)
     version = semver.format_version(**version)
     archive_name = "lightsd-{}.tar.gz".format(version)
-    archive_path = os.path.join(LIGHTSD_ARCHIVES_DIR, archive_name)
     deb_archive_name = archive_name.replace("-rc", "~rc")
+    deb_archive_name = deb_archive_name.replace(".tar.gz", ".orig.tar.gz")
     deb_archive_name = deb_archive_name.replace("lightsd-", "lightsd_")
     prereq_echo("Setting-up sources under {}".format(debuild_dir))
     deb_archive_path = os.path.join(debuild_dir, deb_archive_name)
-    shutil.copyfile(archive_path, deb_archive_path)
-    click.echo("[+] Archive copied to {}".format(deb_archive_path))
+    _download_file(
+        "https://downloads.lightsd.io/releases/{}".format(archive_name),
+        deb_archive_path
+    )
+    click.echo("[+] Archive downloaded to {}".format(deb_archive_path))
     src_dir = os.path.join(debuild_dir, "lightsd-{}".format(version))
     subprocess.check_call([
         BSDTAR_EXECUTABLE, "-C", debuild_dir, "-xzf", deb_archive_path,
@@ -544,14 +564,14 @@ def release_debuild():
         os.path.join(src_dir, "debian")
     ))
     dpkg_arch = subprocess.check_output(["dpkg", "--print-architecture"])
-    dpkg_arch = dpkg_arch.decode(USER_ENCODING)
+    dpkg_arch = dpkg_arch.decode(USER_ENCODING).strip()
     deb_pkg_name = "lightsd_{version}-{build_number}_{dpkg_arch}.deb".format(
-        version=version,
+        version=version.replace("-rc", "~rc"),
         build_number=build_number,
         dpkg_arch=dpkg_arch,
     )
     action_echo("Building {}".format(deb_pkg_name))
-    subprocess.check_call(["debuild"], cwd=src_dir)
+    subprocess.check_call(["debuild", "-us", "-uc"], cwd=src_dir)
     shutil.copyfile(
         os.path.join(debuild_dir, deb_pkg_name),
         os.path.join(LIGHTSD_DEBS_DIR, deb_pkg_name),

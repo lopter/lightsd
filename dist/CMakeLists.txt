@@ -21,9 +21,11 @@ SET(
     pre_release
     package_release
     release_new_tag
-    release_docs
     release_debuild
 )
+IF (SPHINX_FOUND)
+    LIST(APPEND RELEASE_COMMANDS release_docs)
+ENDIF ()
 FOREACH (TARGET ${RELEASE_COMMANDS})
     ADD_CUSTOM_TARGET(
         ${TARGET}
@@ -33,7 +35,9 @@ FOREACH (TARGET ${RELEASE_COMMANDS})
     )
 ENDFOREACH ()
 
-ADD_DEPENDENCIES(release_docs docs)
+IF (SPHINX_FOUND)
+    ADD_DEPENDENCIES(release_docs docs)
+ENDIF (SPHINX_FOUND)
 
 SET(
     EXTRA_OUTPUT

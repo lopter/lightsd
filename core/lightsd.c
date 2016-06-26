@@ -79,7 +79,7 @@ static int lgtd_last_signal_received = 0;
 static void
 lgtd_signal_event_callback(int signum, short events, void *ctx)
 {
-    int i = (int)ctx;
+    intptr_t i = (intptr_t)ctx;
     assert(i >= 0);
     assert(i < (int)LGTD_ARRAY_SIZE(lgtd_signals));
     assert(i < (int)LGTD_ARRAY_SIZE(lgtd_signal_evs));

@@ -66,8 +66,6 @@ lgtd_client_close_all(void)
     }
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch"
 static void
 lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
 {
@@ -89,7 +87,7 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
         jsmn_parser jsmn_ctx;
     parse_after_realloc:
         jsmn_init(&jsmn_ctx);
-        jsmnerr_t rv = jsmn_parse(&jsmn_ctx, buf, nbytes, tokens, ntokens);
+        int rv = jsmn_parse(&jsmn_ctx, buf, nbytes, tokens, ntokens);
         switch (rv) {
         case JSMN_ERROR_NOMEM:
         case JSMN_ERROR_INVAL:
@@ -138,7 +136,6 @@ lgtd_client_read_callback(struct bufferevent *bev, void *ctx)
         nbytes = evbuffer_get_contiguous_space(input);
     } while (nbytes);
 }
-#pragma GCC diagnostic pop
 
 static void
 lgtd_client_event_callback(struct bufferevent *bev, short events, void *ctx)

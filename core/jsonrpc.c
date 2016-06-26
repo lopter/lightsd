@@ -400,7 +400,7 @@ lgtd_jsonrpc_extract_values_from_schema_and_dict(void *output,
     }
 
     for (int si = 0; si != schema_size; si++) {
-        if (!schema[si].optional) {
+        if (!schema[si].optional && schema[si].value_offset != -1) {
             const jsmntok_t *seen = LGTD_JSONRPC_GET_JSMNTOK(
                 output, schema[si].value_offset
             );

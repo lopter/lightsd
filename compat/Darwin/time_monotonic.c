@@ -22,12 +22,13 @@
 #include <mach/mach_time.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <stdint.h>
 
 #include "time_monotonic.h"
 
 enum { MSECS_IN_NSEC = 1000000 };
 
-time_t
+lgtd_time_mono_t
 lgtd_time_monotonic_msecs(void)
 {
     static mach_timebase_info_data_t timebase = { 0, 0 };

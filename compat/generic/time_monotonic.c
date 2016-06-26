@@ -15,11 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with lighstd.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <stdint.h>
 #include <time.h>
 
 #include "time_monotonic.h"
 
-time_t
+lgtd_time_mono_t
 lgtd_time_monotonic_msecs(void)
 {
     struct timespec tp;

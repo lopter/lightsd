@@ -180,10 +180,13 @@ lgtd_tests_make_temp_dir(void)
 {
     char buf[PATH_MAX] = { 0 };
     int n = snprintf(buf, sizeof(buf), "%s/lightsd.test.XXXXXXXX", P_tmpdir);
-    if (n >= (int)sizeof(buf)) {
-        errx(1, "cannot allocate temporary directory");
+    if (n >= (int)sizeof(buf) || n < 0) {
+        lgtd_errx(1, "cannot allocate temporary directory");
     }
-    return strdup(mkdtemp(buf));
+    if (!mkdtemp(buf)) {
+        lgtd_err(1, "cannot create temporary directory");
+    }
+    return strdup(buf);
 }
 
 void

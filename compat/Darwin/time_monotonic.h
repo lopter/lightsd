@@ -17,6 +17,6 @@
 
 #pragma once
 
-typedef time_t lgtd_time_mono_t;
+typedef uint64_t lgtd_time_mono_t;
 
 lgtd_time_mono_t lgtd_time_monotonic_msecs(void);

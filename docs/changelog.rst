@@ -11,6 +11,38 @@ Given a version number MAJOR.MINOR.PATCH:
   are added in a backwards-compatible manner;
 - PATCH version gets incremented for backwards-compatible bug fixes.
 
+1.2.0 (unreleased)
+------------------
+
+This release doesn't have any new user-facing feature but packs a bunch of fixes
+and improvements, both in the code but also the documentation and examples.
+
+Also worth noting, is the full continuous integration pipeline that has been
+setup behind the scenes. It will hopefully make it a lot easier to work on the
+project.
+
+Fixes
+~~~~~
+
+- A couple of crash/security fixes by , one being in jsmn_
+  (JSON parser) which has been upgraded to its latest version;
+- FreeBSD build (more BSD fixes to come though, see GH-16_);
+- WIP…
+
+.. _jsmn: https://github.com/zserge/jsmn
+.. _GH-16: https://github.com/lopter/lightsd/issues/16
+
+Acknowledgments
+~~~~~~~~~~~~~~~
+
+Thanks to:
+
+- `Xavier Deguillard`_ for his contributions, additional automated tests will be
+  setup to make crashes and security issues much harder to creep in;
+- All the people who have been trying the project and reporting issues!
+
+.. _Xavier Deguillard: https://github.com/Rip-Rip
+
 1.1.2 (2015-11-30)
 ------------------
 

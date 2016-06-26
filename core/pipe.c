@@ -68,8 +68,6 @@ lgtd_command_pipe_close(struct lgtd_command_pipe *pipe)
 
 static void lgtd_command_pipe_reset(struct lgtd_command_pipe *);
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wswitch"
 static void
 lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
 {
@@ -106,7 +104,7 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
             ssize_t bufsz = evbuffer_get_length(pipe->read_buf);
         parse_after_realloc:
             jsmn_init(&jsmn_ctx);
-            jsmnerr_t rv = jsmn_parse(&jsmn_ctx, buf, bufsz, tokens, ntokens);
+            int rv = jsmn_parse(&jsmn_ctx, buf, bufsz, tokens, ntokens);
             switch (rv) {
             case JSMN_ERROR_NOMEM:
             case JSMN_ERROR_INVAL:
@@ -153,7 +151,6 @@ lgtd_command_pipe_read_callback(evutil_socket_t socket, short events, void *ctx)
 
     lgtd_command_pipe_reset(pipe);
 }
-#pragma GCC diagnostic pop
 
 static bool
 _lgtd_command_pipe_open(const char *path)

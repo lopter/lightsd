@@ -18,29 +18,32 @@ This release doesn't have any new user-facing feature but packs a bunch of fixes
 and improvements, both in the code but also the documentation and examples.
 
 Also worth noting, is the full continuous integration pipeline that has been
-setup behind the scenes. It will hopefully make it a lot easier to work on the
-project.
+setup behind the scenes. Most of the work for this release went into it. It will
+hopefully make it a lot easier to work on the project.
 
 Fixes
 ~~~~~
 
-- A couple of crash/security fixes by , one being in jsmn_
-  (JSON parser) which has been upgraded to its latest version;
-- FreeBSD build (more BSD fixes to come though, see GH-16_);
-- WIP…
+- Discovery now works properly on computers with multiple network interfaces
+  (closes :gh:`2`);
+- Correctly support optional arguments in the JSON-RPC API;
+- A couple of crash/security fixes, one being in the jsmn_ JSON parser which has
+  been upgraded to its latest version;
+- FreeBSD build (more BSD fixes to come though, see :gh:`16`).
 
 .. _jsmn: https://github.com/zserge/jsmn
-.. _GH-16: https://github.com/lopter/lightsd/issues/16
 
 Acknowledgments
 ~~~~~~~~~~~~~~~
 
 Thanks to:
 
-- `Xavier Deguillard`_ for his contributions, additional automated tests will be
+- `Sylvain Laurent`_ for his original work on fixing discovery;
+- `Xavier Deguillard`_ for his contributions; additional automated tests will be
   setup to make crashes and security issues much harder to creep in;
 - All the people who have been trying the project and reporting issues!
 
+.. _Sylvain Laurent: https://github.com/Magicking/
 .. _Xavier Deguillard: https://github.com/Rip-Rip
 
 1.1.2 (2015-11-30)

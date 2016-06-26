@@ -27,12 +27,6 @@ ssize_t mock_sendto(int, const void *, size_t, int,
 
 enum { MOCK_SOCKET_FD = 32 };
 static struct event *MOCK_WRITE_EV = (struct event *)0x7061726973;
-static const struct sockaddr_in LIFX_BROADCAST_ADDR = {
-    .sin_family = AF_INET,
-    .sin_addr = { INADDR_BROADCAST },
-    .sin_port = LGTD_STATIC_HTONS(LGTD_LIFX_PROTOCOL_PORT),
-    .sin_zero = { 0 }
-};
 
 static int event_del_call_count = 0;
 

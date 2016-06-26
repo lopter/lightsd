@@ -802,7 +802,7 @@ lgtd_lifx_wire_handle_receive(evutil_socket_t socket,
         const struct lgtd_lifx_packet_info *pkt_info =
             lgtd_lifx_wire_get_packet_info(read.hdr.packet_type);
         if (!pkt_info) {
-            lgtd_warnx(
+            lgtd_info(
                 "received unknown packet %#x from %s",
                 read.hdr.packet_type, peer_addr
             );

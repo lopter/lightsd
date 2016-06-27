@@ -65,7 +65,7 @@ class LightsClient:
         self.url = url
         self.encoding = encoding
 
-        parts = urllib.parse.urlparse(args.url)
+        parts = urllib.parse.urlparse(url)
 
         if parts.scheme == "unix":
             self._socket = socket.socket(socket.AF_UNIX)

@@ -27,8 +27,8 @@ LIGHTSD_PKGS_DIR = "@LIGHTSD_RELEASE_PACKAGES_DIR@"
 # where to put the generated archives served at
 # https://downloads.lightsd.io/releases/:
 LIGHTSD_ARCHIVES_DIR = "@LIGHTSD_RELEASE_ARCHIVES_DIR@"
-# where to put generated debian packages
-LIGHTSD_DEBS_DIR = "@LIGHTSD_RELEASE_DEBS_DIR@"
+# where to put generated packages
+LIGHTSD_PKGS_OUT_DIR = "@LIGHTSD_RELEASE_PACKAGES_OUT_DIR@"
 # where to manage the documentation served at https://docs.lighsd.io/:
 LIGHTSD_DOCS_DIR = "@LIGHTSD_RELEASE_DOCS_DIR@"
 
@@ -523,10 +523,11 @@ def release_docs():
 
 @cli.command()
 def release_debuild():
-    if not all([LIGHTSD_DEBS_DIR, LIGHTSD_ARCHIVES_DIR]):
+    if not all([LIGHTSD_PKGS_OUT_DIR, LIGHTSD_ARCHIVES_DIR]):
         error_echo(
-            "Please configure the project with LIGHTSD_RELEASE_DEBS_DIR "
-            "and LIGHTSD_RELEASE_ARCHIVES_DIR to use this command."
+            "Please configure the project with "
+            "LIGHTSD_RELEASE_PACKAGES_OUT_DIR and "
+            "LIGHTSD_RELEASE_ARCHIVES_DIR to use this command."
         )
         sys.exit(1)
 
@@ -537,6 +538,7 @@ def release_debuild():
         prereq_echo("Cleaning-up previous build in {}".format(debuild_dir))
         shutil.rmtree(debuild_dir)
     os.makedirs(debuild_dir, exist_ok=True)
+    os.makedirs(LIGHTSD_PKGS_OUT_DIR, exist_ok=True)
     version = latest_released_version()
     build_number = extract_build_number(version)
     version = semver.format_version(**version)
@@ -571,16 +573,69 @@ def release_debuild():
         dpkg_arch=dpkg_arch,
     )
     action_echo("Building {}".format(deb_pkg_name))
-    subprocess.check_call(["debuild", "-us", "-uc"], cwd=src_dir)
+    subprocess.check_call(
+        ["debuild", "-us", "-uc", "--no-lintian"], cwd=src_dir
+    )
+    action_echo("Linting {}".format(deb_pkg_name))
+    deb_pkg_path = os.path.join(debuild_dir, deb_pkg_name)
+    subprocess.check_call(["lintian", deb_pkg_path])
     shutil.copyfile(
-        os.path.join(debuild_dir, deb_pkg_name),
-        os.path.join(LIGHTSD_DEBS_DIR, deb_pkg_name),
+        deb_pkg_path, os.path.join(LIGHTSD_PKGS_OUT_DIR, deb_pkg_name),
     )
     click.echo("[+] Copied {} under {}".format(
-        deb_pkg_name, LIGHTSD_DEBS_DIR
+        deb_pkg_name, LIGHTSD_PKGS_OUT_DIR
     ))
     result_echo("New Debian package {}".format(deb_pkg_name))
 
+
+@cli.command()
+def release_makepkg():
+    if not all([LIGHTSD_PKGS_OUT_DIR, LIGHTSD_ARCHIVES_DIR]):
+        error_echo(
+            "Please configure the project with "
+            "LIGHTSD_RELEASE_PACKAGES_OUT_DIR and "
+            "LIGHTSD_RELEASE_ARCHIVES_DIR to use this command."
+        )
+        sys.exit(1)
+
+    # This is just too painful to do from buildbot atm (we need to parametrize
+    # the build with the version):
+    makepkg_dir = os.path.join(LIGHTSD_BINARY_DIR, "dist", "makepkg")
+    if os.path.exists(makepkg_dir):
+        prereq_echo("Cleaning-up previous build in {}".format(makepkg_dir))
+        shutil.rmtree(makepkg_dir)
+    os.makedirs(makepkg_dir, exist_ok=True)
+    os.makedirs(LIGHTSD_PKGS_OUT_DIR, exist_ok=True)
+    version = latest_released_version()
+    build_number = extract_build_number(version)
+    version = semver.format_version(**version)
+    pkgbuild_src_dir = os.path.join(LIGHTSD_PKGS_DIR, "pkgbuild-lightsd")
+    for src in ("PKGBUILD", "lightsd.install"):
+        shutil.copy(os.path.join(pkgbuild_src_dir, src), makepkg_dir)
+    click.echo("[+] pkgbuild sources copied to {}".format(makepkg_dir))
+    pkg_arch = subprocess.check_output(["pacman", "-Qi", "pacman"])
+    pkg_arch = pkg_arch.decode(USER_ENCODING)
+    pkg_arch, = [
+        line for line in pkg_arch.split("\n") if line.startswith("Architecture")
+    ]
+    _, pkg_arch = pkg_arch.split(":")
+    pkg_arch = pkg_arch.strip()
+    pkg_name = "lightsd-1:{version}-{build_number}-{arch}.pkg.tar.xz".format(
+        version=version.replace("-rc", "~rc"),
+        build_number=build_number,
+        arch=pkg_arch,
+    )
+    action_echo("Building {}".format(pkg_name))
+    subprocess.check_call(
+        ["makepkg", "--ignorearch", "--force", "--clean", "--cleanbuild"],
+        cwd=makepkg_dir,
+    )
+    pkg_path = os.path.join(makepkg_dir, pkg_name)
+    action_echo("Linting {}".format(pkg_name))
+    subprocess.check_call(["namcap", pkg_path])
+    shutil.copyfile(pkg_path, os.path.join(LIGHTSD_PKGS_OUT_DIR, pkg_name))
+    click.echo("[+] Copied {} under {}".format(pkg_name, LIGHTSD_PKGS_OUT_DIR))
+    result_echo("New Arch Linux package {}".format(pkg_name))
 
 if __name__ == "__main__":
     cli()

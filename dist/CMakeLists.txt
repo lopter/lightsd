@@ -22,6 +22,7 @@ SET(
     package_release
     release_new_tag
     release_debuild
+    release_makepkg
 )
 IF (SPHINX_FOUND)
     LIST(APPEND RELEASE_COMMANDS release_docs)
@@ -42,6 +43,7 @@ ENDIF (SPHINX_FOUND)
 SET(
     EXTRA_OUTPUT
     "${CMAKE_CURRENT_BINARY_DIR}/debuild" # release_debuild
+    "${CMAKE_CURRENT_BINARY_DIR}/makepkg" # release_makepkg
     "${CMAKE_CURRENT_BINARY_DIR}/lightsd-${LIGHTSD_VERSION}.tar" # release_new_tag
     "${VENV_DIRECTORY}"
     "${VENV_STAMP}"

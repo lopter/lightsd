@@ -5,6 +5,8 @@ class Lightsd < Formula
   homepage "https://github.com/lopter/lightsd/"
   url "{{ archive_url  }}"
   sha256 "{{ archive_sha256 }}"
+  # This will have ~ instead of - for rc versions:
+  version "{{ version|replace("-", "~") }}
   revision {{ build_number }}
 
   depends_on "cmake" => :build
@@ -22,7 +24,7 @@ class Lightsd < Formula
     # proper release flags:
     cflags = %W[
       -fstack-protector-strong
-      --param=ssp-buffer-size=4
+      -D_FORTIFY_SOURCE=2
       -O3
       -DNDEBUG
     ]
@@ -69,8 +71,9 @@ class Lightsd < Formula
   end
 
   def caveats; <<-EOS.undent
-    Once you've started lightsd with launchctl load (see below), you can start
-    poking around with lightsc.py:
+    Once you've started lightsd (see the brew services command below, if you're
+    using tmux, remember that you will need to run it outside tmux), you can
+    start poking around with lightsc.py:
 
       `lightsd --prefix`/share/lightsd/examples/lightsc.py
     EOS

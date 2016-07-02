@@ -51,11 +51,11 @@ define Package/lightsd/install
 
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/share/lightsd \
-		$(1)/usr/share/lightsd
+		$(1)/usr/share
 
 	$(CP) \
 		$(PKG_INSTALL_DIR)/usr/share/doc/lightsd \
-		$(1)/usr/share/doc/lightsd
+		$(1)/usr/share/doc
 endef
 
 $(eval $(call BuildPackage,lightsd))

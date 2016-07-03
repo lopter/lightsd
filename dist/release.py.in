@@ -366,7 +366,12 @@ def _release(version, next_version):
 
     subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "out"])
     if click.confirm("Are you ready to push those commit?"):
-        subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "push"])
+        remote = click.prompt(
+            "Confirm the remote destination", default="default",
+        )
+        subprocess.check_call([
+            HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "push", remote
+        ])
 
 
 @click.group()
@@ -574,7 +579,7 @@ def release_debuild():
     )
     action_echo("Building {}".format(deb_pkg_name))
     subprocess.check_call(
-        ["debuild", "-us", "-uc", "--no-lintian"], cwd=src_dir
+        ["debuild", "-us", "-uc", "--lintian-opts", "--no-lintian"], cwd=src_dir
     )
     action_echo("Linting {}".format(deb_pkg_name))
     deb_pkg_path = os.path.join(debuild_dir, deb_pkg_name)

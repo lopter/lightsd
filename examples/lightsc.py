@@ -65,7 +65,7 @@ class LightsClient:
         self.url = url
         self.encoding = encoding
 
-        parts = urllib.parse.urlparse(args.url)
+        parts = urllib.parse.urlparse(url)
 
         if parts.scheme == "unix":
             self._socket = socket.socket(socket.AF_UNIX)
@@ -280,8 +280,8 @@ if __name__ == "__main__":
             _drop_to_shell(client)
     except Exception as ex:
         print(
-            "Couldn't connect to {}, is lightsd running? "
-            "({})".format(args.url, ex),
+            "Couldn't connect to {}, is the url correct "
+            "and is lightsd running? ({})".format(args.url, ex),
             file=sys.stderr
         )
         sys.exit(1)

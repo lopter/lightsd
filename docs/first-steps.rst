@@ -273,7 +273,7 @@ from your current shell or shell script:
 .. describe:: lightsc_make_request method [arguments…]
 
    Like lightsc but display the generated json instead of sending it out to
-   lightsd: with this and lightsc_get_pipe you can do batch requests:
+   lightsd: with this and ``lightsc_get_pipe`` you can do batch requests:
 
 .. note::
 

@@ -257,7 +257,7 @@ from your current shell or shell script:
 
 .. data:: LIGHTSD_COMMAND_PIPE
 
-   By default lightsc will use ```lightsd --rundir`/pipe`` but you can set that
+   By default lightsc will use ``$(lightsd --rundir)/pipe`` but you can set that
    to your own value.
 
 .. describe:: lightsc method [arguments…]
@@ -267,7 +267,7 @@ from your current shell or shell script:
 
 .. describe:: lightsc_get_pipe
 
-   Equivalent to ``${LIGHTSD_COMMAND_PIPE:-`lightsd --rundir`/pipe}`` but also
+   Equivalent to ``${LIGHTSD_COMMAND_PIPE:-$(lightsd --rundir)/pipe}`` but also
    check if lightsd is running.
 
 .. describe:: lightsc_make_request method [arguments…]
@@ -289,11 +289,11 @@ Build a batch request manually:
 
 ::
 
-   tee `lightsc_get_pipe` <<EOF
+   tee $(lightsc_get_pipe) <<EOF
    [
-       $(lightsc_make_request power_on ${*:-'"#tag"'}),
-       $(lightsc_make_request set_light_from_hsbk ${*:-'"#othertag"'} 37.469443 1.0 0.05 3500 600),
-       $(lightsc_make_request set_light_from_hsbk ${*:-'["bulb","otherbulb"]'} 47.469443 0.2 0.05 3500 600)
+       $(lightsc_make_request power_on '"#tag"'),
+       $(lightsc_make_request set_light_from_hsbk '"#othertag"' 37.469443 1.0 0.05 3500 600),
+       $(lightsc_make_request set_light_from_hsbk '["bulb","otherbulb"]' 47.469443 0.2 0.05 3500 600)
    ]
    EOF
 

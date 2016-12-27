@@ -364,11 +364,11 @@ def _release(version, next_version):
         "commit", "-m", "Back to development, {}".format(next_version)
     ])
 
-    subprocess.check_call([HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "out"])
+    remote = click.prompt("Confirm the remote destination", default="default")
+    subprocess.check_call([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "out", remote
+    ])
     if click.confirm("Are you ready to push those commit?"):
-        remote = click.prompt(
-            "Confirm the remote destination", default="default",
-        )
         subprocess.check_call([
             HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "push", remote
         ])

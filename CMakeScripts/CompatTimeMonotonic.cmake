@@ -5,6 +5,18 @@ IF (NOT TIME_MONOTONIC_LIBRARY)
     SET(GENERIC_TIME_MONOTONIC_H "${LIGHTSD_SOURCE_DIR}/compat/generic/time_monotonic.h")
     SET(TIME_MONOTONIC_LIBRARY time_monotonic CACHE INTERNAL "lgtd_time_monotonic implementation")
 
+    IF (APPLE)
+        # Hopefully my intuition is right and this fixes false positives on mac
+        # os < 10.12 with X Code >= 8 (where clock_gettime is defined in the
+        # SDKs but actually doesn't exists so dyld blows up at run time).
+        #
+        # -u symbol_name
+        #         Specified that symbol symbol_name must be defined for the
+        #         link to succeed.  This is useful to force selected functions
+        #         to be loaded from a static library.
+        SET(CMAKE_REQUIRED_FLAGS "-Wl,-u=clock_gettime")
+    ENDIF ()
+
     SET(CMAKE_REQUIRED_QUIET TRUE)
     MESSAGE(STATUS "Looking for clock_gettime")
     CHECK_FUNCTION_EXISTS("clock_gettime" HAVE_CLOCK_GETTIME)
@@ -21,6 +33,7 @@ IF (NOT TIME_MONOTONIC_LIBRARY)
         ENDIF ()
     ENDIF ()
     UNSET(CMAKE_REQUIRED_QUIET)
+    UNSET(CMAKE_REQUIRED_FLAGS)
 
     IF (HAVE_CLOCK_GETTIME)
         MESSAGE(STATUS "Looking for clock_gettime - found")

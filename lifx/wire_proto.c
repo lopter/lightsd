@@ -95,7 +95,7 @@ lgtd_lifx_wire_enosys_packet_handler(struct lgtd_lifx_gateway *gw,
     LGTD_LIFX_WIRE_PRINT_TARGET(hdr, target);
     lgtd_info(
         "%s <-- %s - (Unimplemented, header info: "
-        "addressable=%d, tagged=%d, protocol=%d, target=%s",
+        "addressable=%d, tagged=%d, protocol=%d, target=%s)",
         pkt_info->name, gw->peeraddr, addressable, tagged, protocol, target
     );
 }

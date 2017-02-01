@@ -15,6 +15,8 @@ MESSAGE(STATUS "Source directory: ${LIGHTSD_SOURCE_DIR}")
 
 ENABLE_TESTING()
 
+OPTION(BUILD_SLIDES "Build slides using LaTeX")
+
 ### Platform checks ############################################################
 
 # TODO: we need at least 2.0.19-stable because of the logging defines
@@ -29,6 +31,11 @@ FIND_PACKAGE(PythonInterp 3.3) # >= 3.3 for os.replace
 FIND_PACKAGE(BsdTar)
 FIND_PACKAGE(Virtualenv)
 FIND_PACKAGE(Xz)
+
+IF (WITH_SLIDES)
+    FIND_PACKAGE(LATEX REQUIRED)
+    INCLUDE(UseLATEX)
+ENDIF ()
 
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckVariableExists)
@@ -145,6 +152,12 @@ ELSE ()
         "weren't found, release commands disabled"
     )
 ENDIF ()
+
+IF (WITH_SLIDES)
+    ADD_SUBDIRECTORY(slides)
+ENDIF (WITH_SLIDES)
+
+### Install rules ##############################################################
 
 INSTALL(
     FILES COPYING README.rst docs/protocol.rst

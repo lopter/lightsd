@@ -31,7 +31,7 @@ define Package/lightsd
   TITLE:=Daemon to control your LIFX Wi-Fi smart bulbs
   MAINTAINER:=Louis Opter <kalessin@kalessin.fr>
   URL:=https://github.com/lopter/lightsd
-  USERID:=lightsd:lightsd
+  USERID:=lightsd=56700:lightsd=56700
 endef
 
 define Package/lightsd/install

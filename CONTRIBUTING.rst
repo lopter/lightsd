@@ -1,6 +1,8 @@
 Contributing to lightsd
 =======================
 
+*tl;dr: be nice, skim over this and submit your code.*
+
 lightsd is open-source_ software licensed under the GPLv3_ (see `Rationale for
 the GPLv3`_). This basically means that you can use lightsd free of charge, as
 you see fit, for an unlimited amount of time, no ads, no evaluation period, no
@@ -21,19 +23,17 @@ rest of the project.
 Project governance
 ------------------
 
-lightsd is a personal project. Its primary goal is for its author_ to learn and
-have fun. At the end of the day, no-one tells me what I should do and how I
-should do it. I get to say the last word [#]_.
+lightsd started off as a personal project; I hope it doesn't stay personal, but
+at the end of the day the whole design and its implementation were done by
+mostly one person. Therefore that person will have the last word when it comes
+to design decisions and accepting or rejecting new code. This will remain the
+case until the project attracts enough knowledgeable developers/maintainers for
+decisions to be shared.
 
-I don't have any timeline nor any pressure and I will have no problem saying no
-to any feature or contribution that doesn't fit my vision of the project or
-doesn't reach the quality bar I set for myself and the project.
+In all cases, do not take a "no" personally and hold everyone accountable for
+constructive feedback, as explained in the project's code of conduct [#]_.
 
-Do not take a "no" personally and hold me accountable for constructive feedback.
-
-.. _author: mailto:Louis Opter <kalessin@kalessin.fr>
-
-.. [#] Ultimately, this is not true: the GPL license has the last word.
+.. [#] See ``CODE_OF_CONDUCT.md`` at the root of the repository.
 
 Project goals
 -------------
@@ -43,7 +43,7 @@ LAN protocol`_.
 
 Unlike other projects around LIFX bulbs, lightsd is a background service (daemon
 in the Unix terminology). It allows lightsd to act as a proxy for the bulbs and
-to report or change the status of the bulbs in near real time. Those two
+to report or change the status of the bulbs with low latency. Those two
 properties are fundamental to the project:
 
 - being able to work as a proxy makes lightsd easy to extend to other IoT
@@ -57,7 +57,7 @@ lightsd took the bold choice of being implemented in pure C. C simply is the
 most portable language both from a tool-chain perspective but also from a
 hardware perspective: anything that can run a very stripped down version of
 Linux should be able to run lightsd successfully. Portability is a goal and I
-hope that it will also unlock new kind of usage & interactions. A corollary to
+hope that it will unlock new kind of usages & interactions. A corollary to
 portability is that lightsd should have the shortest startup and discovery time
 possible: lightsd might not always run as a background service.
 
@@ -79,13 +79,17 @@ experience.
 Non-goals
 ---------
 
-HTTP is overused, misused and is a non-goal, sorry.
+Adding unpolished features is a non goal, do less features and do them well,
+less is better.
 
-However, I'm very willing to have a lightsd client that can run inside web
-browsers. I'm willing to embed a dead simple HTTP server within lightsd to serve
-that web application. Communication between the web application and lightsd
-cannot use HTTP, I believe this is possible using some newer Javascript
-technologies; worst-case websockets may be an acceptable compromise.
+HTTP 1.x is a non-goal, it's just not adapted for the RPC (streaming, server to
+client pushes and vice-versa) approach lightsd would like to take. Likewise,
+technologies such as web-sockets, which could help with that, seem to be quite a
+mess in practice. HTTP 2.x however is a different story, and while there is no
+plan to support it, I think it's a much more promising technology. gRPC, built
+on top of HTTP 2, might be something of interest. I also really like the idea of
+having a web-client for lightsd, hopefully browsers will be able to support gRPC
+in the future.
 
 Reporting bugs
 --------------
@@ -161,14 +165,13 @@ lightsd coding style is:
   with the ``^`` regular expression anchor).
 
 Overall, just be consistent with the existing coding-style, I'll setup `clang
-format`_ or astyle_ when I get a chance, it should make the style a non-issue.
+format`_ when I get a chance, it should make the style a non-issue.
 
 .. _FPU: https://en.wikipedia.org/wiki/Floating-point_unit
 .. _CMake: https://cmake.org/overview/
 .. _K&R: https://en.wikipedia.org/wiki/Indent_style#K.26R_style
-.. _1TBS: https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS
+.. _1TBS: https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS_.28OTBS.29
 .. _clang format: http://clang.llvm.org/docs/ClangFormat.html
-.. _astyle: http://astyle.sourceforge.net/astyle.html
 
 Rationale for the GPLv3
 -----------------------
@@ -185,8 +188,8 @@ that application stays transparent on its use of lightsd and links to lightsd's
 homepage.
 
 In the unlikely event that lightsd gains significant adoption I want it to be
-the reference and unique implementation of its own protocol but also a reference
-implementation for the other protocols it implements. I hope that the GPL will
-be a good incentive to achieve that goal.
+the reference (and preferably unique) implementation of its own protocol but
+also a reference implementation for the other protocols it implements. I hope
+that the GPL will be a good incentive to achieve that goal.
 
 .. vim: set tw=80 spelllang=en spell:

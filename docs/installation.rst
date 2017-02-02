@@ -17,14 +17,6 @@ Or,
    brew tap lopter/lightsd
    brew install lightsd
 
-
-Make sure you execute the ``ln -sfv`` command displayed at the end of the
-installation:
-
-::
-
-   ln -sfv /usr/local/opt/lightsd/*.plist ~/Library/LaunchAgents
-
 Please, also install Python 3 and ipython if you want to follow the examples in
 the next section:
 
@@ -38,21 +30,21 @@ Read on :doc:`/first-steps` to see how to use lightsd.
 Installation (for Arch Linux)
 -----------------------------
 
-Make sure you have Yaourt installed: https://archlinux.fr/yaourt-en (`wiki
-page`_).
+.. note::
 
-::
+   A pre-built package may already exist at:
+   https://downloads.lightsd.io/archlinux/ for your convenience.
+
+Make sure you have Yaourt installed: https://archlinux.fr/yaourt-en (`wiki
+page`_)::
 
    yaourt -Sya lightsd
 
 Make sure to follow the post-installation instructions: replace ``$USER`` with
 the user you usually use.
 
-
 Please also install ipython if you want to follow the examples in the next
-section:
-
-::
+section::
 
    yaourt -Sya ipython
 
@@ -60,37 +52,31 @@ Read on :doc:`/first-steps` to see how to use lightsd.
 
 .. _wiki page: https://wiki.archlinux.org/index.php/Yaourt
 
+Installation (for Debian/Raspbian)
+----------------------------------
 
-Installation (OpenWRT trunk)
-----------------------------
+Check if an appropriate package exists at: https://downloads.lightsd.io/debian/.
+Download it and install it with ``dpkg -i``.
 
-If you're running `OpenWRT trunk`_ then, from your build root, just add
-lightsd's feed:
+If you were able to install lightsd from a package then read on
+:doc:`/first-steps` to see how to use lightsd. Otherwise look for the
+Debian/Ubuntu build instructions below.
 
-::
+Installation (for OpenWRT)
+--------------------------
 
-   cat >>feeds.conf`[ -f feeds.conf ] || echo .default` <<EOF
-   src-git lightsd https://github.com/lopter/openwrt-lightsd.git
-   EOF
-   ./scripts/feeds update -a
+Check if a package already exists at: https://downloads.lightsd.io/openwrt/. If
+that's the case transfer it to your device and install the package with ``opkg
+install``.
 
-Install lightsd:
-
-::
-
-   ./scripts/feeds install lightsd
-
-Run your usual ``make menuconfig``, ``make`` firmware flash flow, lightsd should
-be running at startup.
-
-Read on :doc:`/first-steps` to see how to use lightsd.
-
-.. _OpenWRT trunk: http://wiki.openwrt.org/doc/howto/build
+If you were able to install lightsd from a package then read on
+:doc:`/first-steps` to see how to use lightsd. Otherwise look for the OpenWRT
+build instructions below.
 
 .. _build_instructions:
 
-Build instructions for Debian based systems (Ubuntu/Raspbian)
--------------------------------------------------------------
+Build instructions (for Debian based systems, including Ubuntu/Raspbian)
+------------------------------------------------------------------------
 
 .. note:: Those instructions have been tested on Debian Wheezy & Jessie.
 
@@ -113,7 +99,7 @@ Build the package:
 
 ::
 
-   debuild
+   debuild -uc -us
 
 Install the package:
 
@@ -124,7 +110,7 @@ Install the package:
 
 .. parsed-literal::
 
-   dpkg -i ../lightsd\_\ |release|-1\_`dpkg --print-architecture`.deb
+   dpkg -i ../lightsd\_\ |release|-1\_$(dpkg --print-architecture).deb
 
 Still as root, run the command the package asks you to run:
 
@@ -142,6 +128,30 @@ Log out and back in as ``$USER`` for the change to take effect.
 Read on :doc:`/first-steps` to see how to use lightsd.
 
 .. _sudo(8): http://manpages.debian.org/cgi-bin/man.cgi?query=sudo&sektion=8
+
+Build instructions (for OpenWRT)
+--------------------------------
+
+Follow the `buildroot instructions`_ then, from your build root, just add
+lightsd's feed::
+
+   cat >>feeds.conf$([ -f feeds.conf ] || echo .default) <<EOF
+   src-git lightsd https://github.com/lopter/openwrt-lightsd.git
+   EOF
+   ./scripts/feeds update -a
+
+Install lightsd::
+
+   ./scripts/feeds install lightsd
+
+Run your usual ``make menuconfig``, ``make`` firmware flash flow, lightsd should
+be running at startup. If you only wish the build the lightsd package and not
+the entire system follow the `single package howto`_.
+
+Read on :doc:`/first-steps` to see how to use lightsd.
+
+.. _buildroot instructions: https://wiki.openwrt.org/doc/howto/buildroot.exigence
+.. _single package howto: https://wiki.openwrt.org/doc/howtobuild/single.package
 
 Build instructions (for other systems)
 --------------------------------------

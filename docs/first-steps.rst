@@ -23,29 +23,26 @@ Mac OS X
 
    Click Allow, lightsd uses the network to communicate with your bulbs.
 
-Start lightsd with:
+Start lightsd with::
 
-::
+   brew services run lightsd
 
-   launchctl load ~/Library/LaunchAgents/homebrew.mxcl.lightsd.plist
+.. note::
 
-Stop lightsd with:
+   If you wish to start lightsd automatically when you log into your Mac run
+   ``brew services start lightsd`` instead.
 
-::
+Stop lightsd with::
 
-   launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.lightsd.plist
+   brew services stop lightsd
 
-Check how lightsd is running with:
-
-::
+Check how lightsd is running with::
 
    ps aux | grep lightsd
 
-Read the logs with:
+Read the logs with::
 
-::
-
-   tail -F `brew --prefix`/var/log/lightsd.log
+   tail -F $(brew --prefix)/var/log/lightsd.log
 
 Try to :ref:`toggle your lights <toggle>` and read on some of the examples
 bundled with lightsd.
@@ -177,7 +174,7 @@ Checkout the :ref:`examples <examples>`.
 Command line options
 ~~~~~~~~~~~~~~~~~~~~
 
-::
+.. code-block:: none
 
    Usage: lightsd ...
 
@@ -218,13 +215,11 @@ Command line options
 Toggle your lights
 ------------------
 
-::
+Run::
 
-   `lightsd --prefix`/share/lightsd/examples/toggle
+   $(lightsd --prefix)/share/lightsd/examples/toggle
 
-Or, from the root of the repository:
-
-::
+Or, from the root of the repository::
 
    examples/toggle
 
@@ -240,15 +235,11 @@ Using lightsc.sh
 ----------------
 
 `lightsc.sh`_ is a small shell script that wraps a few things around lightsd'
-command pipe. Once you've sourced it with:
+command pipe. Once you've sourced it with::
 
-::
+   . $(lightsd --prefix)/share/lightsd/lightsc.sh
 
-   . `lightsd --prefix`/share/lightsd/lightsc.sh
-
-Or, from the root of the repository:
-
-::
+Or, from the root of the repository::
 
    . share/lightsc.sh
 
@@ -308,7 +299,7 @@ bulbs. Start lightsc.py with:
 
 ::
 
-   `lightsd --prefix`/share/lightsd/examples/lightsc.py
+   $(lightsd --prefix)/share/lightsd/examples/lightsc.py
 
 Or, from the root of the repository:
 
@@ -342,7 +333,7 @@ Or, for an Unix socket:
 
 ::
 
-    lightsc.py -u unix:///path/to/lightsd/socket
+   lightsc.py -u unix:///path/to/lightsd/socket
 
 Check out :doc:`lightsd's API </protocol>` to see everything you can do!
 

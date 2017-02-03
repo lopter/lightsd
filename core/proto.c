@@ -320,7 +320,7 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
         (src), (start), (stop), (dst), sizeof((dst))    \
     )
 
-        char h[16], s[16], b[16];
+        char h[16], s[16], b[16], bulb_id[16];
         PRINT_COMPONENT(bulb->state.hue, h, 0, 360);
         PRINT_COMPONENT(bulb->state.saturation, s, 0, 1);
         PRINT_COMPONENT(bulb->state.brightness, b, 0, 1);
@@ -331,8 +331,14 @@ lgtd_proto_get_light_state(struct lgtd_client *client,
             label = bulb->state.label;
             label_size = (int)sizeof(bulb->state.label);
         } else {
-            label = bulb_addr;
-            label_size = (int)sizeof(bulb_addr);
+            label = bulb_id;
+            label_size = LGTD_ARRAY_SIZE(bulb_id);
+            snprintf(
+                bulb_id, label_size,
+                "%02hhx%02hhx%02hhx%02hhx%02hhx%02hhx",
+                bulb->addr[0], bulb->addr[1], bulb->addr[2],
+                bulb->addr[3], bulb->addr[4], bulb->addr[5]
+            );
         }
 
         LGTD_SNPRINTF_APPEND(

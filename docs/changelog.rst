@@ -11,15 +11,25 @@ Given a version number MAJOR.MINOR.PATCH:
   are added in a backwards-compatible manner;
 - PATCH version gets incremented for backwards-compatible bug fixes.
 
-1.2.0 (unreleased)
+1.2.0 (2017-02-04)
 ------------------
 
-This release doesn't have any new user-facing feature but packs a bunch of fixes
-and improvements, both in the code but also the documentation and examples.
+This release doesn't have any new user-facing feature for lightsd but packs a
+bunch of fixes and improvements, both in the code but also the documentation and
+examples.
+
+However, this release sees the start of a Python client library for lightsd
+which you'll find in the ``clients`` directory of the lightsd repository. This
+library is currently used to build another child project of lightsd: monolight,
+an user-interface for the `Monome grid`_. Both project should end up on PyPi_
+soon.
 
 Also worth noting, is the full continuous integration pipeline that has been
 setup behind the scenes. Most of the work for this release went into it. It will
-hopefully make it a lot easier to work on the project.
+hopefully make it a lot easier to work on lightsd.
+
+.. _Monome grid: http://www.monome.org/grid/
+.. _PyPi: https://pypi.python.org/pypi
 
 Fixes
 ~~~~~
@@ -29,7 +39,9 @@ Fixes
 - Correctly support optional arguments in the JSON-RPC API;
 - A couple of crash/security fixes, one being in the jsmn_ JSON parser which has
   been upgraded to its latest version;
-- FreeBSD build (more BSD fixes to come though, see :gh:`16`).
+- FreeBSD build (more BSD fixes to come though, see :gh:`16`);
+- ``get_light_state`` now returns a valid target for the bulb's label (the bulb
+  id) when it doesn't have a label set.
 
 .. _jsmn: https://github.com/zserge/jsmn
 
@@ -41,10 +53,14 @@ Thanks to:
 - `Sylvain Laurent`_ for his original work on fixing discovery;
 - `Xavier Deguillard`_ for his contributions; additional automated tests will be
   setup to make crashes and security issues much harder to creep in;
+- `Guillaume Gomez`_ & `Michael Zapata`_ for their help with the landing page on
+  https://www.lightsd.io/;
 - All the people who have been trying the project and reporting issues!
 
 .. _Sylvain Laurent: https://github.com/Magicking/
 .. _Xavier Deguillard: https://github.com/Rip-Rip
+.. _Guillaume Gomez: https://github.com/GuillaumeGomez
+.. _Michael Zapata: https://github.com/michael-zapata
 
 1.1.2 (2015-11-30)
 ------------------

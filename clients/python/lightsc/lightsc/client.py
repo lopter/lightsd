@@ -33,7 +33,7 @@ import json
 import locale
 import logging
 import os
-import urllib
+import urllib.parse
 import uuid
 
 from typing import (

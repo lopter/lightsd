@@ -17,7 +17,6 @@ check_venv() {
 check_venv monolight
 
 check_process serialoscd
-check_process lightsd
 
 cat <<EOF
 ### monolight demo ###

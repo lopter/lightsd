@@ -455,6 +455,7 @@ def release_new_tag():
             # without the .tar extension):
             "-s", "/^\\./{}/".format(archive_name.rsplit(".", 1)[0]),
             "--exclude", ".hg",
+            "--exclude", "slides/*.pdf",
             "."
         ])
     os.makedirs(LIGHTSD_ARCHIVES_DIR, exist_ok=True)

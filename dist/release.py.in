@@ -355,6 +355,10 @@ def _release(version, next_version):
     _update_lightsd_version_cmake_include(version)
     subprocess.check_call([
         HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+        "commit", "-m", "Setting version to {}".format(version)
+    ])
+    subprocess.check_call([
+        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
         "tag", "-m", "Tagging release {}".format(version), version
         # TODO: Use docutils to extract the changelog section
     ])
@@ -641,6 +645,7 @@ def release_makepkg():
     shutil.copyfile(pkg_path, os.path.join(LIGHTSD_PKGS_OUT_DIR, pkg_name))
     click.echo("[+] Copied {} under {}".format(pkg_name, LIGHTSD_PKGS_OUT_DIR))
     result_echo("New Arch Linux package {}".format(pkg_name))
+
 
 if __name__ == "__main__":
     cli()

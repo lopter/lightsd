@@ -1,0 +1,108 @@
+@font-face {
+	font-family: 'awesome';
+	src:url('./fonts/fontawesome-webfont.eot');
+	src:url('./fonts/fontawesome-webfont?#iefix') format('embedded-opentype'),
+		url('./fonts/fontawesome-webfont.woff') format('woff'),
+		url('./fonts/fontawesome-webfont.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
+
+a {
+	text-decoration: none;
+}
+
+body {
+	margin: 0;
+}
+
+span {
+	cursor: pointer;
+}
+
+#display_img {
+	position: fixed;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+	text-align: center;
+	z-index: 1001;
+}
+
+#mover {
+	display: inline-block;
+	height: 100%;
+	vertical-align: middle;
+}
+
+#inner {
+	margin: 0;
+	position: absolute;
+	height: 400px;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: #fff;
+}
+
+.awesome {
+	font-family: 'awesome';
+	font-size: 3em;
+	font-weight: normal;
+	line-height: 0;
+	color: #5a5350;
+}
+
+.awesome:hover{
+	color: rgb(46, 108, 172);
+}
+
+.full-center {
+	position: relative;
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+.top-marg {
+	margin-top: 55px;
+}
+
+.full-width {
+	width: 100%;
+	display: block;
+}
+
+.tier-width {
+	width: 33.3%;
+	display: block;
+}
+
+.text-center {
+	text-align: center;
+        height: 20px;
+}
+
+.div-center {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.left {
+	float: left;
+}
+
+img.center {
+	vertical-align: middle;
+}
+
+.icon-gh:before{
+	content: '\f113';
+}
+
+.icon-docs:before{
+	content: '\f02d';
+}
+
+.icon-downloads:before{
+	content: '\f019';
+}

@@ -66,8 +66,20 @@ lgtd_lifx_bulb_get_model_name(uint32_t vendor_id, uint32_t product_id)
         return "White 800";
     case 0x12:
         return "White 900 BR30";
+    case 0x14:
+        return "Color 1000 BR30";
     case 0x16:
         return "Color 1000";
+    case 0x1b:
+        return "A19";
+    case 0x1c:
+        return "BR30";
+    case 0x1d:
+        return "A19+";
+    case 0x1e:
+        return "BR30+";
+    case 0x1f:
+        return "Z";
     default:
         return "Unknown";
     }

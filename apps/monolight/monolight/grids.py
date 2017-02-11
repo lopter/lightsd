@@ -85,13 +85,13 @@ class LedCanvas(collections.abc.Iterable):
 
     def shift(self, offset: Position) -> "LedCanvas":
         class _Proxy:
-            def __init__(_self, canvas: LedCanvas, shift: Position):
+            def __init__(_self, canvas: LedCanvas, shift: Position) -> None:
                 _self._canvas = canvas
                 _self._shift = shift
 
             def set(_self, offset: Position, level: LedLevel) -> None:
                 offset += _self._shift
-                return _self._canvas.set(offset, level)
+                _self._canvas.set(offset, level)
 
             def shift(_self, offset: Position) -> LedCanvas:
                 return cast(LedCanvas, _Proxy(_self, offset))

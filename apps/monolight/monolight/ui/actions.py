@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, List, Type, Union
 from .. import bulbs
 
 if TYPE_CHECKING:
-    from ..elements import UIComponent  # noqa
+    from .elements import UIComponent  # noqa
 
 logger = logging.getLogger("monolight.ui.actions")
 

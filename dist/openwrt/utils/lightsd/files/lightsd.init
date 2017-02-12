@@ -9,11 +9,11 @@ START=60
 USE_PROCD=1
 
 lightsd=/usr/bin/lightsd
-rundir=`$lightsd --rundir`
+rundir=$($lightsd --rundir)
 
 start_service() {
 	procd_open_instance
 	procd_set_param command $lightsd -S -v warning -t -u lightsd -s "$rundir/socket" -c "$rundir/pipe"
-        procd_set_param respawn
+	procd_set_param respawn
 	procd_close_instance
 }

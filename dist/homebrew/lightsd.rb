@@ -75,7 +75,7 @@ class Lightsd < Formula
     using tmux, remember that you will need to run it outside tmux), you can
     start poking around with lightsc.py:
 
-      `lightsd --prefix`/share/lightsd/examples/lightsc.py
+      $(lightsd --prefix)/share/lightsd/examples/lightsc.py
     EOS
   end
 

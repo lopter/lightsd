@@ -169,6 +169,12 @@ class DownstreamPackage:
             ])
         return dirty
 
+    def _release(self, archives_dir):
+        pass
+
+    def release(self):
+        self._release(LIGHTSD_ARCHIVES_DIR)
+
 
 class DebianPackage(DownstreamPackage):
 
@@ -239,6 +245,22 @@ class DebianPackage(DownstreamPackage):
 
         # and replace the old one:
         os.replace(staging_changelog_path, changelog_path)
+
+    def _release(self, archives_dir):
+        archive = os.path.join(
+            archives_dir, "dpkg-{}.tar.gz".format(self._version)
+        )
+        action_echo("Tarballing the Debian package sources into {}".format(
+            archive
+        ))
+        if not os.path.exists(archive):
+            subprocess.check_call([
+                BSDTAR_EXECUTABLE,
+                "-C", self._repo,
+                "-czf", archive,
+                "--exclude", ".hg",
+                "."
+            ])
 
 
 class HomebrewPackage(DownstreamPackage):
@@ -509,6 +531,7 @@ def release_new_tag():
         if not dirty:
             click.echo("[=] {}".format(pkg.TYPE))
             continue
+        pkg.release()
         click.echo("[+] {} package".format(pkg.TYPE))
 
     result_echo(release_msg.replace("upstream", "downstream"))

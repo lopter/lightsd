@@ -80,9 +80,7 @@ Build instructions (for Debian based systems, including Ubuntu/Raspbian)
 
 .. note:: Those instructions have been tested on Debian Wheezy & Jessie.
 
-Install the following packages:
-
-::
+Install the following packages::
 
    apt-get install build-essential cmake libevent-dev git ca-certificates ipython3 fakeroot wget devscripts debhelper
 
@@ -90,14 +88,12 @@ Download and extract lightsd:
 
 .. parsed-literal::
 
-   wget -O lightsd\_\ |release|.orig.tar.gz \https://github.com/lopter/lightsd/archive/|release|.tar.gz
+   wget -O lightsd\_\ |release|.orig.tar.gz \https://downloads.lightsd.io/releases/|release|.tar.gz
    tar -xzf lightsd\_\ |release|.orig.tar.gz
    cd lightsd-|release|
-   wget -O - \https://github.com/lopter/lightsd/releases/download/|release|/dpkg-|release|.tar.gz | tar -xzf -
+   wget -O - \https://downloads.lightsd.io/releases/dpkg-|release|.tar.gz | tar -xzf -
 
-Build the package:
-
-::
+Build the package::
 
    debuild -uc -us
 
@@ -112,16 +108,14 @@ Install the package:
 
    dpkg -i ../lightsd\_\ |release|-1\_$(dpkg --print-architecture).deb
 
-Still as root, run the command the package asks you to run:
+Still as root, run the command the package asks you to run::
+
+   gpasswd -a $USER lightsd
 
 .. note::
 
-   If you are *not using sudo* on your system replace ``$USER`` by your regular
-   non-root username:
-
-::
-
-   gpasswd -a $USER lightsd
+   Unless you are using sudo, *don't forget to replace $USER with your
+   username*.
 
 Log out and back in as ``$USER`` for the change to take effect.
 

@@ -326,7 +326,7 @@ def _update_lightsd_version_cmake_include(version):
         ).encode("utf-8"))
 
 
-def _release(version, next_version):
+def _is_repo_dirty():
     revision, branch = [
         part.strip() for part in subprocess.check_output([
             HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR, "id", "--id", "--branch"
@@ -336,13 +336,12 @@ def _release(version, next_version):
         HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
         "--config", "extensions.mq=", "qapplied"
     ]).decode(USER_ENCODING)))
-    if qapplied or revision.endswith("+") or branch != "default":
-        error_echo(
-            "Can't do a release over a dirty repository! "
-            "(rev={}, branch={}, patched={})".format(
-                revision, branch, qapplied
-            )
-        )
+    return qapplied or revision.endswith("+") or branch != "default"
+
+
+def _release(version, next_version):
+    if _is_repo_dirty():
+        error_echo("Can't do a release over a dirty repository!")
         sys.exit(1)
 
     # Re-gen LightsdVersion.cmake with major.minor.patch, tag, and re-gen
@@ -352,11 +351,14 @@ def _release(version, next_version):
         default=version,
         type=lambda arg: semver.format_version(**semver.parse(arg))
     )
+    # Note sure if that's really necessary, the version should have already
+    # been set correctly from the previous pre_release or release run:
     _update_lightsd_version_cmake_include(version)
-    subprocess.check_call([
-        HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
-        "commit", "-m", "Setting version to {}".format(version)
-    ])
+    if _is_repo_dirty():
+        subprocess.check_call([
+            HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
+            "commit", "-m", "Setting version to {}".format(version)
+        ])
     subprocess.check_call([
         HG_EXECUTABLE, "-R", LIGHTSD_SOURCE_DIR,
         "tag", "-m", "Tagging release {}".format(version), version

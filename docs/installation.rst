@@ -67,7 +67,7 @@ Installation (for OpenWRT)
 
 Check if a package already exists at: https://downloads.lightsd.io/openwrt/. If
 that's the case transfer it to your device and install the package with ``opkg
-install``.
+install``. The lightsd package will depend on ``libevent2-core``.
 
 If you were able to install lightsd from a package then read on
 :doc:`/first-steps` to see how to use lightsd. Otherwise look for the OpenWRT

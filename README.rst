@@ -54,8 +54,13 @@ Documentation
 -------------
 
 lightsd is packaged for Mac OS X, Arch Linux, Debian based systems and OpenWRT.
-Check out http://lightsd.readthedocs.org/en/latest/ for installation
-instructions and a walk-through some interactive examples.
+Check out https://docs.lightsd.io/latest/ for installation instructions and a
+walk-through some interactive examples.
+
+lightsd and monolight, an user interface for a programmable button array, were
+presented at Fosdem 2017. Check out the slides for a presentation of lightsd's
+capabilities, architecture and an example of project built with lightsd:
+https://downloads.lightsd.io/slides/fosdem/fosdem_2017.pdf.
 
 Requirements
 ------------
@@ -71,15 +76,7 @@ reasonable dependencies:
 lightsd is actively developed and tested from Arch Linux, Debian, Mac OS X,
 OpenWRT and OpenBSD; both for 32/64 bits and little/big endian architectures.
 
-Native Windows support has been kept in mind and will be addressed, but isn't
-really the focus. Windows build will be targeted at `Windows 10 IoT Core`_ which
-is the only one that you don't have to pay for [#]_.
-
-.. [#] I do need a version of ffu2img_ that actually works, because otherwise you
-       need Windows to install Windows 10 IoT Core; be my guest.
-
-.. _Windows 10 IoT Core: https://dev.windows.com/en-us/iot
-.. _ffu2img: https://msdn.microsoft.com/en-us/library/windows/hardware/dn757539.aspx
+Native Windows support has been kept in mind, but isn't really the focus.
 
 Contact
 -------

@@ -26,7 +26,7 @@ Here is what you need to know to build lightsd in order to be distributed:
       Then use systemctl to start lightsd; you can start playing with lightsd
       with:
 
-        `lightsd --prefix`/share/doc/lightsd/examples/lightsc.py
+        $(lightsd --prefix)/share/lightsd/examples/lightsc.py
 - make sure lightsd is built with hardening flags;
 - make sure the protocol documentation and the examples are properly shipped.
 

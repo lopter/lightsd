@@ -11,6 +11,12 @@ Given a version number MAJOR.MINOR.PATCH:
   are added in a backwards-compatible manner;
 - PATCH version gets incremented for backwards-compatible bug fixes.
 
+1.2.1 (2017-02-12)
+------------------
+
+This release was mostly done to iron out issues in the release script. The only
+noticeable change is the update to the LIFX product list (closes :gh:`23`).
+
 1.2.0 (2017-02-04)
 ------------------
 

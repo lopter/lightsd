@@ -88,10 +88,10 @@ Download and extract lightsd:
 
 .. parsed-literal::
 
-   wget -O lightsd\_\ |release|.orig.tar.gz \https://downloads.lightsd.io/releases/|release|.tar.gz
-   tar -xzf lightsd\_\ |release|.orig.tar.gz
+   wget -O lightsd\_\ |deb_release|.orig.tar.gz \https://downloads.lightsd.io/releases/lightsd-|release|.tar.gz
+   tar -xzf lightsd\_\ |deb_release|.orig.tar.gz
    cd lightsd-|release|
-   wget -O - \https://downloads.lightsd.io/releases/dpkg-|release|.tar.gz | tar -xzf -
+   wget -O - \https://downloads.lightsd.io/releases/dpkg-|deb_release|.tar.gz | tar -xzf -
 
 Build the package::
 
@@ -106,7 +106,7 @@ Install the package:
 
 .. parsed-literal::
 
-   dpkg -i ../lightsd\_\ |release|-1\_$(dpkg --print-architecture).deb
+   dpkg -i ../lightsd\_\ |deb_release|-1\_$(dpkg --print-architecture).deb
 
 Still as root, run the command the package asks you to run::
 

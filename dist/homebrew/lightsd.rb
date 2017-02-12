@@ -6,7 +6,7 @@ class Lightsd < Formula
   url "{{ archive_url  }}"
   sha256 "{{ archive_sha256 }}"
   # This will have ~ instead of - for rc versions:
-  version "{{ version|replace("-", "~") }}
+  version "{{ version|replace("-", "~") }}"
   revision {{ build_number }}
 
   depends_on "cmake" => :build

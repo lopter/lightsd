@@ -165,7 +165,8 @@ class DownstreamPackage:
         ]).decode(USER_ENCODING).strip()))
         if dirty:
             subprocess.check_call([
-                HG_EXECUTABLE, "-R", self._repo, "commit", "-m", msg
+                HG_EXECUTABLE, "-R", self._repo, "commit",
+                "-u", COMMIT_AUTHOR, "-m", msg
             ])
         return dirty
 

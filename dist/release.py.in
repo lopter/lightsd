@@ -282,6 +282,7 @@ class PKGBUILDPackage(DownstreamPackage):
 
     TYPE = "pkgbuild"
     TEMPLATES = ("PKGBUILD", ".SRCINFO")
+    STATIC_FILES = ("lightsd.install",)
 
 
 PACKAGES = (

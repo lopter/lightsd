@@ -11,6 +11,9 @@ Given a version number MAJOR.MINOR.PATCH:
   are added in a backwards-compatible manner;
 - PATCH version gets incremented for backwards-compatible bug fixes.
 
+1.2.2 (unreleased)
+------------------
+
 1.2.1 (2017-02-12)
 ------------------
 

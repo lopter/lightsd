@@ -375,8 +375,6 @@ def _release(version, next_version):
         default=version,
         type=lambda arg: semver.format_version(**semver.parse(arg))
     )
-    # Note sure if that's really necessary, the version should have already
-    # been set correctly from the previous pre_release or release run:
     _update_lightsd_version_cmake_include(version)
     if _is_repo_dirty():
         subprocess.check_call([

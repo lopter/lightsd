@@ -3,3 +3,4 @@
 ^build
 ^pcaps
 .*\.egg-info$
+\.DS_Store$

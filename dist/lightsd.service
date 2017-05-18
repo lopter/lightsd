@@ -8,6 +8,13 @@ User=lightsd
 Group=lightsd
 RuntimeDirectory=lightsd
 Restart=on-failure
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+# Debian Stretch and after:
+# RestrictNamespaces=yes
 
 [Install]
 WantedBy=multi-user.target

@@ -1,8 +1,12 @@
 FUNCTION(ADD_ALL_SUBDIRECTORIES)
     FILE(GLOB SUBDIRECTORIES "*")
     FOREACH (ENTRY ${SUBDIRECTORIES})
-        IF (IS_DIRECTORY ${ENTRY} AND EXISTS "${ENTRY}/CMakeLists.txt")
-            ADD_SUBDIRECTORY(${ENTRY})
+        IF (
+            IS_DIRECTORY "${ENTRY}" AND
+            NOT IS_SYMLINK "${ENTRY}" AND
+            EXISTS "${ENTRY}/CMakeLists.txt"
+        )
+            ADD_SUBDIRECTORY("${ENTRY}")
         ENDIF ()
     ENDFOREACH ()
 ENDFUNCTION()

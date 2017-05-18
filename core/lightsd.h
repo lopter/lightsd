@@ -35,7 +35,7 @@
 #pragma once
 
 #ifndef __attribute__
-# define __atttribute__(e)
+# define __attribute__(e)
 #endif
 
 #define LGTD_ABS(v) ((v) >= 0 ? (v) : (v) * -1)
@@ -43,10 +43,15 @@
 #define LGTD_MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #define LGTD_ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+#define LGTD_SWAP(type, a, b) do { type _tmp = a; a = b; b = _tmp; } while (0)
 
 #define LGTD_MSECS_TO_TIMEVAL(v) {  \
     .tv_sec = (v) / 1000,           \
     .tv_usec = ((v) % 1000) * 1000  \
+}
+#define LGTD_MSECS_TO_TIMESPEC(v) {     \
+    .tv_sec = (v) / 1000,               \
+    .tv_nsec = ((v) % 1000) * 1000000   \
 }
 #define LGTD_NSECS_TO_USECS(v) ((v) / (unsigned int)1E6)
 #define LGTD_NSECS_TO_SECS(v) ((v) / (unsigned int)1E9)

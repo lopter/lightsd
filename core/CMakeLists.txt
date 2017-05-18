@@ -2,9 +2,7 @@
 # I only have lifx bulbs right now and I don't want to do any premature work.
 
 INCLUDE_DIRECTORIES(
-    ${CMAKE_CURRENT_SOURCE_DIR}/../
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/../
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 

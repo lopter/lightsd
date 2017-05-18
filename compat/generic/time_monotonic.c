@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "time_monotonic.h"
+#include "core/time_monotonic.h"
 
 lgtd_time_mono_t
 lgtd_time_monotonic_msecs(void)

@@ -19,6 +19,12 @@ OPTION(BUILD_SLIDES "Build slides using LaTeX")
 
 ### Platform checks ############################################################
 
+INCLUDE(CheckFunctionExists)
+INCLUDE(CheckVariableExists)
+INCLUDE(TestBigEndian)
+
+TEST_BIG_ENDIAN(BIG_ENDIAN_SYSTEM)
+
 # TODO: we need at least 2.0.19-stable because of the logging defines
 FIND_PACKAGE(Event2 REQUIRED COMPONENTS core)
 FIND_PACKAGE(Endian REQUIRED)
@@ -37,15 +43,9 @@ IF (WITH_SLIDES)
     INCLUDE(UseLATEX)
 ENDIF ()
 
-INCLUDE(CheckFunctionExists)
-INCLUDE(CheckVariableExists)
-INCLUDE(TestBigEndian)
-
 INCLUDE(CompatReallocArray)
 INCLUDE(CompatSetProctitle)
 INCLUDE(CompatTimeMonotonic)
-
-TEST_BIG_ENDIAN(BIG_ENDIAN_SYSTEM)
 
 ### Global definitions #########################################################
 
@@ -54,11 +54,13 @@ INCLUDE(AddTestFromSources)
 
 SET(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-SET(CMAKE_C_FLAGS "-pipe ${CMAKE_C_FLAGS}")
-STRING(STRIP "${CMAKE_C_FLAGS}" CMAKE_C_FLAGS)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}}")
 STRING(STRIP "${CMAKE_C_FLAGS}" CMAKE_C_FLAGS)
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Wstrict-prototypes -std=c99")
+IF (CMAKE_C_COMPILER_ID MATCHES "MSVC")
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Wall")
+ELSE ()
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall -Wstrict-prototypes -std=c99 -pipe")
+ENDIF ()
 SET(CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} "")
 
 IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -72,6 +74,13 @@ ENDIF ()
 
 IF (APPLE)
     ADD_DEFINITIONS("-D_DARWIN_C_SOURCE=1")
+ENDIF ()
+
+IF (MSVC)
+    ADD_DEFINITIONS(
+        "-D_CRT_SECURE_NO_WARNINGS"
+        "-DNOMINMAX"
+    )
 ENDIF ()
 
 ADD_DEFINITIONS(
@@ -99,11 +108,12 @@ MESSAGE(STATUS "lightsd runtime directory: ${LGTD_RUNTIME_DIRECTORY}")
 
 INCLUDE_DIRECTORIES(
     ${EVENT2_INCLUDE_DIR}
+    ${LIGHTSD_SOURCE_DIR}
+    ${LIGHTSD_SOURCE_DIR}/compat/generic
+    ${LIGHTSD_BINARY_DIR}
     ${LIGHTSD_BINARY_DIR}/compat
-    ${LIGHTSD_BINARY_DIR}/compat/generic
 )
 
-ADD_SUBDIRECTORY(compat)
 ADD_SUBDIRECTORY(core)
 ADD_SUBDIRECTORY(lifx)
 

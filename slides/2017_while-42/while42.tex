@@ -1,0 +1,391 @@
+\documentclass{lgtdslides}
+
+\usepackage{tikz}
+\usepackage{tikzsymbols}
+\usepackage[francais]{babel}
+
+\usepackage{lgtdfigs}
+
+\title{S'amuser avec la lumière}
+\subtitle{\textit{Avec des ampoules LIFX et un Monome 128}}
+\date{While 42 SF, 2017-05-18}
+\author{Louis Opter <louis@opter.org>}
+
+\tikzset{arrow/.style={->, >=stealth,ultra thick,rounded corners}}
+
+\begin{document}
+
+\begin{frame}\titlepage\end{frame}
+
+\section{Intro}
+
+\begin{frame}{\LARGE{\texttt{\$ whoami}}}
+Bonjour, moi c'est Louis (Opter) et :\vspace{1em}
+\begin{itemize}
+\item je bosse sur SF depuis \textasciitilde2012 (docker/Uber) ;
+\item j'y connais rien en hardware ;
+\item donc j'ai acheté des trucs tous faits « simples » ;
+\item et voici une démo de ce que j'ai fait.
+\end{itemize}
+\end{frame}
+
+\section{Démo}
+
+\begin{frame}{Sous vos yeux}
+\begin{center}
+\begin{tikzpicture}
+\pic (0, 0) {monolightarch};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+
+\begin{frame}{Effet sablier/alerte}
+\only<1>{Une autre idée que j'aimerais implémenter\ldots}
+\begin{center}
+\begin{tikzpicture}[overlay,scale=1.2]
+\onslide<2->{%
+\pic (0, 0) {monome={scale 1.2}};
+
+\coordinate (NW) at (-4, 1.75);
+\coordinate (caption) at ($(NW) + (-1.155,0.65)$);
+
+\foreach \x in {-4,-3.5,...,-1}
+\fill[mbutton] (\x, -1.75) rectangle +(0.36, -0.36); % function row
+
+\node[rectangle] (b117) at (-1.32,-1.93) {};
+\node[rectangle] (b118) at (-0.82,-1.93) {};
+}
+\onslide<2,4->{%
+% targets toggles:
+\fill[mbutton] (-4, 1.75) rectangle +(0.36, -0.36);
+\foreach \x in {-2,0,...,3.5}
+\fill[mbuttvlow] (\x, 1.75) rectangle +(0.36, -0.36);
+
+% h:
+\fill[mbutthigh] (-4, -0.25) rectangle +(0.36, -0.36);
+\fill[mbutton] (-4, -0.75) rectangle +(0.36, -0.36);
+\fill[mbutton] (-4, -1.25) rectangle +(0.36, -0.36);
+
+% s:
+\fill[mbuttmed] (-3.5, -0.75) rectangle +(0.36, -0.36);
+\fill[mbutton] (-3.5, -1.25) rectangle +(0.36, -0.36);
+
+% b:
+\foreach \y in {1.25,0.75,...,-1.25}
+\fill[mbutton] (-3, \y) rectangle +(0.36, -0.36);
+
+% k:
+\fill[mbutthigh] (-2.5, -1.25) rectangle +(0.36, -0.36);
+}
+\onslide<2>{%
+\draw (caption) node[right] {Ajoutons deux nouvelles fonctions :};
+
+\node (timer) [below=0.5cm of b117] {timer};
+\node (alert) [below=0.9cm of b118] {alert};
+\draw[arrow] (timer) -- (b117);
+\draw[arrow] (alert) -- (b118);
+}
+\onslide<3>{%
+\draw (caption) node[right] {Sélection du compte à rebours:};
+\node[below right] at ($(caption.south) + (0, -0.09)$) {\footnotesize{(1 bouton allumé = 1 unité de temps)}};
+
+% partially lit grid:
+\foreach \x in {-4,-3.5,...,-0.5}
+\foreach \y in {1.75,1.25,...,-1.25}
+\fill[mbutton] (\x, \y) rectangle +(0.36, -0.36);
+\foreach \y in {1.75,1.25,...,-0.5}
+\fill[mbutton] (0, \y) rectangle +(0.36, -0.36);
+
+\foreach \x in {-4,-3.5,...,3.5}
+\fill[mbuttoff] (\x, -1.75) rectangle +(0.36, -0.36); % blank function row
+
+\fill[mbutton] (-1.5, -1.75) rectangle +(0.36, -0.36); % time button
+\fill[mbutton] (0, -1.75) rectangle +(0.36, -0.36); % dec time scale
+\fill[mbutton] (0.5, -1.75) rectangle +(0.36, -0.36); % inc time scale
+
+%\node[rectangle] (b117) at (-1.32,-1.93) {};
+%\node[rectangle] (b118) at (-0.82,-1.93) {};
+%\node[rectangle] (b119) at (-0.32,-1.93) {};
+\node[rectangle] (b120) at (0.18,-1.93) {};
+\node[rectangle] (b121) at (0.68,-1.93) {};
+\node[rectangle] (b122) at (1.18,-1.93) {};
+\draw[ultra thick,decorate,decoration={name=brace,mirror}]
+  ($(b120.south west) + (-0.1,-0.35)$) -- ($(b121.south east) + (0.1,-0.35)$);
+\node (timectl) [below=0.5cm of b121] {déc/inc de l'unité de temps};
+}
+\onslide<4>{%
+\draw (caption) node[right] {Sélection de la cible et de la fonction (alert):};
+
+\node (alert) [below=0.5cm of b118] {alert};
+\draw[arrow] (alert) -- (b118);
+
+\node[rectangle,opacity=0] (b0) at (-3.82,1.57) {B};
+\node[rectangle,opacity=0] (b4) at (-1.82,1.57) {B};
+\node[rectangle,opacity=0] (b8) at (0.18,1.57) {B};
+\node[rectangle,opacity=0] (b12) at (2.18,1.57) {B};
+
+\coordinate (legend) at ($(caption) + (0.7, -0.15)$);
+\coordinate (upturn) at ($(legend) + (0,-1.26)$);
+\draw[arrow,<-] (b0.south) -- ++(0,-0.35) -- (upturn) -- (legend.south);
+\draw[arrow,<-] (b4.south) -- ++(0,-0.35) -- (upturn) -- (legend.south);
+\draw[arrow,<-] (b8.south) -- ++(0,-0.35) -- (upturn) -- (legend.south);
+\draw[arrow,<-] (b12.south) -- ++(0,-0.35) -- (upturn) -- (legend.south);
+}
+\onslide<5>{%
+\fill[mbutton] (-3.5, 1.75) rectangle +(0.36, -0.36);
+
+\node[rectangle] (b1) at (-3.32,1.57) {};
+\node (feedback) [above right=0.5cm of b1] {Voyant d'activité du sablier};
+\draw[arrow] (feedback) -| (b1);
+}
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\section{À propos du projet}
+
+\begin{frame}{Motivations}
+À l'origine du projet :
+\vspace{1em}
+\begin{itemize}
+\item Délais de découverte/utilisation, fiabilité ;
+\item Sécurité, vie privée, (dé-)centralisation ;
+\item Obsolescence programmée (ou non) ;
+\item « Accessibilité ».
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Résultats}
+\only<1,3>{%
+Quelques découvertes et confirmations :
+\vspace{1em}
+\begin{itemize}
+\item Les blobs binaires c'est de la merde ;
+\item L'IoT s'améliore mais c'est pas encore ça ;
+\item Spectre de problèmes vraiment intéressant ;
+\item Une méthode d'apprentissage de premier ordre.
+\end{itemize}
+}
+\only<2>{%
+\emph{\leavevmode\usebeamertemplate***{itemize item} Spectre de problèmes vraiment intéressant :}
+\vspace{1em}
+\begin{center}
+\setlength{\tabcolsep}{15pt}
+\begin{tabular}{ccc}
+\textbf{LIFX} & \textbf{lightsd} & \textbf{monolight} \\
+\hline
+hardware & daemon & GUI \\
+\hline
+embarqué & C & Python \\
+\end{tabular}
+\begin{tikzpicture}
+\draw[arrow] (0,0) -- node[below,pos=0.6] {Bas-niveau} (-4.8,0);
+\draw[arrow] (0,0) -- node[below,pos=0.6] {Haut-niveau} (4.8,0);
+\end{tikzpicture}
+\end{center}
+}
+\end{frame}
+
+\section{Merci}
+
+{\setbeamertemplate{headline}{}
+\begin{frame}
+\begin{center}\Huge{Merci}\end{center}
+\vspace{1em}
+\begin{center}\Large{\emph{Place aux questions et à la discussion}}\end{center}
+\vspace{1em}
+\begin{itemize}
+\item \Large{\href{https://twitter.com/1opter}{@1opter}}
+\item \Large{\emph{\#lightsd} sur IRC (\emph{chat.freenode.net})}
+\item \Large{\url{https://www.lightsd.io/}}
+\end{itemize}
+\end{frame}}
+
+\section{Extras}
+
+\begin{frame}{Table des modèles LIFX}
+\begin{tabular}{lll}
+\textbf{Génération} & \textbf{Modèle} & \textbf{En vente} \\
+\hline
+Gen 1 & Original 1000, Color 650 & Non \\
+\hline
+Gen 2 & Color 1000, White 800 & Oui \\
+\hline
+Gen 3 & A19, BR30, Z (ruban) & Oui \\
+\end{tabular}
+\par\vspace{2em}
+\begin{tabular}{ll}
+\textbf{Génération} & \textbf{Notes} \\
+\hline
+Gen 1 & Supporte 802.11 et 802.15.4 (inutilisé) \\
+\hline
+Gen 2 & QCA 4002, AllJoyn, \emph{plante} \\
+\hline
+Gen 3 & versions + avec IR, \emph{plante toujours} \\
+\end{tabular}
+\end{frame}
+
+\section{Démo (papier)}
+
+\begin{frame}{La grille}
+\begin{center}
+\begin{tikzpicture}[overlay]
+\pic (0, 0) {monome={scale 1.2}};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Ligne de fonctions/scènes}
+\begin{center}
+\begin{tikzpicture}[overlay,scale=1.2]
+\onslide<1->{%
+\pic (0, 0) {monome={scale 1.2}};
+
+\foreach \x in {-4,-3.5,...,3.5}
+\fill[mbutton] (\x, -1.75) rectangle +(0.36, -0.36);
+}
+\onslide<2->{%
+\foreach \x in {-1.5,-1,...,3}
+\fill[mbuttoff] (\x, -1.75) rectangle +(0.36, -0.36);
+
+\fill[color=fgcolor,decoration={name=snake,amplitude=2,segment length=45}]
+  decorate {(-4.25,-1.35) -- (4.15,-1.35)} -- (4.15,2) -- (-4.25,2) -- cycle;
+
+\node[rectangle] (b112) at (-3.82,-1.93) {};
+\node[rectangle] (b113) at (-3.32,-1.93) {};
+\node[rectangle] (b114) at (-2.82,-1.93) {};
+\node[rectangle] (b115) at (-2.32,-1.93) {};
+\node[rectangle] (b116) at (-1.82,-1.93) {};
+\node[rectangle] (b117) at (-1.32,-1.93) {};
+\node[rectangle] (b127) at (3.68,-1.93)  {};
+}
+\onslide<2>{
+\node (toggle) [above=1.1cm of b112] {%
+\begin{minipage}{2cm}
+\begin{center}
+on/off
+
+toggle
+\end{center}
+\end{minipage}};
+\node (off) [above=0.7cm of b113] {off};
+\node (on) [above=1.1cm of b114] {on};
+\node (scenes) [above=0.7cm of b116] {scenes\ldots};
+\node (uitoggle) [above=1.1cm of b127] {toggle UI};
+
+\draw[arrow] (toggle) -- (b112);
+\draw[arrow] (off) -- (b113);
+\draw[arrow] (on) -- (b114);
+\draw[arrow] (uitoggle) -- (b127);
+
+\draw[ultra thick,decorate,decoration={name=brace}]
+  ($(b115.north west) + (-0.1,0.35)$) -- ($(b116.north east) + (0.1,0.35)$);
+}
+\onslide<3->{%
+\coordinate (b0) at (-4, 1.75);
+\draw ($(b0) + (-0.25, 0)$) node[below right] {%
+\begin{minipage}{10cm}
+D'autres idées :
+\vspace{1em}
+\begin{itemize}
+\item Boutons pour la navigation (pagination\ldots);  % will make sense on the next slide
+\item Boutons pour contrôler MPD.
+\end{itemize}
+\end{minipage}
+};
+}
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Panneau de contrôle pour une cible (x4)}
+\begin{center}
+\begin{tikzpicture}[overlay,scale=1.2]
+\onslide<1->{%
+\pic (0, 0) {monome={scale 1.2}};
+
+\foreach \x in {-4,-3.5,...,-2.5}
+\foreach \y in {1.75,1.25,...,-1.25}
+\fill[mbutton] (\x, \y) rectangle +(0.36, -0.36);
+
+\foreach \x in {-2,-1.5,...,-0.5}
+\foreach \y in {1.75,1.25,...,-1.25}
+\fill[mbuttmed] (\x, \y) rectangle +(0.36, -0.36);
+
+\foreach \x in {0,0.5,...,1.5}
+\foreach \y in {1.75,1.25,...,-1.25}
+\fill[mbutton] (\x, \y) rectangle +(0.36, -0.36);
+
+\foreach \x in {2,2.5,...,3.5}
+\foreach \y in {1.75,1.25,...,-1.25}
+\fill[mbuttmed] (\x, \y) rectangle +(0.36, -0.36);
+
+\foreach \x in {-4,-3.5,...,3.5}
+\fill[mbuttoff] (\x, -1.75) rectangle +(0.36, -0.36);
+}
+\onslide<2->{%
+\foreach \y in {1.75,1.25,...,-1.25}
+\fill[mbuttoff] (-2, \y) rectangle +(0.36, -0.36);
+
+\fill[color=fgcolor,decoration={name=snake,amplitude=2,segment length=45}]
+  decorate {(-1.75,2) -- (-1.75,-2.36)} -- (4.2,-2.36) -- (4.2,2) -- cycle;
+
+\foreach \x in {-3.5,-3,...,-2.5}
+\fill[mbuttoff] (\x, 1.75) rectangle +(0.36, -0.36);
+
+\foreach \y in {1.25,0.75,...,-0.25} % h
+\fill[mbuttoff] (-4, \y) rectangle +(0.36, -0.36);
+\fill[mbutthigh] (-4, -0.25) rectangle +(0.36, -0.36);
+
+\foreach \y in {1.25,0.75,...,-0.75} % s
+\fill[mbuttoff] (-3.5, \y) rectangle +(0.36, -0.36);
+\fill[mbuttmed] (-3.5, -0.75) rectangle +(0.36, -0.36);
+
+\foreach \y in {1.25,0.75,...,-1.25} % b
+\fill[mbutton] (-3, \y) rectangle +(0.36, -0.36);
+
+\foreach \y in {1.25,0.75,...,-1.25} % k
+\fill[mbuttoff] (-2.5, \y) rectangle +(0.36, -0.36);
+\fill[mbutthigh] (-2.5, -1.25) rectangle +(0.36, -0.36);
+
+\node[rectangle] (b16) at (-3.82,1.07) {};
+\node (INC) at (-4.82,1.07) {INC};
+\draw[arrow] (INC) -- (b16);
+
+\node[rectangle] (b32) at (-3.82,0.57) {};
+\node (inc) at (-4.82,0.57) {inc};
+\draw[arrow] (inc) -- (b32);
+
+\node[rectangle] (b80) at (-3.82,-0.93) {};
+\node (dec) at (-4.82,-0.93) {déc};
+\draw[arrow] (dec) -- (b80);
+
+\node[rectangle] (b96) at (-3.82,-1.43) {};
+\node (DEC) at (-4.82,-1.43) {DÉC};
+\draw[arrow] (DEC) -- (b96);
+
+\node[rectangle] (b4) at (-1.82,1.57) {};
+\node[rectangle] (b5) at (-1.32,1.57) {};
+\draw[arrow] (b5) -- (b4.west);
+\draw (b5) node[right] {Ligne de fonctions/voyants (toggle\ldots)};
+
+\node[rectangle] (b20) at (-1.82,1.07) {};
+\node[rectangle] (b21) at (-1.32,1.07) {};
+\draw[arrow] (b21) -- (b20.west);
+\draw (-1.32,1.32) node[below right] {%
+\begin{minipage}{10cm}
+4 barres de contrôle (HSBK):
+\vspace{1ex}
+\begin{itemize}
+\item Hue : 0.0--360.0°;
+\item Saturation : 0.0--1.0;
+\item (B) Luminosité : 0.0--1.0;
+\item (K) Température : 2500--9000K.
+\end{itemize}
+\end{minipage}};
+}
+\end{tikzpicture}
+\end{center}
+\end{frame}
+\end{document}

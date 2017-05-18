@@ -1,0 +1,169 @@
+\ProvidesPackage{lgtdfigs}
+
+\usetikzlibrary{%
+  calc,
+  decorations.pathreplacing,
+  decorations.pathmorphing,
+  shapes,
+  positioning
+}
+
+%%% LIFX inspired light bulb
+
+\colorlet{LightBulbBodyColor}{Grey!90!black}
+\colorlet{LightBulbSocketColor}{Silver!90!black}
+
+\tikzset{screw/.style={decoration={%
+    name=snake,amplitude=0.1mm,segment length=0.6mm
+}}}
+
+\tikzset{pics/lightbulb/.style args={#1 scale #2 rotate #3}{code={% arg1 is light color
+
+\tikzset{screw/.style={decoration={%
+    name=snake,amplitude=0.1mm,segment length=0.6mm
+}}}
+
+\begin{scope}[scale=#2,rotate=#3]
+
+% main body
+\fill[color=LightBulbBodyColor]
+    (-28mm,0) -- ++(0,32mm) -- ++(56mm,0) -- ++(0,-32mm) --
+    ++(-10mm,-18mm) -- ++(-36mm,0) -- cycle;
+
+% main body light
+\draw[line width=1.5mm,line cap=round,rounded corners=1pt,color=LightBulbBodyColor!80!white]
+    (-16mm,0.5mm) .. controls (0,-0.4mm) .. (16mm,0.5mm);
+\draw[line width=2mm,rounded corners=1pt,color=LightBulbBodyColor!80!white]
+    (16.5mm,32mm) -- ++(0,-32mm) -- ++(-15mm,-22mm);
+
+% led - body separator
+\fill[color=LightBulbBodyColor!90!black]
+    (-20mm,32mm) -- ++(0,2.5mm) -- ++(40mm,0) -- ++(0,-2.5mm) -- cycle;
+
+% led part
+\fill[color=#1]
+    (-28mm,34.5mm) -- ++(0,14mm)
+    .. controls ++(28mm,1mm) .. ++(56mm,0)
+    -- ++(0,-14mm) -- cycle;
+
+% lower body
+\fill[color=LightBulbBodyColor!90!black]
+    (-14mm,-18mm) -- ++(0,-18mm) --
+    ++(2mm,-2mm) -- ++(24mm,0) -- ++(2mm,2mm)
+    -- ++(0,18mm);
+
+% socket
+\fill[color=LightBulbSocketColor]
+    (-10mm,-38mm) -- ++(0,-4mm)
+    decorate[screw] {(-10mm,-42mm) -- ++(0,-10mm)}
+    -- ++(0,-0.5mm) -- ++(7.5mm,-6mm) -- ++(5mm,0) -- ++(7.5mm,6mm) -- ++(0,0.5mm)
+    decorate[screw] {(10mm,-52mm) -- ++(0,10mm)}
+    -- (10mm,-38mm) -- ++(-20mm,0) -- ++(0,-4mm) -- cycle;
+\draw[thin,color=LightBulbSocketColor] (-10mm,-42mm) -- (10mm,-52mm);
+
+% socket light
+\draw[line width=1mm,line cap=round,rounded corners=1pt,color=LightBulbSocketColor!90!white]
+    (4.5mm,-38mm) -- ++(0,-14mm) -- ++(-4mm,-2.5mm);
+
+% lower body light
+\draw[line width=1.8mm,color=LightBulbBodyColor]
+    (5mm,-18mm) -- ++(0,-20mm);
+
+% led - body separator light
+\draw[line width=1.6mm, color=LightBulbBodyColor] (16mm,32mm) -- ++(0,2.5mm);
+% led - body separator shade
+\draw[thin, color=LightBulbBodyColor!80!black] (-20mm,32mm) -- ++(0,2.5mm);
+\draw[thin, color=LightBulbBodyColor!80!black] (20mm,32mm) -- ++(0,2.5mm);
+
+% socket shade
+\draw[color=LightBulbSocketColor!80!black]
+    (-10mm,-38mm) -- ++(0,-4mm)
+    decorate[screw] {(-10mm,-42mm) -- ++(0,-10mm)}
+    -- ++(0,-0.5mm) -- ++(7.5mm,-6mm) -- ++(5mm,0) -- ++(7.5mm,6mm) -- ++(0,0.5mm)
+    decorate[screw] {(10mm,-52mm) -- ++(0,10mm)}
+    -- (10mm,-38mm);
+\draw[color=fgcolor]
+    (-10mm,-52.5mm) -- ++(7.5mm,-6mm) -- ++(5mm,0) -- ++(7.5mm,6mm);
+\draw[rounded corners=1pt,color=LightBulbSocketColor!80!black]
+    (-10mm,-52.5mm) -- ++(7.5mm,-6mm) -- ++(5mm,0) -- ++(7.5mm,6mm);
+
+% lower body shade
+\draw[rounded corners=1pt,color=LightBulbBodyColor!50!black]
+    (-14mm,-18mm) -- ++(0,-18mm) --
+    ++(2mm,-2mm) -- ++(24mm,0) -- ++(2mm,2mm)
+    -- ++(0,18mm);
+
+% body shade
+\draw[thick,rounded corners=1pt,color=LightBulbBodyColor!60!black]
+    (-28mm,0) -- ++(0,32mm) -- ++(56mm,0) -- ++(0,-32mm) --
+    ++(-10mm,-18mm) -- ++(-36mm,0) -- cycle;
+
+% led shade
+\draw[thick,rounded corners=1pt,color=#1!70!white]
+    (-28mm,34.5mm) -- ++(0,14mm)
+    .. controls ++(28mm,1mm) .. ++(56mm,0)
+    -- ++(0,-14mm) -- cycle;
+
+\end{scope}
+}}}
+
+%%% Monome inspired grid
+
+\colorlet{MonomePlate}{Gainsboro}
+\colorlet{MonomeCase}{Sienna}
+
+\tikzset{mbuttoff/.style={color=gray,rounded corners=1pt}}
+\tikzset{mbuttvlow/.style={color=orange!20!gray,rounded corners=1pt}}
+\tikzset{mbuttlow/.style={color=orange!35!gray,rounded corners=1pt}}
+\tikzset{mbuttmed/.style={color=orange!50!gray,rounded corners=1pt}}
+\tikzset{mbutthigh/.style={color=orange!80!gray,rounded corners=1pt}}
+\tikzset{mbutton/.style={fill,color=orange!95!white,rounded corners=1pt}}
+
+\tikzset{pics/monome/.style args={scale #1}{code={%
+
+\begin{scope}[scale=#1]
+\coordinate (NW) at (-4, 1.75);
+\coordinate (SE) at (3.86, -2.11);
+
+\fill[color=MonomeCase,rounded corners=2pt] ($(NW) + (-0.18,0.18)$) rectangle ($(SE) + (0.18,-0.18)$);
+\fill[color=MonomePlate,rounded corners=2pt] ($(NW) + (-0.10,0.10)$) rectangle ($(SE) + (0.10,-0.10)$);
+
+\foreach \x in {-4,-3.5,...,3.5}{
+    \foreach \y in {1.75,1.25,...,-1.75}{
+        \fill[mbuttoff] (\x, \y) rectangle +(0.36, -0.36);
+    }
+}
+
+\end{scope}
+}}}
+
+%%% Detailed arch diagram
+
+\tikzset{pics/monolightarch/.style={code={%
+
+\tikzset{wifipath/.style={thick,opacity=0.8,decorate,decoration={name=expanding waves,angle=25,segment length=3.5}}}
+\tikzset{box/.style={draw,ultra thick, color=BeamerBlue, text=black, rectangle, rounded corners=1pt}}
+
+\coordinate (Origin) at (0,0);
+\node[box,color=black] (serialoscd) at (0.5,1.5) {serialoscd};
+\draw[ultra thick] (-1.46, 2.2) -| node[above, pos=0.4] {Serial \small{(FTDI)}} (serialoscd);
+\node (monome) at (-3.5,1.5) {\begin{tikzpicture}
+\pic (0, 0) {monome={scale 0.5}};
+\end{tikzpicture}};
+\node[box] (monolight) at (3.5,-0.25) {monolight};
+\node[box] (lightsd) at (0.5,-2) {lightsd};
+\node (bulbh) at (-4.2,-1.1) {\begin{tikzpicture}
+\pic (0, 0) {lightbulb={LightSlateBlue scale 0.19 rotate 90}};
+\end{tikzpicture}};
+\node (bulbl) at (-4.2,-2.9) {\begin{tikzpicture}
+\pic (0, 0) {lightbulb={IndianRed scale 0.19 rotate 90}};
+\end{tikzpicture}};
+
+\draw[ultra thick] (serialoscd) -| node[above,pos=0.25] {OSC} node[below,pos=0.25] {\small{(UDP)}} (monolight);
+\draw[ultra thick] (lightsd) -| node[above,pos=0.25] {JSON-RPC} node[below,pos=0.25] {\small{(TCP/Unix)}} (monolight);
+\draw[wifipath] (bulbh.east) -- (-2.2,-1.15);
+\draw[wifipath] (lightsd.west) -- (-1.1,-2);
+\draw[wifipath] (bulbl.east) -- (-2.2,-2.85);
+\node (wifi) at (-2.1,-2.25) {\small{(UDP)}};
+\draw ($(wifi.north) + (0,0.2)$) node {LIFX-LAN};
+}}}
